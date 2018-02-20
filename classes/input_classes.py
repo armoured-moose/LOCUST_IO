@@ -378,6 +378,7 @@ class LOCUST_input:
             if verbose is True: #if wanting to print summary
                 print("missing data:")
                 print('\n'.join(str(key) for key in missing_data))
+                print('\n')
             return False
         else:
             return True 
