@@ -44,23 +44,25 @@ shot_number='157418'
 run_type='full_slow' #'23ms'
 eq_filename='g157418.03000'
 wall_filename='LOCUST_wall'
+folder_name_vacuum='response'
+folder_name_response='response_hi_res'
 
 
 folder_2D='2D_'+run_type
 folder_3D='3D_'+run_type
 
-DFN_2D_vacuum_filename=list(pathlib.Path(support.dir_output_files / shot_number / 'vacuum' / folder_2D).glob('*.dfn'))[0]
-DFN_2D_response_filename=list(pathlib.Path(support.dir_output_files / shot_number / 'response' / folder_2D).glob('*.dfn'))[0]
-DFN_3D_vacuum_filename=list(pathlib.Path(support.dir_output_files / shot_number / 'vacuum' / folder_3D).glob('*.dfn'))[0]
-DFN_3D_response_filename=list(pathlib.Path(support.dir_output_files / shot_number / 'response' / folder_3D).glob('*.dfn'))[0]
-DFN_2D_vacuum_split_filename=list(pathlib.Path(support.dir_output_files / shot_number / 'vacuum' / folder_2D).glob('ptcl_cache.dat'))[0]
-DFN_2D_response_split_filename=list(pathlib.Path(support.dir_output_files / shot_number / 'response' / folder_2D).glob('ptcl_cache.dat'))[0]
-DFN_3D_vacuum_split_filename=list(pathlib.Path(support.dir_output_files / shot_number / 'vacuum' / folder_3D).glob('ptcl_cache.dat'))[0]
-DFN_3D_response_split_filename=list(pathlib.Path(support.dir_output_files / shot_number / 'response' / folder_3D).glob('ptcl_cache.dat'))[0]
-MOM_2D_vacuum_filename=list(pathlib.Path(support.dir_output_files / shot_number / 'vacuum' / folder_2D).glob('*.h5'))[0]
-MOM_2D_response_filename=list(pathlib.Path(support.dir_output_files / shot_number / 'response' / folder_2D).glob('*.h5'))[0]
-MOM_3D_vacuum_filename=list(pathlib.Path(support.dir_output_files / shot_number / 'vacuum' / folder_3D).glob('*.h5'))[0]
-MOM_3D_response_filename=list(pathlib.Path(support.dir_output_files / shot_number / 'response' / folder_3D).glob('*.h5'))[0]
+DFN_2D_vacuum_filename=list(pathlib.Path(support.dir_output_files / shot_number / folder_name_vacuum / folder_2D).glob('*.dfn'))[0]
+DFN_2D_response_filename=list(pathlib.Path(support.dir_output_files / shot_number / folder_name_response / folder_2D).glob('*.dfn'))[0]
+DFN_3D_vacuum_filename=list(pathlib.Path(support.dir_output_files / shot_number / folder_name_vacuum / folder_3D).glob('*.dfn'))[0]
+DFN_3D_response_filename=list(pathlib.Path(support.dir_output_files / shot_number / folder_name_response / folder_3D).glob('*.dfn'))[0]
+DFN_2D_vacuum_split_filename=list(pathlib.Path(support.dir_output_files / shot_number / folder_name_vacuum / folder_2D).glob('ptcl_cache.dat'))[0]
+DFN_2D_response_split_filename=list(pathlib.Path(support.dir_output_files / shot_number / folder_name_response / folder_2D).glob('ptcl_cache.dat'))[0]
+DFN_3D_vacuum_split_filename=list(pathlib.Path(support.dir_output_files / shot_number / folder_name_vacuum / folder_3D).glob('ptcl_cache.dat'))[0]
+DFN_3D_response_split_filename=list(pathlib.Path(support.dir_output_files / shot_number / folder_name_response / folder_3D).glob('ptcl_cache.dat'))[0]
+MOM_2D_vacuum_filename=list(pathlib.Path(support.dir_output_files / shot_number / folder_name_vacuum / folder_2D).glob('*.h5'))[0]
+MOM_2D_response_filename=list(pathlib.Path(support.dir_output_files / shot_number / folder_name_response / folder_2D).glob('*.h5'))[0]
+MOM_3D_vacuum_filename=list(pathlib.Path(support.dir_output_files / shot_number / folder_name_vacuum / folder_3D).glob('*.h5'))[0]
+MOM_3D_response_filename=list(pathlib.Path(support.dir_output_files / shot_number / folder_name_response / folder_3D).glob('*.h5'))[0]
 
 DFN_2D_vacuum=DFN(ID='2D with vacuum deposition',data_format='LOCUST',filename=DFN_2D_vacuum_filename)
 DFN_2D_response=DFN(ID='2D with response deposition',data_format='LOCUST',filename=DFN_2D_response_filename)
