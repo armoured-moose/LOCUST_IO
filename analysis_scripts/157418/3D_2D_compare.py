@@ -41,11 +41,12 @@ import processing.utils
 
 
 shot_number='157418'
-run_type='full_slow' #'23ms'
+run_type='full_slow'
+run_type='23ms'
 eq_filename='g157418.03000'
 wall_filename='LOCUST_wall'
-folder_name_vacuum='response'
-folder_name_response='response_hi_res'
+folder_name_vacuum='response_hi_res'
+folder_name_response='response_hi_res_-90_i3dr1'
 
 
 folder_2D='2D_'+run_type
@@ -104,12 +105,14 @@ for DFN in [DFN_2D_vacuum_split,DFN_2D_response_split,DFN_3D_vacuum_split,DFN_3D
     #XXX need to check here which status flags we need to include
     i=np.where((DFN['status_flag']==-5) | (DFN['status_flag']==-8.) | (DFN['status_flag']==-9.) | (DFN['status_flag']==-14.) | (DFN['status_flag']==0.))[0] #calculate the PFC power flux
     number_of_markers=len(DFN['status_flag'][i]) 
-    Pdep_simulation=Einj*number_of_markers*constants.charge_e
+    Pdep_simulation=Einj*number_of_markers*constants.charge_e #calculate Pdep as if markers in sim represented ALL the real ions (this also corrects for rejected markers)
     Pdep_scale_factor=Pdep_desired/Pdep_simulation
-    DFN['weight']=DFN['E']*constants.charge_e*Pdep_scale_factor
+    DFN['weight']=DFN['E']*constants.charge_e*Pdep_scale_factor #reason why include E here is because this weight is used later as a proxy for heat load (when looking at dfn(R))
     i=np.where((DFN['status_flag']<0)&(DFN['status_flag']>-8.))[0] #look at all markers which were lost from plasma
+    i=np.where(DFN['status_flag']==-5)[0] #look at all markers which were lost from plasma
     DFN['PFC_power']=np.histogram(DFN['time'][i],bins=100,weights=DFN['E'][i]*constants.charge_e*Pdep_scale_factor)[0] #place against same time base as LOCUST
-    DFN['PFC_power']=np.cumsum(DFN['PFC_power'])
+    DFN['PFC_power']=np.cumsum(DFN['PFC_power']) #this replicates the LOCUST way of calculating PFC power
+  
 
 
 DFN_2D_vacuum=DFN_2D_vacuum.crop(R=[1.55,1.93],Z=[-0.25,0.25],inside=False)

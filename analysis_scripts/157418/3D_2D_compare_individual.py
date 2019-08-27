@@ -44,6 +44,8 @@ shot_number='157418'
 
 response_type='response'    
 response_type='vacuum'
+response_type='response_hi_res'
+response_type='response_hi_res_-90_i3dr1'
 
 
 folder_2D='2D_23ms'  
@@ -62,15 +64,12 @@ wall_filename='LOCUST_wall'
 
 DFN_2D=DFN(ID='2D',data_format='LOCUST',filename=DFN_2D_filename)
 DFN_3D=DFN(ID='3D',data_format='LOCUST',filename=DFN_3D_filename)
-DFN_2D_split=FPL(ID='2D -DSPLIT',data_format='LOCUST',filename=DFN_2D_split_filename,compression=True,coordinates=['R','Z','V_R','phi','V_tor','V_Z','status_flag','time'])
-DFN_3D_split=FPL(ID='3D -DSPLIT',data_format='LOCUST',filename=DFN_3D_split_filename,compression=True,coordinates=['R','Z','V_R','phi','V_tor','V_Z','status_flag','time'])
+DFN_2D_split=FPL(ID='2D -DSPLIT',data_format='LOCUST',filename=DFN_2D_split_filename,compression=True,coordinates=['R','Z','phi','V_R','V_tor','V_Z','status_flag','time','PFC_intercept','additional_flag1'])
+DFN_3D_split=FPL(ID='3D -DSPLIT',data_format='LOCUST',filename=DFN_3D_split_filename,compression=True,coordinates=['R','Z','phi','V_R','V_tor','V_Z','status_flag','time','PFC_intercept','additional_flag1'])
 MOM_2D=Mom(ID='2D moments',data_format='LOCUST',filename=MOM_2D_filename)
 MOM_3D=Mom(ID='3D moments',data_format='LOCUST',filename=MOM_3D_filename)
 eq=EQ(ID='157418 300ms equilibrium',data_format='GEQDSK',filename=eq_filename,GEQDSKFIX=1)
 wall=Wall(ID='157418 2D wall',data_format='GEQDSK',filename='g157418.03000')
-
-
-
 
 #calculate some missing quantities and edit the data
 DFN_2D_split['E']=.5*constants.species_mass*(DFN_2D_split['V_R']**2+DFN_2D_split['V_tor']**2+DFN_2D_split['V_Z']**2)/constants.charge_e
@@ -79,10 +78,29 @@ DFN_3D_split['E']=.5*constants.species_mass*(DFN_3D_split['V_R']**2+DFN_3D_split
 #DFN_3D_split['V_pitch']=processing.utils.pitch_calc_2D(DFN_3D_split,eq)
 
 
-#XXX need to check here which status flags we need to include
-i=np.where((DFN_2D_split['status_flag']==-5) | (DFN_2D_split['status_flag']==-8.) | (DFN_2D_split['status_flag']==-9.) | (DFN_2D_split['status_flag']==-14.) | (DFN_2D_split['status_flag']==0.))[0] #calculate the PFC power flux
+#these status flags count as a loss in LOCUST
+
+'''
+         if( nint(ph(i,8))== -1 .or.                                          &
+             nint(ph(i,8))== -3 .or.                                          &
+             nint(ph(i,8))== -4 .or.                                          &
+             nint(ph(i,8))== -5 .or.                                          &
+             nint(ph(i,8))== -6 .or.                                          &
+             nint(ph(i,8))== -8 .or.                                          &
+             nint(ph(i,8))== -9 .or.                                          &
+             nint(ph(i,8))==-10 .or.                                          &
+             nint(ph(i,8))==-11 .or.                                          &
+             nint(ph(i,8))==-12 .or.                                          &
+             nint(ph(i,8))==-14 .or.                                          &
+             nint(ph(i,8))==-15 )then
+'''
+
+#need to scale up weights of particle list to match 1W injected power
+i=np.where((DFN_2D_split['status_flag']<=0)&(DFN_2D_split['status_flag']>=-15.))[0] #calculate the PFC power flux
+#i=np.where((DFN_2D_split['status_flag']==-5) | (DFN_2D_split['status_flag']==-8.) | (DFN_2D_split['status_flag']==-9.) | (DFN_2D_split['status_flag']==-14.) | (DFN_2D_split['status_flag']==0.))[0] #calculate the PFC power flux
 number_of_particles_2D=len(DFN_2D_split['status_flag'][i]) 
-i=np.where((DFN_3D_split['status_flag']==-5) | (DFN_3D_split['status_flag']==-8.) | (DFN_3D_split['status_flag']==-9.) | (DFN_3D_split['status_flag']==-14.) | (DFN_3D_split['status_flag']==0.))[0] #calculate the PFC power flux
+i=np.where((DFN_3D_split['status_flag']<=0)&(DFN_3D_split['status_flag']>=-15.))[0]
+#i=np.where((DFN_3D_split['status_flag']==-5) | (DFN_3D_split['status_flag']==-8.) | (DFN_3D_split['status_flag']==-9.) | (DFN_3D_split['status_flag']==-14.) | (DFN_3D_split['status_flag']==0.))[0] #calculate the PFC power flux
 number_of_particles_3D=len(DFN_3D_split['status_flag'][i])
 Pdep_2D_desired=1.
 Pdep_3D_desired=1.
@@ -93,18 +111,18 @@ Pdep_3D_simulation=Einj_3D*number_of_particles_3D*constants.charge_e
 Pdep_scale_factor_2D=Pdep_2D_desired/Pdep_2D_simulation
 Pdep_scale_factor_3D=Pdep_3D_desired/Pdep_3D_simulation
 
-i=np.where((DFN_2D_split['status_flag']<0)&(DFN_2D_split['status_flag']>-8.))[0] #look at all markers which were lost from plasma
+i=np.where((DFN_2D_split['PFC_intercept']<0)) #look at all markers which were lost from plasma
 DFN_2D_split['PFC_power']=np.histogram(DFN_2D_split['time'][i],bins=100,weights=DFN_2D_split['E'][i]*constants.charge_e*Pdep_scale_factor_2D)[0] #place against same time base as LOCUST
 DFN_2D_split['PFC_power']=np.cumsum(DFN_2D_split['PFC_power'])
-i=np.where((DFN_3D_split['status_flag']<0)&(DFN_3D_split['status_flag']>-8.))[0]
+i=np.where((DFN_3D_split['PFC_intercept']<0))
 DFN_3D_split['PFC_power']=np.histogram(DFN_3D_split['time'][i],bins=100,weights=DFN_3D_split['E'][i]*constants.charge_e*Pdep_scale_factor_3D)[0] #place against same time base as LOCUST
 DFN_3D_split['PFC_power']=np.cumsum(DFN_3D_split['PFC_power'])
 
 DFN_2D_split['weight']=DFN_2D_split['E']*constants.charge_e*Pdep_scale_factor_2D
 DFN_3D_split['weight']=DFN_3D_split['E']*constants.charge_e*Pdep_scale_factor_3D
 
-DFN_2D=DFN_2D.crop(R=[1.55,1.93],Z=[-0.25,0.25],inside=False)
-DFN_3D=DFN_3D.crop(R=[1.55,1.93],Z=[-0.25,0.25],inside=False)
+DFN_2D=DFN_2D.crop(R=[1.45,1.98],Z=[-0.35,0.35],inside=False)
+DFN_3D=DFN_3D.crop(R=[1.45,1.98],Z=[-0.35,0.35],inside=False)
 
 
 
@@ -127,16 +145,16 @@ DFN_3D.plot(fig=fig,ax=ax2,axes=['R','Z'],real_scale=True,limiters=wall)
 #    cbar=fig.colorbar(mesh,ax=ax,orientation='vertical')
 
 
-#DFN_3D_split.plot(fig=fig,ax=ax3,axes=['time'],status_flags=['PFC_intercept'],colmap=settings.cmap_k,weight=True,number_bins=300)#,style='scatter') #as a function of energy
-#DFN_2D_split.plot(fig=fig,ax=ax3,axes=['time'],status_flags=['PFC_intercept'],colmap=settings.cmap_b,weight=True,number_bins=300)#,style='scatter') 
-#DFN_2D_split.plot(fig=fig,ax=ax3,axes=['R','Z'],status_flags=['PFC_intercept'],colfield='E',colmap=cmap_blues,weight=True,style='scatter',real_scale=True,limiters=wall) #scatter in RZ space 
-#DFN_3D_split.plot(fig=fig,ax=ax3,axes=['R','Z'],status_flags=['PFC_intercept'],colfield='E',colmap=cmap_reds,weight=True,style='scatter',real_scale=True,limiters=wall) 
-DFN_2D_split.plot(fig=fig,ax=ax3,axes=['R','Z'],status_flags=['PFC_intercept'],weight=True,style='histogram',real_scale=True,number_bins=500,limiters=wall) #heat in RZ space 
-DFN_3D_split.plot(fig=fig,ax=ax3,axes=['R','Z'],status_flags=['PFC_intercept'],weight=True,style='histogram',real_scale=True,number_bins=500,limiters=wall) 
-#DFN_3D_split.plot(fig=fig,ax=ax3,axes=['phi','Z'],status_flags=['PFC_intercept'],colfield='E',colmap=cmap_reds,weight=True,style='scatter') 
-#DFN_2D_split.plot(fig=fig,ax=ax3,axes=['phi','Z'],status_flags=['PFC_intercept'],colfield='E',colmap=cmap_blues,weight=True,style='scatter') #in Z phi space 
-#DFN_2D_split.plot(fig=fig,ax=ax3,axes=['R'],status_flags=['PFC_intercept'],colmap=settings.cmap_g,weight=True,style='histogram',number_bins=100) #heat in R space 
-#DFN_3D_split.plot(fig=fig,ax=ax3,axes=['R'],status_flags=['PFC_intercept'],colmap=settings.cmap_r,weight=True,style='histogram',number_bins=100) 
+#DFN_3D_split.plot(fig=fig,ax=ax3,axes=['time'],status_flags=['PFC_intercept_3D'],colmap=settings.cmap_k,weight=True,number_bins=300)#,style='scatter') #as a function of energy
+#DFN_2D_split.plot(fig=fig,ax=ax3,axes=['time'],status_flags=['PFC_intercept_3D'],colmap=settings.cmap_b,weight=True,number_bins=300)#,style='scatter') 
+#DFN_2D_split.plot(fig=fig,ax=ax3,axes=['R','Z'],status_flags=['PFC_intercept_3D'],colfield='E',colmap=cmap_blues,weight=True,style='scatter',real_scale=True,limiters=wall) #scatter in RZ space 
+#DFN_3D_split.plot(fig=fig,ax=ax3,axes=['R','Z'],status_flags=['PFC_intercept_3D'],colfield='E',colmap=cmap_reds,weight=True,style='scatter',real_scale=True,limiters=wall) 
+DFN_2D_split.plot(fig=fig,ax=ax3,axes=['R','Z'],status_flags=['PFC_intercept_3D'],weight=True,style='histogram',real_scale=True,number_bins=500,limiters=wall) #heat in RZ space 
+DFN_3D_split.plot(fig=fig,ax=ax3,axes=['R','Z'],status_flags=['PFC_intercept_3D'],weight=True,style='histogram',real_scale=True,number_bins=500,limiters=wall) 
+#DFN_3D_split.plot(fig=fig,ax=ax3,axes=['phi','Z'],status_flags=['PFC_intercept_3D'],colfield='E',colmap=cmap_reds,weight=True,style='scatter') 
+#DFN_2D_split.plot(fig=fig,ax=ax3,axes=['phi','Z'],status_flags=['PFC_intercept_3D'],colfield='E',colmap=cmap_blues,weight=True,style='scatter') #in Z phi space 
+#DFN_2D_split.plot(fig=fig,ax=ax3,axes=['R'],status_flags=['PFC_intercept_3D'],colmap=settings.cmap_g,weight=True,style='histogram',number_bins=100) #heat in R space 
+#DFN_3D_split.plot(fig=fig,ax=ax3,axes=['R'],status_flags=['PFC_intercept_3D'],colmap=settings.cmap_r,weight=True,style='histogram',number_bins=100) 
 
 
 moment_to_plot='density'
