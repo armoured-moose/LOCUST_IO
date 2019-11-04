@@ -4,7 +4,7 @@
 Samuel Ward
 14/10/19
 ----
-script for controlling and launching LOCUST parameter scans for RMP studies
+script for controlling and launching LOCUST parameter scans for static RMP studies
 ---
  
 notes:         
@@ -110,6 +110,12 @@ LOCUST_run__flags={}
 #LOCUST_run__flags['']=
 #LOCUST_run__flags['']=
 
+#fixed parameters needed by MARS_read
+MARS_read__settings={}
+MARS_read__settings['TAIL']="['','','']"
+MARS_read__flags={}
+MARS_read__flags['TOKAMAK']=1
+
 #define parameters needed by the RMP_study workflow for a given scenario
 RMP_study__name='test_study'
 RMP_study__dir_input_database=support.dir_input_files / 'ITER_fields_yueqiang' / 'DataBase'
@@ -160,6 +166,8 @@ LOCUST_run__repo_URL__batch=[]
 LOCUST_run__commit_hash__batch=[]
 LOCUST_run__settings_prec_mod__batch=[]
 LOCUST_run__flags__batch=[]
+MARS_read__settings__batch=[]
+MARS_read__flags__batch=[]
 RMP_study__name__batch=[]
 RMP_study__dir_input_database__batch=[]
 RMP_study__filepaths_kinetic_profiles__batch=[]
@@ -264,6 +272,8 @@ for parameters__database, \
                                         LOCUST_run__commit_hash__batch.append(LOCUST_run__commit_hash)
                                         LOCUST_run__settings_prec_mod__batch.append(LOCUST_run__settings_prec_mod)
                                         LOCUST_run__flags__batch.append(LOCUST_run__flags)
+                                        MARS_read__settings__batch.append(MARS_read__settings)
+                                        MARS_read__flags__batch.append(MARS_read__flags)
                                         RMP_study__name__batch.append(RMP_study__name)
                                         RMP_study__dir_input_database__batch.append(RMP_study__dir_input_database)
                                         RMP_study__filepaths_kinetic_profiles__batch.append(RMP_study__filepath_kinetic_profiles)
@@ -345,6 +355,8 @@ RMP_batch_run=Batch(
     LOCUST_run__commit_hash=LOCUST_run__commit_hash__batch,
     LOCUST_run__settings_prec_mod=LOCUST_run__settings_prec_mod__batch,
     LOCUST_run__flags=LOCUST_run__flags__batch,
+    MARS_read__settings=MARS_read__settings__batch,
+    MARS_read__flags=MARS_read__flags__batch,
     RMP_study__name=RMP_study__name__batch,
     RMP_study__dir_input_database=RMP_study__dir_input_database__batch,
     RMP_study__filepath_kinetic_profiles=RMP_study__filepaths_kinetic_profiles__batch,

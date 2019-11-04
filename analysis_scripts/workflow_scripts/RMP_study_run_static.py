@@ -4,12 +4,10 @@
 Samuel Ward
 14/10/2019
 ----
-modified LOCUST_run script for running LOCUST workflows with additional steps
+workflow designed for RMP studies (with static RMP field)
 ---
 notes: 
-TODO:
-    need to find way of meshgridding our parameter set (can you do this with lists?)
-    need to then apply a filter over the top of this such that impossible combinations are ruled out (set to None or something)
+    since RMP field is static, total field is combined before LOCUST simulation
 ---
 '''
 
@@ -45,7 +43,7 @@ except:
     raise ImportError("ERROR: LOCUST_IO/src/run_scripts/LOCUST_run.py could not be imported!\nreturning\n")
     sys.exit(1)
 try:
-    import run_scripts.MARS_builder_run
+    from run_scripts.MARS_builder_run import MARS_builder_run
 except:
     raise ImportError("ERROR: LOCUST_IO/src/run_scripts/MARS_builder_run.py could not be imported!\nreturning\n")
     sys.exit(1)
@@ -112,6 +110,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                 LOCUST_run__commit_hash,
                 LOCUST_run__settings_prec_mod,
                 LOCUST_run__flags,
+                MARS_read__settings,
+                MARS_read__flags,
                 RMP_study__name, #variables defining controlling this workflow
                 RMP_study__dir_input_database,
                 RMP_study__filepath_kinetic_profiles, 
@@ -154,6 +154,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         self.LOCUST_run__commit_hash=LOCUST_run__commit_hash
         self.LOCUST_run__settings_prec_mod=LOCUST_run__settings_prec_mod
         self.LOCUST_run__flags=LOCUST_run__flags
+        self.MARS_read__settings=MARS_read__settings,
+        self.MARS_read__flags=MARS_read__flags,
         self.RMP_study__name=RMP_study__name #data needed for additional steps
         self.RMP_study__dir_input_database=pathlib.Path(RMP_study__dir_input_database)
         self.RMP_study__filepath_kinetic_profiles=pathlib.Path(RMP_study__filepath_kinetic_profiles)
@@ -173,7 +175,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         #self.add_command(command_name='mv_files',command_function=self.move_files,position=self.run_commands.index('get_input')) #add new workflow stages
 
 
-'''    def setup_RMP_study_dirs(*args,**kwargs):
+'''    def setup_RMP_study_dirs(self,*args,**kwargs):
         """
         notes:
         """
@@ -186,7 +188,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                         ]:
             if not direc.is_dir(): direc.mkdir(parents=True)'''
 
-    def get_kinetic_profiles(*args,**kwargs):
+    def get_kinetic_profiles(self,*args,**kwargs):
         """
         notes:
         """
@@ -197,18 +199,26 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         for species in ['electrons','tritium','deuterium','helium','hydrogen','tungsten','helium3']:
             temperatures.append(Temperature(ID='',data_format='EXCEL1',species=species,filename=self.RMP_study__filepath_kinetic_profiles))
             densities.append(Number_Density(ID='',data_format='EXCEL1',species=species,filename=self.RMP_study__filepath_kinetic_profiles))
-        for temperature in temperatures: temperature.dump_data(data_format='LOCUST')
-        for density in densities: density.dump_data(data_format='LOCUST')
+        for temperature in temperatures: temperature.dump_data(data_format='LOCUST',filename=self.parameters__database / self.RMP_study__name / parameters__parameter_string / 'temperature_{}'.format(temperature['properties']['species']))
+        for density in densities: density.dump_data(data_format='LOCUST',filename=self.parameters__database / self.RMP_study__name / parameters__parameter_string / 'density_{}'.format(temperature['properties']['species']))
+        rotation=Rotation(ID='',data_format='EXCEL1',filename=self.parameters__database / self.RMP_study__name / parameters__parameter_string / 'rotation_{}'.format(temperature['properties']['species']))
+        rotation.dump_data(data_format='LOCUST',filename=)
 
-        rotation=Rotation(ID='',data_format='EXCEL1')
-        rotation.dump_data(data_format='LOCUST')
 
-'''
-    def setup_directories(*args,**kwargs):
+    def get_3D_fields(self,*args,**kwargs):
         """
         notes:
         """
 
+        field_3D_U=MARS_builder_run(filepath_input=self.RMP_study__filepaths_3D_field_U,dir_output_files=self.LOCUST_run__dir_input,dir_MARS_builder=self.LOCUST_run__dir_cache / 'MARS_builder',system_name='TITAN',settings_mars_read=self.MARS_read__settings,flags=self.MARS_read__flags)
+        field_3D_M=MARS_builder_run(filepath_input=self.RMP_study__filepaths_3D_field_M,dir_output_files=self.LOCUST_run__dir_input,dir_MARS_builder=self.LOCUST_run__dir_cache / 'MARS_builder',system_name='TITAN',settings_mars_read=self.MARS_read__settings,flags=self.MARS_read__flags)
+        field_3D_L=MARS_builder_run(filepath_input=self.RMP_study__filepaths_3D_field_L,dir_output_files=self.LOCUST_run__dir_input,dir_MARS_builder=self.LOCUST_run__dir_cache / 'MARS_builder',system_name='TITAN',settings_mars_read=self.MARS_read__settings,flags=self.MARS_read__flags)
+
+        field_3D_U.run()
+        field_3D_M.run()
+        field_3D_L.run()
+
+'''
     def setup_directories(*args,**kwargs):
         """
         notes:
