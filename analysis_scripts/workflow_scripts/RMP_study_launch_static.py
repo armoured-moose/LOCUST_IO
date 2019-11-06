@@ -16,6 +16,7 @@ notes:
             data
                 input_files
                     path_to_master_data - unchanging
+                    path_to_additional_data - unchanging
                     database_folder_name
                         RMP_study
                             metadata_folder_name - stores all the inputs just before a run is performed, deleted after a run
@@ -78,9 +79,10 @@ except:
 #Main 
 
 #random variables to help
-DataMarsf_folder_name='DataMarsf' #normal 3D field level name however this can sometimes vary between scenarios...
+folder_name_DataMarsf='DataMarsf' #3D field directory name however this can sometimes vary between scenarios e.g. if using vacuum field
+folder_name_DataEq='DataEq' #equilibrium 
 
-#some variables to act as notes, storing possible options to choose from
+#some variables to act as reminders/notes, storing possible options to choose from
 database__options=['ITER_15MAQ10_case5','ITER_15MAQ5_case4','ITER_5MAH_case1','ITER_7d5MAFullB_case3','ITER_7d5MAHalfB_case2']
 parameters__toroidal_mode_numbers__options=[1,2,3,4,5,6]
 kinetic_profs_n__options=['flat','peaked']
@@ -94,7 +96,8 @@ kinetic_profs_Pr_string__options=['03','1'] #version used in strings describing 
 
 parameters__databases=['ITER_15MAQ10_case5'] #these all zipped at same level in main loop because source data is not consistent enough
 parameters__sheet_names_kinetic_prof=["'Flat n'"]
-parameters__sheet_names_rotation=["'Flat n, Pr=1'"]
+parameters__sheet_names_rotation=["'Flat n,Pr=1'"]
+parameters__var_names_rotation=["'Vt(tF/tE=2)'"]
 parameters__kinetic_profs_n=['flat']
 
 #fixed parameters needed by LOCUST_run
@@ -111,25 +114,31 @@ LOCUST_run__flags={}
 #LOCUST_run__flags['']=
 
 #fixed parameters needed by MARS_read
+MARS_read__tail_U='_U_VAC'
+MARS_read__tail_M='_M_VAC'
+MARS_read__tail_L='_L_VAC'
+MARS_read__tails=[MARS_read__tail_U,MARS_read__tail_M,MARS_read__tail_L]
 MARS_read__settings={}
-MARS_read__settings['TAIL']="['','','']"
+MARS_read__settings['TAIL']="{}".format(MARS_read__tails)
 MARS_read__flags={}
 MARS_read__flags['TOKAMAK']=1
 
 #define parameters needed by the RMP_study workflow for a given scenario
 RMP_study__name='test_study'
 RMP_study__dir_input_database=support.dir_input_files / 'ITER_fields_yueqiang' / 'DataBase'
-RMP_study__filepaths_kinetic_profiles=[list((RMP_study__dir_input_database / parameters__database / 'DataEq').glob('*.xlsx'))[0] for parameters__database in parameters__databases] #define the paths to kinetic profiles
+RMP_study__filepaths_kinetic_profiles=[list((RMP_study__dir_input_database / parameters__database / folder_name_DataEq).glob('*.xlsx'))[0] for parameters__database in parameters__databases] #define the paths to kinetic profiles
+RMP_study__filepaths_equilibrium=[list((RMP_study__dir_input_database / parameters__database / folder_name_DataEq).glob('eqdsk*'))[0] for parameters__database in parameters__databases] #define the paths to equilibria
+RMP_study__filepaths_additional_data=support.dir_input_files / 'ITER_additional_data'
 
 #################################
 #define the parameter space which varies for a given scenario
 
 #kinetic profile parameters
-parameters__kinetic_profs_tF_tE=[0.5] #0.7 is actually 0.72
-parameters__kinetic_profs_tF_tE_string=['05'] #version used in strings describing data in storage
+parameters__kinetic_profs_tF_tE=[2.0] 
+parameters__kinetic_profs_tF_tE_string=['2'] #version used in strings describing data in storage
 
-parameters__kinetic_profs_Pr=[0.3] #prandl number
-parameters__kinetic_profs_Pr_string=['03'] #version used in strings describing data in storage
+parameters__kinetic_profs_Pr=[1.0] #prandl number
+parameters__kinetic_profs_Pr_string=['1'] #version used in strings describing data in storage
 
 #3D field parameters
 parameters__toroidal_mode_numbers=[1]
@@ -146,6 +155,7 @@ parameters__rotations_lower=[0]
 parameters__databases__batch=[]
 parameters__sheet_names_kinetic_prof__batch=[]
 parameters__sheet_names_rotation__batch=[]
+parameters__var_names_rotation__batch=[]
 parameters__kinetic_profs_n__batch=[]
 parameters__kinetic_profs_tF_tE__batch=[]
 parameters__kinetic_profs_Pr__batch=[]
@@ -166,11 +176,16 @@ LOCUST_run__repo_URL__batch=[]
 LOCUST_run__commit_hash__batch=[]
 LOCUST_run__settings_prec_mod__batch=[]
 LOCUST_run__flags__batch=[]
+MARS_read__tail_U__batch=[]
+MARS_read__tail_M__batch=[]
+MARS_read__tail_L__batch=[]
 MARS_read__settings__batch=[]
 MARS_read__flags__batch=[]
 RMP_study__name__batch=[]
 RMP_study__dir_input_database__batch=[]
 RMP_study__filepaths_kinetic_profiles__batch=[]
+RMP_study__filepaths_equilibrium__batch=[]
+RMP_study__filepaths_additional_data__batch=[]
 RMP_study__filepaths_3D_field_U__batch=[]
 RMP_study__filepaths_3D_field_M__batch=[]
 RMP_study__filepaths_3D_field_L__batch=[]
@@ -188,14 +203,18 @@ run_number=0
 for parameters__database, \
     parameters__sheet_name_kinetic_prof, \
     parameters__sheet_name_rotation, \
+    parameters__var_name_rotation, \
     parameters__kinetic_prof_n, \
-    RMP_study__filepath_kinetic_profiles \
+    RMP_study__filepath_kinetic_profiles, \
+    RMP_study__filepath_equilibrium \
     in zip(
         parameters__databases,
         parameters__sheet_names_kinetic_prof,
         parameters__sheet_names_rotation,
-        parameters__kinetic_profs_n, \
-        RMP_study__filepaths_kinetic_profiles
+        parameters__var_names_rotation,
+        parameters__kinetic_profs_n,
+        RMP_study__filepaths_kinetic_profiles,
+        RMP_study__filepaths_equilibrium
         ): 
     for parameters__kinetic_prof_tF_tE, \
         parameters__kinetic_prof_tF_tE_string \
@@ -252,6 +271,7 @@ for parameters__database, \
                                         parameters__databases__batch.append(parameters__database)
                                         parameters__sheet_names_kinetic_prof__batch.append(parameters__sheet_name_kinetic_prof)
                                         parameters__sheet_names_rotation__batch.append(parameters__sheet_name_rotation)
+                                        parameters__var_names_rotation__batch.append(parameters__var_name_rotation)
                                         parameters__kinetic_profs_n__batch.append(parameters__kinetic_prof_n)
                                         parameters__kinetic_profs_tF_tE__batch.append(parameters__kinetic_prof_tF_tE)
                                         parameters__kinetic_profs_Pr__batch.append(parameters__kinetic_prof_Pr)
@@ -263,23 +283,28 @@ for parameters__database, \
                                         parameters__rotations_middle__batch.append(parameters__rotation_middle)
                                         parameters__rotations_lower__batch.append(parameters__rotation_lower)
                                         parameters__parameter_strings__batch.append(parameters__parameter_string)
-                                        LOCUST_run__dir_LOCUST__batch.append(support.dir_locust / parameters__database / RMP_study__name / parameters__parameter_string)
-                                        LOCUST_run__dir_input__batch.append(support.dir_input_files / parameters__database / RMP_study__name / parameters__parameter_string)
-                                        LOCUST_run__dir_output__batch.append(support.dir_output_files / parameters__database / RMP_study__name / parameters__parameter_string)
-                                        LOCUST_run__dir_cache__batch.append(support.dir_cache_files / parameters__database / RMP_study__name) #one level less to pool cache files into same directory across simulations
+                                        LOCUST_run__dir_LOCUST__batch.append("'{}'".format(str(support.dir_locust / parameters__database / RMP_study__name / parameters__parameter_string)))
+                                        LOCUST_run__dir_input__batch.append("'{}'".format(str(support.dir_input_files / parameters__database / RMP_study__name / parameters__parameter_string)))
+                                        LOCUST_run__dir_output__batch.append("'{}'".format(str(support.dir_output_files / parameters__database / RMP_study__name / parameters__parameter_string)))
+                                        LOCUST_run__dir_cache__batch.append("'{}'".format(str(support.dir_cache_files / parameters__database / RMP_study__name))) #one level less to pool cache files into same directory across simulations
                                         LOCUST_run__system_name__batch.append(LOCUST_run__system_name)
                                         LOCUST_run__repo_URL__batch.append(LOCUST_run__repo_URL)
                                         LOCUST_run__commit_hash__batch.append(LOCUST_run__commit_hash)
                                         LOCUST_run__settings_prec_mod__batch.append(LOCUST_run__settings_prec_mod)
                                         LOCUST_run__flags__batch.append(LOCUST_run__flags)
+                                        MARS_read__tail_U__batch.append(MARS_read__tail_U)
+                                        MARS_read__tail_M__batch.append(MARS_read__tail_M)
+                                        MARS_read__tail_L__batch.append(MARS_read__tail_L)
                                         MARS_read__settings__batch.append(MARS_read__settings)
                                         MARS_read__flags__batch.append(MARS_read__flags)
                                         RMP_study__name__batch.append(RMP_study__name)
                                         RMP_study__dir_input_database__batch.append(RMP_study__dir_input_database)
                                         RMP_study__filepaths_kinetic_profiles__batch.append(RMP_study__filepath_kinetic_profiles)
+                                        RMP_study__filepaths_equilibrium__batch.append(RMP_study__filepath_equilibrium)
+                                        RMP_study__filepaths_additional_data__batch.append(RMP_study__filepaths_additional_data)
                                         
                                         #find path to 3D field corresponding to desired parameters here
-                                        RMP_study__filepaths_3D_field_head=RMP_study__dir_input_database / parameters__database / DataMarsf_folder_name 
+                                        RMP_study__filepaths_3D_field_head=RMP_study__dir_input_database / parameters__database / folder_name_DataMarsf 
                                         RMP_study__filepaths_3D_field_tail_U='BPLASMA_MARSF_n{parameters__toroidal_mode_number}_cU_Pr{parameters__kinetic_prof_Pr_string}_tfte{parameters__kinetic_prof_tF_tE_string}.IN'.format(
                                                                                                     parameters__toroidal_mode_number=str(parameters__toroidal_mode_number),
                                                                                                     parameters__kinetic_prof_Pr_string=str(parameters__kinetic_prof_Pr_string),
@@ -335,6 +360,7 @@ RMP_batch_run=Batch(
     parameters__database=parameters__databases__batch,
     parameters__sheet_name_kinetic_prof=parameters__sheet_names_kinetic_prof__batch,
     parameters__sheet_name_rotation=parameters__sheet_names_rotation__batch,
+    parameters__var_name_rotation=parameters__var_names_rotation__batch,
     parameters__kinetic_prof_n=parameters__kinetic_profs_n__batch,
     parameters__kinetic_prof_tF_tE=parameters__kinetic_profs_tF_tE__batch,
     parameters__kinetic_prof_Pr=parameters__kinetic_profs_Pr__batch,
@@ -355,16 +381,21 @@ RMP_batch_run=Batch(
     LOCUST_run__commit_hash=LOCUST_run__commit_hash__batch,
     LOCUST_run__settings_prec_mod=LOCUST_run__settings_prec_mod__batch,
     LOCUST_run__flags=LOCUST_run__flags__batch,
+    MARS_read__tail_U=MARS_read__tail_U__batch,
+    MARS_read__tail_M=MARS_read__tail_M__batch,
+    MARS_read__tail_L=MARS_read__tail_L__batch,
     MARS_read__settings=MARS_read__settings__batch,
     MARS_read__flags=MARS_read__flags__batch,
     RMP_study__name=RMP_study__name__batch,
     RMP_study__dir_input_database=RMP_study__dir_input_database__batch,
     RMP_study__filepath_kinetic_profiles=RMP_study__filepaths_kinetic_profiles__batch,
+    RMP_study__filepath_equilibrium=RMP_study__filepaths_equilibrium__batch,
+    RMP_study__filepath_additional_data=RMP_study__filepaths_additional_data__batch,
     RMP_study__filepaths_3D_field_U=RMP_study__filepaths_3D_field_U__batch,
     RMP_study__filepaths_3D_field_M=RMP_study__filepaths_3D_field_M__batch,
     RMP_study__filepaths_3D_field_L=RMP_study__filepaths_3D_field_L__batch
     )
-RMP_batch_run.launch(workflow_filepath='RMP_study_run.py',system_name='TITAN')   
+RMP_batch_run.launch(workflow_filepath='RMP_study_run_static.py',system_name='TITAN')   
 
 #################################
  
