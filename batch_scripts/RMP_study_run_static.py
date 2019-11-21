@@ -13,6 +13,7 @@ notes:
 TODO:
     NEED TO READ DT KINETIC PROFILES AND THEN JUST READ THE FIRST VALUE OF THE RESPECTIVE KINETIC PROFILES OF THE OTHER ELEMENTS IN ORDER TO CALCULATE RELATIVE CONCENTATIONS AND ZEFF 
     add index to dir_MARS_builder cache run folder location
+    NEED TO ADD INITIAL PHASE SHIFT SETTINGS INTO MARS_READ STEPS
 ---
 '''
 
@@ -77,6 +78,11 @@ try:
     from classes.input_classes.equilibrium import Equilibrium
 except:
     raise ImportError("ERROR: LOCUST_IO/src/classes/input_classes/equilibrium.py could not be imported!\nreturning\n") 
+    sys.exit(1)
+try:
+    from classes.input_classes.perturbation import Perturbation
+except:
+    raise ImportError("ERROR: LOCUST_IO/src/classes/input_classes/perturbation.py could not be imported!\nreturning\n") 
     sys.exit(1)
 
 try:
@@ -272,13 +278,19 @@ class RMP_study_run(run_scripts.workflow.Workflow):
             HEAD=pathlib.Path((str(self.LOCUST_run__dir_input / file.parts[-1])).replace(section_to_remove,'_')) #while we are here grab the original filename without added TAIL
             subprocess.run(shlex.split('cp {file} {inputdir}'.format(file=str(file),inputdir=destination)),shell=False)
 
-            field_builder=MARS_builder_run(filepath_input=HEAD,dir_output=self.LOCUST_run__dir_input,dir_MARS_builder=self.LOCUST_run__dir_cache / 'MARS_builder',system_name='TITAN',settings_mars_read=self.MARS_read__settings,flags=self.MARS_read__flags)
-            field_builder.run()
+        field_builder=MARS_builder_run(filepath_input=HEAD,dir_output=self.LOCUST_run__dir_input,dir_MARS_builder=self.LOCUST_run__dir_cache / 'MARS_builder',system_name='TITAN',settings_mars_read=self.MARS_read__settings,flags=self.MARS_read__flags)
+        field_builder.run()
+            
+        for file in self.LOCUST_run__dir_input.glob(str(HEAD)+'*'):
+            subprocess.run(shlex.split('rm {file}'.format(file=str(file))),shell=False) #delete old perturbation input files
+
 
     def get_other_input_files(self,*args,**kwargs):
         """
         fetch 2D equilibrium, tokamak wall description and cross section data
         notes:
+        todo:
+            make sure that beam depositions that are eventually generated are also copied over too
         """
 
         #equilibrium=Equilibrium(ID='',data_format='GEQDSK',filename=self.RMP_study__filepath_equilibrium)
@@ -286,18 +298,71 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         for file in self.RMP_study__filepath_additional_data.glob('*'):
             subprocess.run(shlex.split('cp {file} {inputdir}'.format(file=str(file),inputdir=str(self.LOCUST_run__dir_input / file.parts[-1]))),shell=False)
 
-    def dump_to_IMAS_inputs(self,*args,**kwargs):
+    def inputs_2_IMAS(self,*args,**kwargs):
         """
-        dump current input data to IMAS
+        write current input data to IMAS
 
         notes:
             dumps kinetic profiles, perturbation and equilibrium 
             allows NEMO to be ran to generate beam deposition
+
+        todo:
+            need to make sure that dumping to IMAS does not overwrite IDS
+            need functionality to species data to attach when writing kinetic profile to IDS
+            need to dump everything to IMAS then see what is missing and just do the rest here by hand
+            need dump_rotation_IMAS
+            need read_perturabtion_MARSF to be able to ignore header lines
+            need functionality to select timeslice (unless always assuming as 1)
         """
 
         #densities
+        try:
+            for filename_density in self.LOCUST_run__dir_input.glob('density*'):
+                density=Number_Density(ID='',data_format='LOCUST',filename=filename_density,species=)
+                density.dump_data(data_format='IMAS',shot=1,run=1)
+        except:
+            pass
+        #temperatures
+        try:
+            for filename_temperature in self.LOCUST_run__dir_input.glob('temperature*')
+                density=Temperature(ID='',data_format='LOCUST',filename=filename_temperature,species=)
+                density.dump_data(data_format='IMAS',shot=1,run=1)
+        except:
+            pass
+        #rotation
+        try:
+            for filename_rotation in self.LOCUST_run__dir_input.glob('rotation')
+                rotation=Rotation(ID='',data_format='LOCUST',filename=filename_rotation,species=)
+                rotation.dump_data(data_format='IMAS',shot=1,run=1)
+        except:
+            pass
+        #equilibrium
+        try:
+            for filename_equilibrium in self.LOCUST_run__dir_input.glob('*GEQDSK*')
+                equilibrium=Equilibrium(ID='',data_format='GEQDSK',filename=filename_equilibrium,species=)
+                equilibrium.dump_data(data_format='IMAS',shot=1,run=1)
+        except:
+            pass
+        #perturbation
+        try:
+            for filename_perturbation in self.LOCUST_run__dir_input.glob('*BPLASMA*')
+                perturbation=Perturbation(ID='',data_format='LOCUST',filename=filename_perturbation,species=)
+                perturbation.dump_data(data_format='IMAS',shot=1,run=1)        
+        except:
+            pass
+        
+        #beam deposition
+        '''
+        '''
+        try:
+            for filename_beam_deposition in self.LOCUST_run__dir_input.glob('rotation')
+                rotation=Beam_Deposition(ID='',data_format='LOCUST',filename=filename_rotation,species=)
+                rotation.dump_data(data_format='IMAS',shot=1,run=1)
+        except:
+            pass
 
 
+#AT THIS POINT RUN NEMO MANUALLY SINCE WE DO NOT HAVE THAT MANY SCENARIOS 
 '''
     def setup_directories(self,*args,**kwargs):
         """
