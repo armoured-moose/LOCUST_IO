@@ -70,7 +70,7 @@ except:
     raise ImportError("ERROR: LOCUST_IO/src/constants.py could not be imported!\nreturning\n") 
     sys.exit(1)
 try:
-    from settings import *
+    import settings
 except:
     raise ImportError("ERROR: LOCUST_IO/src/settings.py could not be imported!\nreturning\n") 
     sys.exit(1)
@@ -135,9 +135,9 @@ target_IDS_dispatch_run['ITER_7d5MAHalfB_case2']['1']['2']=0 #XXX this could go 
 #################################
 #define parameters fixed within a scenario here
 
-parameters__databases=['ITER_15MAQ10_case5'] #these all zipped at same level in main loop because source data is not consistent enough
-parameters__sheet_names_kinetic_prof=["'Flat n'"]
-parameters__sheet_names_rotation=["'Flat n,Pr=1'"]
+parameters__databases=['ITER_15MAQ5_case4'] #these all zipped at same level in main loop because source data is not consistent enough
+parameters__sheet_names_kinetic_prof=["'Out_iterDD.iterDDL-R'"]
+parameters__sheet_names_rotation=["'Pr=0.3'"]
 parameters__var_names_rotation=["'Vt(tF/tE=2)'"]
 parameters__kinetic_profs_n=['flat']
 
@@ -199,8 +199,8 @@ parameters__rotations_lower=[0]
 #misc workflow settings
 IDS__shot=1
 IDS__run=1
-IDS__username=[settings.username]
-IDS__imasdb=[settings.imasdb]
+IDS__username=settings.username
+IDS__imasdb=settings.imasdb
 
 ##################################################################
 #initialise __batch args needed for Batch class

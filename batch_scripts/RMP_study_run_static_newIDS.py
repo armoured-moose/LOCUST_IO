@@ -285,7 +285,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                         ]:
             if not direc.is_dir(): direc.mkdir(parents=True)
 
-'''
+    '''
     def get_kinetic_profiles(self,*args,**kwargs):
         """
         prepare kinetic profiles for LOCUST
@@ -307,7 +307,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         for density in densities: density.dump_data(data_format='LOCUST',filename=self.LOCUST_run__dir_input / 'density_{}'.format(density.properties['species']))
         rotation=Rotation(ID='',data_format='EXCEL1',filename=self.RMP_study__filepath_kinetic_profiles.relative_to(support.dir_input_files),sheet_name=self.parameters__sheet_name_kinetic_prof,rotation_name=self.parameters__var_name_rotation,sheet_name_rotation=self.parameters__sheet_name_rotation)
         rotation.dump_data(data_format='LOCUST',filename=self.LOCUST_run__dir_input / 'rotation') 
-'''
+    '''
 
     def get_3D_fields(self,*args,**kwargs):
         """
@@ -359,20 +359,24 @@ class RMP_study_run(run_scripts.workflow.Workflow):
             return
 
         new_IDS=imas.ids(self.IDS__shot,self.IDS__run) #initialise new blank IDS
-        #xxx might be best to rename these IDS__shot IDS__run to something else since many shot and run numbers will be used.
-        new_IDS.create_env(IDS__username,IDS__imasdb,settings.imas_version) 
+        new_IDS.create_env(self.IDS__username,self.IDS__imasdb,settings.imas_version) 
         new_IDS_nbi_ctx=new_IDS.nbi.getPulseCtx() #retain file handles for later
         new_IDS_core_profiles_ctx=new_IDS.core_profiles.getPulseCtx()
         new_IDS_equilibrium_ctx=new_IDS.equilibrium.getPulseCtx()
         new_IDS_distribution_sources_ctx=new_IDS.distribution_sources.getPulseCtx()
+        new_IDS_distributions_ctx=new_IDS.distributions.getPulseCtx()
 
         #retrieve ITER NBI geometry/settings
         IDS_nbi=imas.ids(130011,1) #take NBI geometry from sample public IDS
         IDS_nbi.open_env('public','ITER','3')
+
         IDS_nbi.nbi.get()
         new_IDS.nbi=copy.deepcopy(IDS_nbi.nbi) #grab the part of the IDS we want
         new_IDS.nbi.setPulseCtx(new_IDS_nbi_ctx) #reset file handle
-        new_IDS.nbi.put()
+
+        IDS_nbi.distributions.get()
+        new_IDS.distributions=copy.deepcopy(IDS_nbi.distributions) #grab the part of the IDS we want
+        new_IDS.distributions.setPulseCtx(new_IDS_distributions_ctx) #reset file handle
 
         #retrieve rest of data from IDS containing source data
         IDS_source=imas.ids(self.IDS__target_IDS_shot,self.IDS__target_IDS_run)
@@ -381,42 +385,65 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         IDS_source.core_profiles.get() 
         new_IDS.core_profiles=copy.deepcopy(IDS_source.core_profiles) #grab the part of the IDS we want
         new_IDS.core_profiles.setPulseCtx(new_IDS_core_profiles_ctx) #reset file handle
-        new_IDS.core_profiles.put()
 
         IDS_source.equilibrium.get()
         new_IDS.equilibrium=copy.deepcopy(IDS_source.equilibrium) #grab the part of the IDS we want
         new_IDS.equilibrium.setPulseCtx(new_IDS_equilibrium_ctx) #reset file handle
-        new_IDS.equilibrium.put()
 
         IDS_source.distribution_sources.get()
         new_IDS.distribution_sources=copy.deepcopy(IDS_source.distribution_sources) #grab the part of the IDS we want
         new_IDS.distribution_sources.setPulseCtx(new_IDS_distribution_sources_ctx) #reset file handle
+
+
+        #fill in some blank rho_tor field
+        for filename_equilibrium in self.LOCUST_run__dir_input.glob('*GEQDSK*'): #retrieve equilibrium for this simulation
+            equilibrium=Equilibrium(ID='',data_format='GEQDSK',filename=filename_equilibrium)
+        temperature_example=Temperature(ID='',data_format='EXCEL1',species='ions',filename=self.RMP_study__filepath_kinetic_profiles.relative_to(support.dir_input_files),sheet_name=self.parameters__sheet_name_kinetic_prof)
+        temperature_example['flux_pol']=temperature_example['flux_pol_norm']*(equilibrium['sibry']-equilibrium['simag'])+equilibrium['simag']
+
+        rho_tor_eq=np.sqrt(np.abs(equilibrium['flux_tor'])*2.*np.pi/(np.pi*np.abs(equilibrium['bcentr']))) #calculate rho_tor on equilibrium flux grid - rho_tor = sqrt(b_flux_tor/(pi*b0)) where I think b_flux_tor is in [Wb]
+        interpolator_rho_tor=processing.utils.interpolate_1D(equilibrium['flux_pol'],rho_tor_eq) #interpolate this onto flux grid of kinetic profiles 
+        #new_IDS.core_profiles.profiles_1d[0].grid.rho_tor=np.linspace(0,1,len(new_IDS.core_profiles.profiles_1d[0].grid.rho_tor_norm))#interpolator_rho_tor(temperature_example['flux_pol']) #use spare temperature object's grid to determine corresponding rho_tor grid
+        rho_tor_core_prof=interpolator_rho_tor(temperature_example['flux_pol']) #use grid taken from a random temperature from the source data to determine corresponding rho_tor grid
+        new_IDS.core_profiles.profiles_1d[0].grid.rho_tor=rho_tor_core_prof
+        new_IDS.core_profiles.profiles_1d[0].grid.rho_tor_norm=(rho_tor_core_prof-rho_tor_core_prof[0])/(rho_tor_core_prof[-1]-rho_tor_core_prof[0]) #remove rho_tor_norm as this grid seems to be different
+
+        #set time data
+        new_IDS.equilibrium.ids_properties.homogeneous_time = 1
+        new_IDS.core_profiles.ids_properties.homogeneous_time = 1
+        new_IDS.nbi.ids_properties.homogeneous_time = 1
+        new_IDS.distribution_sources.ids_properties.homogeneous_time = 1
+        new_IDS.distributions.ids_properties.homogeneous_time = 1
+
+        new_IDS.equilibrium.time = np.array([0.0])
+        new_IDS.core_profiles.time = np.array([0.0])
+        new_IDS.nbi.time = np.array([0.0])
+        new_IDS.distribution_sources.time = np.array([0.0])
+
+        new_IDS.nbi.put()
+        new_IDS.core_profiles.put()
+        new_IDS.equilibrium.put()
         new_IDS.distribution_sources.put()
+           
+        IDS_nbi.close()
+        IDS_source.close()
+        new_IDS.close()
 
         #fill in blank temperatures
         data_elements_table={} #A,Z
         data_elements_table['deuterium']=[2.,1.]
         data_elements_table['tritium']=[3.,1.]
+        data_elements_table['helium3']=[3.,2.]
         data_elements_table['helium']=[4.,2.]
         data_elements_table['hydrogen']=[1.,1.]
-        data_elements_table['tungsten']=[184.,74.]
-        data_elements_table['helium3']=[3.,2.]
+        data_elements_table['oxygen']=[8.,4.]
+        data_elements_table['neon']=[20.2,10.]
+        data_elements_table['tungsten']=[183.8,74.]
         
         for species in data_elements_table.keys(): #loop through all non-electronic ion species and set equal temperature
             temperature=Temperature(ID='',data_format='EXCEL1',species='ions',filename=self.RMP_study__filepath_kinetic_profiles.relative_to(support.dir_input_files),sheet_name=self.parameters__sheet_name_kinetic_prof)
+            temperature['flux_pol']=temperature['flux_pol_norm']*(equilibrium['sibry']-equilibrium['simag'])+equilibrium['simag']
             temperature.dump_data(data_format='IDS',shot=self.IDS__shot,run=self.IDS__run,species=species,A=data_elements_table[species][0],Z=data_elements_table[species][1])
-
-        #fill in some blank rho_tor field
-        for filename_equilibrium in self.LOCUST_run__dir_input.glob('*GEQDSK*'): #retrieve equilibrium for this simulation
-            equilibrium=Equilibrium(ID='',data_format='GEQDSK',filename=filename_equilibrium)
-        rho_tor=np.sqrt(np.abs(equilibrium['flux_tor'])*2.*np.pi/(np.pi*np.abs(equilibrium['bcentr']))) #calculate rho_tor on equilibrium flux grid - rho_tor = sqrt(b_flux_tor/(pi*b0)) where I think b_flux_tor is in [Wb]
-        interpolator_rho_tor=processing.utils.interpolate_1D(equilibriutemp['flux_pol'],rho_tor) #interpolate this onto flux grid of kinetic profiles 
-        new_IDS.core_profiles.profiles_1d[0].grid.rho_tor=interpolator_rho_tor(temperature['flux_pol']) #use spare temperature object's grid to determine corresponding rho_tor grid
-        new_IDS.core_profiles.profiles_1d[0].grid.rho_tor_norm=np.array([]) #remove rho_tor_norm as this grid seems to be different
-           
-        IDS_nbi.close()
-        IDS_source.close()
-        new_IDS.close()
 
 #XXX works up to here
 
@@ -425,7 +452,36 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         notes:
         """
 
-        NEMO_workflow=run_scripts.NEMO_run(
+        NEMO_run_args={}
+        NEMO_run_args['dir_NEMO']=[self.NEMO_run__dir_NEMO]
+        NEMO_run_args['shot_in']=[self.IDS__shot]
+        NEMO_run_args['shot_out']=[self.IDS__shot]
+        NEMO_run_args['run_in']=[self.IDS__run]
+        NEMO_run_args['run_out']=[self.IDS__run]
+        NEMO_run_args['username']=[self.IDS__username]
+        NEMO_run_args['imasdb']=[self.IDS__imasdb]
+        NEMO_run_args['imas_version']=[settings.imas_version]
+        NEMO_run_args['nmarker']=[self.NEMO_run__nmarker]
+        NEMO_run_args['fokker_flag']=[self.NEMO_run__fokker_flag]
+
+        NEMO_run_environment=run_scripts.environment.Environment('TITAN_NEMO')
+        command=' '.join([NEMO_run_environment.create_command_string(),
+                                '; python NEMO_run.py',
+                                run_scripts.utils.command_line_arg_parse_generate_string(**NEMO_run_args)])
+
+
+
+
+        #try:
+        #    pass
+        #subprocess.call(command,shell=True,cwd=str(support.dir_run_scripts))# as proc: #stdin=PIPE, stdout=PIPE, stderr=STDOUT
+
+        #except subprocess.CalledProcessError as err:
+        #    print("ERROR: {workflow_name}.call_NEMO_actor_command_line() failed to run NEMO!\nreturning\n".format(workflow_name=self.workflow_name))
+            #raise(err)
+
+        '''
+        NEMO_workflow=run_scripts.NEMO_run.NEMO_run(
         dir_NEMO=self.NEMO_run__dir_NEMO,
         shot_in=self.IDS__shot,
         shot_out=self.IDS__shot,
@@ -438,6 +494,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         fokker_flag=self.NEMO_run__fokker_flag)
 
         NEMO_workflow.call_NEMO_actor_command_line()
+        '''
 
     def get_beam_deposition(self,*args,**kwargs):
         """
@@ -500,6 +557,8 @@ if __name__=='__main__':
     parser.add_argument('--LOCUST_run__settings_prec_mod',nargs='+',type=str,action='store',dest='LOCUST_run__settings_prec_mod',help="",default={})
     parser.add_argument('--LOCUST_run__flags',nargs='+',type=str,action='store',dest='LOCUST_run__flags',help="",default={})
     parser.add_argument('--NEMO_run__dir_NEMO',type=str,action='store',dest='NEMO_run__dir_NEMO',help="",default=support.dir_nemo)
+    parser.add_argument('--NEMO_run__nmarker',type=int,action='store',dest='NEMO_run__nmarker',help="",default=int(1.e6))
+    parser.add_argument('--NEMO_run__fokker_flag',type=int,action='store',dest='NEMO_run__fokker_flag',help="",default=0)
     parser.add_argument('--MARS_read__tail_U',type=str,action='store',dest='MARS_read__tail_U',help="",default=None)
     parser.add_argument('--MARS_read__tail_M',type=str,action='store',dest='MARS_read__tail_M',help="",default=None)
     parser.add_argument('--MARS_read__tail_L',type=str,action='store',dest='MARS_read__tail_L',help="",default=None)
@@ -517,6 +576,9 @@ if __name__=='__main__':
     parser.add_argument('--IDS__run',type=int,action='store',dest='IDS__run',help="",default=1)
     parser.add_argument('--IDS__username',type=str,action='store',dest='IDS__username',help="",default=None)
     parser.add_argument('--IDS__imasdb',type=str,action='store',dest='IDS__imasdb',help="",default=None)
+    parser.add_argument('--IDS__target_IDS_shot',type=int,action='store',dest='IDS__target_IDS_shot',help="",default=1)
+    parser.add_argument('--IDS__target_IDS_run',type=int,action='store',dest='IDS__target_IDS_run',help="",default=1)
+
 
     args=parser.parse_args()
 
@@ -552,6 +614,8 @@ if __name__=='__main__':
     LOCUST_run__settings_prec_mod=args.LOCUST_run__settings_prec_mod,
     LOCUST_run__flags=args.LOCUST_run__flags,
     NEMO_run__dir_NEMO=args.NEMO_run__dir_NEMO,
+    NEMO_run__nmarker=args.NEMO_run__nmarker,
+    NEMO_run__fokker_flag=args.NEMO_run__fokker_flag,
     MARS_read__tail_U=args.MARS_read__tail_U,
     MARS_read__tail_M=args.MARS_read__tail_M,
     MARS_read__tail_L=args.MARS_read__tail_L,
@@ -568,10 +632,14 @@ if __name__=='__main__':
     IDS__shot=args.IDS__shot,
     IDS__run=args.IDS__run,
     IDS__username=args.IDS__username,
-    IDS__imasdb=args.IDS__imasdb
+    IDS__imasdb=args.IDS__imasdb,
+    IDS__target_IDS_shot=args.IDS__target_IDS_shot,
+    IDS__target_IDS_run=args.IDS__target_IDS_run
         )
 
-    this_run.run()
+    #this_run.run()
+    #this_run.create_IDS()
+    this_run.run_NEMO()
 
 #################################
 
