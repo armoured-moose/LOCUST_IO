@@ -18,8 +18,6 @@ todo:
     
     XXX for resolution scans, dXR and dXZ need to be varied
 
-    XXX way to check all interpolated quantities is to overplot on the same axes for each flux_grid and they should all still overlap fine
-
     XXX add some progress messages to workflow stages
 ---
 '''
@@ -61,6 +59,11 @@ try:
     import run_scripts.LOCUST_run
 except:
     raise ImportError("ERROR: LOCUST_IO/src/run_scripts/LOCUST_run.py could not be imported!\nreturning\n")
+    sys.exit(1)
+try:
+    import run_scripts.NEMO_run
+except:
+    raise ImportError("ERROR: LOCUST_IO/src/run_scripts/NEMO_run.py could not be imported!\nreturning\n")
     sys.exit(1)
 try:
     from run_scripts.MARS_builder_run import MARS_builder_run
@@ -174,6 +177,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                 LOCUST_run__settings_prec_mod,
                 LOCUST_run__flags,
                 NEMO_run__dir_NEMO,
+                NEMO_run__nmarker,
+                NEMO_run__fokker_flag,
                 MARS_read__tail_U,
                 MARS_read__tail_M,
                 MARS_read__tail_L,
@@ -191,6 +196,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                 IDS__run,
                 IDS__username,
                 IDS__imasdb,
+                IDS__target_IDS_shot,
+                IDS__target_IDS_run,
                 *args,
                 **kwargs):
         """
@@ -229,6 +236,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         self.LOCUST_run__settings_prec_mod=LOCUST_run__settings_prec_mod
         self.LOCUST_run__flags=LOCUST_run__flags
         self.NEMO_run__dir_NEMO=NEMO_run__dir_NEMO
+        self.NEMO_run__nmarker=NEMO_run__nmarker
+        self.NEMO_run__fokker_flag=NEMO_run__fokker_flag
         self.MARS_read__tail_U=MARS_read__tail_U
         self.MARS_read__tail_M=MARS_read__tail_M
         self.MARS_read__tail_L=MARS_read__tail_L
@@ -246,6 +255,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         self.IDS__run=IDS__run
         self.IDS__username=IDS__username
         self.IDS__imasdb=IDS__imasdb
+        self.IDS__target_IDS_shot=IDS__target_IDS_shot
+        self.IDS__target_IDS_run=IDS__target_IDS_run
 
         #################################
         #derive some information
@@ -254,13 +265,12 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         #add workflow stages
 
         self.add_command(command_name='mkdir',command_function=self.setup_RMP_study_dirs,position=1) #add new workflow stages
-        self.add_command(command_name='get_kinetic',command_function=self.get_kinetic_profiles,position=2) #add new workflow stages
-        self.add_command(command_name='get_3D',command_function=self.get_3D_fields,position=3) #add new workflow stages
-        self.add_command(command_name='get_others',command_function=self.get_other_input_files,position=4) #add new workflow stages
-        self.add_command(command_name='create_IDS',command_function=self.create_new_IDS,position=5) #add new workflow stages
-        self.add_command(command_name='populate_IDS',command_function=self.inputs_to_IMAS,position=6) #add new workflow stages
-        #self.add_command(command_name='run_NEMO',command_function=self.NEMO_run,position=7) #add new workflow stages
-        #self.add_command(command_name='get_beam_deposition',command_function=self.get_beam_deposition,position=8) #add new workflow stages
+        #self.add_command(command_name='get_kinetic',command_function=self.get_kinetic_profiles,position=2)
+        self.add_command(command_name='get_3D',command_function=self.get_3D_fields,position=3) 
+        self.add_command(command_name='get_others',command_function=self.get_other_input_files,position=4)
+        self.add_command(command_name='create_IDS',command_function=self.create_IDS,position=5) 
+        self.add_command(command_name='run_NEMO',command_function=self.run_NEMO,position=7) 
+        #self.add_command(command_name='get_beam_deposition',command_function=self.get_beam_deposition,position=8)
 
     def setup_RMP_study_dirs(self,*args,**kwargs):
         """
@@ -275,6 +285,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                         ]:
             if not direc.is_dir(): direc.mkdir(parents=True)
 
+'''
     def get_kinetic_profiles(self,*args,**kwargs):
         """
         prepare kinetic profiles for LOCUST
@@ -296,6 +307,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         for density in densities: density.dump_data(data_format='LOCUST',filename=self.LOCUST_run__dir_input / 'density_{}'.format(density.properties['species']))
         rotation=Rotation(ID='',data_format='EXCEL1',filename=self.RMP_study__filepath_kinetic_profiles.relative_to(support.dir_input_files),sheet_name=self.parameters__sheet_name_kinetic_prof,rotation_name=self.parameters__var_name_rotation,sheet_name_rotation=self.parameters__sheet_name_rotation)
         rotation.dump_data(data_format='LOCUST',filename=self.LOCUST_run__dir_input / 'rotation') 
+'''
 
     def get_3D_fields(self,*args,**kwargs):
         """
@@ -335,7 +347,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         for file in self.RMP_study__filepath_additional_data.glob('*'):
             subprocess.run(shlex.split('cp {file} {inputdir}'.format(file=str(file),inputdir=str(self.LOCUST_run__dir_input / file.parts[-1]))),shell=False)
 
-    def create_new_IDS(self,*args,**kwargs):
+    def create_IDS(self,*args,**kwargs):
         """
         notes:
         """
@@ -346,204 +358,86 @@ class RMP_study_run(run_scripts.workflow.Workflow):
             raise ImportError("ERROR: LOCUST_run_RMP.create_new_IDS could not import IMAS module!\nreturning\n")
             return
 
-        NBI_IDS=imas.ids(130011,1) #take NBI geometry from sample public IDS
-        NBI_IDS.open_env('public','ITER','3')
-        NBI_IDS.nbi.get()
-
         new_IDS=imas.ids(self.IDS__shot,self.IDS__run) #initialise new blank IDS
-        new_IDS.create_env(settings.username,settings.imasdb,'3')
-        new_IDS_ctx=new_IDS.nbi.getPulseCtx() #retain file handle for later
-        new_IDS.nbi=copy.deepcopy(NBI_IDS.nbi) #copy and overwrite NBI portion of IDS
-        new_IDS.nbi.setPulseCtx(new_IDS_ctx) #reset file handle
+        #xxx might be best to rename these IDS__shot IDS__run to something else since many shot and run numbers will be used.
+        new_IDS.create_env(IDS__username,IDS__imasdb,settings.imas_version) 
+        new_IDS_nbi_ctx=new_IDS.nbi.getPulseCtx() #retain file handles for later
+        new_IDS_core_profiles_ctx=new_IDS.core_profiles.getPulseCtx()
+        new_IDS_equilibrium_ctx=new_IDS.equilibrium.getPulseCtx()
+        new_IDS_distribution_sources_ctx=new_IDS.distribution_sources.getPulseCtx()
+
+        #retrieve ITER NBI geometry/settings
+        IDS_nbi=imas.ids(130011,1) #take NBI geometry from sample public IDS
+        IDS_nbi.open_env('public','ITER','3')
+        IDS_nbi.nbi.get()
+        new_IDS.nbi=copy.deepcopy(IDS_nbi.nbi) #grab the part of the IDS we want
+        new_IDS.nbi.setPulseCtx(new_IDS_nbi_ctx) #reset file handle
         new_IDS.nbi.put()
-        new_IDS.close()
-        NBI_IDS.close()
 
-    def inputs_to_IMAS(self,*args,**kwargs):
-        """
-        write current input data to IMAS
+        #retrieve rest of data from IDS containing source data
+        IDS_source=imas.ids(self.IDS__target_IDS_shot,self.IDS__target_IDS_run)
+        IDS_source.open_env('public','ITER','3')
+        
+        IDS_source.core_profiles.get() 
+        new_IDS.core_profiles=copy.deepcopy(IDS_source.core_profiles) #grab the part of the IDS we want
+        new_IDS.core_profiles.setPulseCtx(new_IDS_core_profiles_ctx) #reset file handle
+        new_IDS.core_profiles.put()
 
-        notes:
-            dumps kinetic profiles, perturbation and equilibrium 
-            allows NEMO to be ran to generate beam deposition
-        """
+        IDS_source.equilibrium.get()
+        new_IDS.equilibrium=copy.deepcopy(IDS_source.equilibrium) #grab the part of the IDS we want
+        new_IDS.equilibrium.setPulseCtx(new_IDS_equilibrium_ctx) #reset file handle
+        new_IDS.equilibrium.put()
 
-        try:
-            import imas 
-        except:
-            raise ImportError("ERROR: LOCUST_run_RMP.inputs_to_IMAS could not import IMAS module!\nreturning\n")
-            return
+        IDS_source.distribution_sources.get()
+        new_IDS.distribution_sources=copy.deepcopy(IDS_source.distribution_sources) #grab the part of the IDS we want
+        new_IDS.distribution_sources.setPulseCtx(new_IDS_distribution_sources_ctx) #reset file handle
+        new_IDS.distribution_sources.put()
 
+        #fill in blank temperatures
         data_elements_table={} #A,Z
         data_elements_table['deuterium']=[2.,1.]
-        data_elements_table['electrons']=[0.,0.]
-        #XXX HACK WITH SINGLE SPECIES FOR NOW - WAITING FOR https://jira.iter.org/browse/IMAS-2804 data_elements_table['tritium']=[3.,1.]
-        #XXX HACK WITH SINGLE SPECIES FOR NOW - WAITING FOR https://jira.iter.org/browse/IMAS-2804 data_elements_table['helium']=[4.,2.]
-        #XXX HACK WITH SINGLE SPECIES FOR NOW - WAITING FOR https://jira.iter.org/browse/IMAS-2804 data_elements_table['hydrogen']=[1.,1.]
-        #XXX HACK WITH SINGLE SPECIES FOR NOW - WAITING FOR https://jira.iter.org/browse/IMAS-2804 data_elements_table['tungsten']=[184.,74.]
-        #XXX HACK WITH SINGLE SPECIES FOR NOW - WAITING FOR https://jira.iter.org/browse/IMAS-2804 data_elements_table['helium3']=[3.,2.]
-
-    #equilibrium
-    #try:
-        for filename_equilibrium in self.LOCUST_run__dir_input.glob('*GEQDSK*'):
-            equilibrium=Equilibrium(ID='',data_format='GEQDSK',filename=filename_equilibrium)
-            equilibrium.B_calc()
-            equilibrium.dump_data(data_format='IDS',shot=self.IDS__shot,run=self.IDS__run)
-    #except:
-        print("ERROR: inputs_to_IMAS could not dump equilibrium to IDS!")
-
-    #densities
-    #try:
-        for filename_density in self.LOCUST_run__dir_input.glob('density*'):
-            species=str(filename_density.parts[-1]).split('_')[-1]
-            density=Number_Density(ID='',data_format='LOCUST',filename=filename_density,species=species,A=data_elements_table[species][0],Z=data_elements_table[species][1])
-            density['n']*=1000 #XXX debug
-            density['flux_pol']=density['flux_pol_norm']*equilibrium['sibry']
-            density.dump_data(data_format='IDS',shot=self.IDS__shot,run=self.IDS__run,species=species,A=data_elements_table[species][0],Z=data_elements_table[species][1])
-    #except:
-        print("ERROR: inputs_to_IMAS could not dump densities to IDS!")
-
-    #temperatures
-    #try:
-        for filename_temperature in self.LOCUST_run__dir_input.glob('temperature*'):
-            species=str(filename_temperature.parts[-1]).split('_')[-1]
-            if species=='ions':#dump same ion temperature profile for each ion species
-                for species_ in data_elements_table.keys():
-                    if species_!='electrons': #loop through all non-electronic ion species and set equal temperature
-                        temperature=Temperature(ID='',data_format='LOCUST',filename=filename_temperature,species=species_,A=data_elements_table[species_][0],Z=data_elements_table[species_][1])
-                        temperature['T']*=0.01 #XXX debug
-                        temperature['flux_pol']=temperature['flux_pol_norm'] #XXX hack for now - eventually need way of calculating
-                        temperature.dump_data(data_format='IDS',shot=self.IDS__shot,run=self.IDS__run,species=species_,A=data_elements_table[species_][0],Z=data_elements_table[species_][1])
-            else:
-                temperature=Temperature(ID='',data_format='LOCUST',filename=filename_temperature,species=species)
-                temperature['T']*=0.01 #XXX debug
-                temperature['flux_pol']=temperature['flux_pol_norm']*equilibrium['sibry']
-                temperature.dump_data(data_format='IDS',shot=self.IDS__shot,run=self.IDS__run,species=species,A=data_elements_table[species][0],Z=data_elements_table[species][1])
-    #except:
-        print("ERROR: inputs_to_IMAS could not dump temperatures to IDS!")
-
-    #rotation
-    #try:
-        for filename_rotation in self.LOCUST_run__dir_input.glob('rotation'):
-            for species_ in data_elements_table.keys(): #dump same rotation profile for each ion species
-                if species_!='electrons': #loop through all non-electronic ion species and set equal temperature
-                    rotation=Rotation(ID='',data_format='LOCUST',filename=filename_rotation,species=species_,A=data_elements_table[species_][0],Z=data_elements_table[species_][1])
-                    rotation['flux_pol']=temperature['flux_pol_norm']*equilibrium['sibry'] #XXX hack for now - eventually need way of calculating
-                    rotation.dump_data(data_format='IDS',shot=self.IDS__shot,run=self.IDS__run,A=data_elements_table[species_][0],Z=data_elements_table[species_][1])
-    #except:
-        print("ERROR: inputs_to_IMAS could not dump rotation to IDS!")
-
-    #perturbation
-    #try:
-        for filename_perturbation in self.LOCUST_run__dir_input.glob('*BPLASMA*'):
-            perturbation=Perturbation(ID='',data_format='LOCUST',filename=filename_perturbation,mode_number=self.parameters__toroidal_mode_number)
-            perturbation.dump_data(data_format='IDS',shot=self.IDS__shot,run=self.IDS__run)        
-    #except:
-        print("ERROR: inputs_to_IMAS could not dump perturbations to IDS!")
-    
-        #dump additional data required by NEMO to IMAS here
+        data_elements_table['tritium']=[3.,1.]
+        data_elements_table['helium']=[4.,2.]
+        data_elements_table['hydrogen']=[1.,1.]
+        data_elements_table['tungsten']=[184.,74.]
+        data_elements_table['helium3']=[3.,2.]
         
-        new_IDS=imas.ids(self.IDS__shot,self.IDS__run) #initialise new blank IDS
-        new_IDS.open_env(settings.username,settings.imasdb,'3')
-        new_IDS.equilibrium.get()
-        new_IDS.core_profiles.get()
+        for species in data_elements_table.keys(): #loop through all non-electronic ion species and set equal temperature
+            temperature=Temperature(ID='',data_format='EXCEL1',species='ions',filename=self.RMP_study__filepath_kinetic_profiles.relative_to(support.dir_input_files),sheet_name=self.parameters__sheet_name_kinetic_prof)
+            temperature.dump_data(data_format='IDS',shot=self.IDS__shot,run=self.IDS__run,species=species,A=data_elements_table[species][0],Z=data_elements_table[species][1])
 
-        new_IDS.equilibrium.time_slice[0].boundary.geometric_axis.r=6.2 #hard-coded major radius from excel file
-        new_IDS.equilibrium.time_slice[0].boundary.minor_radius=2. #hard-coded minor radius from excel file
-        _,b_field_tor,_=equilibrium.B_calc_point(R=[equilibrium['rmaxis'].item(0)],Z=[equilibrium['zmaxis'].item(0)]) #dump direction of magnetic field
-        new_IDS.equilibrium.time_slice[0].global_quantities.magnetic_axis.b_field_tor=float(b_field_tor[0])
-
+        #fill in some blank rho_tor field
+        for filename_equilibrium in self.LOCUST_run__dir_input.glob('*GEQDSK*'): #retrieve equilibrium for this simulation
+            equilibrium=Equilibrium(ID='',data_format='GEQDSK',filename=filename_equilibrium)
         rho_tor=np.sqrt(np.abs(equilibrium['flux_tor'])*2.*np.pi/(np.pi*np.abs(equilibrium['bcentr']))) #calculate rho_tor on equilibrium flux grid - rho_tor = sqrt(b_flux_tor/(pi*b0)) where I think b_flux_tor is in [Wb]
-        new_IDS.equilibrium.time_slice[0].profiles_1d.rho_tor=rho_tor #dump rho_tor on this grid to equilibrium IDS
-        interpolator_rho_tor=processing.utils.interpolate_1D(equilibrium['flux_pol'],rho_tor) #interpolate this onto flux grid of kinetic profiles
-        new_IDS.core_profiles.profiles_1d[0].grid.rho_tor=interpolator_rho_tor(temperature['flux_pol']) #XXX REQUIRE THIS
-
-        _,Vr=run_scripts.utils.read_kinetic_profile_data_excel_1(filepath=self.RMP_study__filepath_kinetic_profiles,x='Fp',y='Vr',sheet_name=self.parameters__sheet_name_kinetic_prof) #volume profile on kinetic profile flux grid
-        hro=run_scripts.utils.read_kinetic_profile_data_excel_1(filepath=self.RMP_study__filepath_kinetic_profiles,y='hro',sheet_name=self.parameters__sheet_name_kinetic_prof)
-        dV=Vr*hro 
-        interpolator_volume=processing.utils.interpolate_1D(temperature['flux_pol'],dV) #now need to interpolate volume profile to equilibrium flux grid
-        new_IDS.equilibrium.time_slice[0].profiles_1d.volume=interpolator_volume(equilibrium['flux_pol'])
-
-        #dump (R, Z) grids of toroidal flux coordinate ρ but normalised, since it is renormalised in NEMO anyway (and excel data does not contain un-normalised ρ)
-        #this is now all done when dumping GEQDSK    
-        flux_tor_2D=processing.utils.flux_func_to_RZ(equilibrium['flux_pol'],equilibrium['flux_tor'],equilibrium) 
-        flux_tor_2D=(equilibrium['flux_tor']-np.min(equilibrium['flux_tor']))/(np.max(equilibrium['flux_tor'])-np.min(equilibrium['flux_tor'])) #normalise according to the 1D flux profile since this extends only to LCFS
-        #XXX at this point check whether flux_tor stored in GEQDSK is similar to that stored in excel spreadsheet 
-        #XXX flux_pol_norm,flux_tor_norm_sqrt=run_scripts.utils.read_kinetic_profile_data_excel_1(filepath=RMP_study__filepath_kinetic_profiles,x='Fp',y='x',sheet_name=parameters__sheet_name_kinetic_prof)
-        #XXX flux_tor_norm=flux_tor_norm_sqrt**2
-
-        #(R, Z) coordinates of the tokamak wall and/or SOL radius [m]
-        #XXX read wall from GEQDSK here and dump to NEMO-friendly wall here
-
-        new_IDS.core_profiles.put()
-        new_IDS.equilibrium.put()
+        interpolator_rho_tor=processing.utils.interpolate_1D(equilibriutemp['flux_pol'],rho_tor) #interpolate this onto flux grid of kinetic profiles 
+        new_IDS.core_profiles.profiles_1d[0].grid.rho_tor=interpolator_rho_tor(temperature['flux_pol']) #use spare temperature object's grid to determine corresponding rho_tor grid
+        new_IDS.core_profiles.profiles_1d[0].grid.rho_tor_norm=np.array([]) #remove rho_tor_norm as this grid seems to be different
+           
+        IDS_nbi.close()
+        IDS_source.close()
         new_IDS.close()
 
 #XXX works up to here
 
-    def NEMO_run(self,*args,**kwargs):
+    def run_NEMO(self,*args,**kwargs):
         """
         notes:
-            assumes you have already cloned and compiled the nemo source and actor into dir_NEMO 
-            takes most code from nemo source run_nemo.py by Mireille Schneider
         """
 
-        # --------------------------------------------
-        # PYTHON WRAPPER TO CALL PHYSICS CODE
-        # --------------------------------------------
-        # STRATEGY: USE PYUAL ONLY TO CALL ACTORS,
-        # FOR THE REST USE PYTHON IMAS API'S DIRECTLY
-        # --------------------------------------------
+        NEMO_workflow=run_scripts.NEMO_run(
+        dir_NEMO=self.NEMO_run__dir_NEMO,
+        shot_in=self.IDS__shot,
+        shot_out=self.IDS__shot,
+        run_in=self.IDS__run,
+        run_out=self.IDS__run,
+        username=settings.username,
+        imasdb=settings.imasdb,
+        imas_version=settings.imas_version,
+        nmarker=self.NEMO_run__nmarker,
+        fokker_flag=self.NEMO_run__fokker_flag)
 
-        # NEEDED MODULES
-        import os,imas,sys
-
-        # IMPORT MODULE(S) FOR SPECIFIC PHYSICS CODE(S)
-        actor_path = os.path.join(os.getenv('KEPLER'), 'imas/src/org/iter/imas/python')
-        list_of_actors = ['nemo']
-        for name in list_of_actors:
-          sys.path[:0] = [os.path.join(actor_path,name)]
-          globals()[name] = getattr(__import__(name), name)
-
-        # LOCAL DATABASE ENVIRONMENT
-        user = os.getenv('USER')
-        tokamakname = 'iter'
-        version = os.getenv('IMAS_VERSION')[0]
-
-        # OPEN INPUT DATAFILE TO GET DATA FROM IMAS SCENARIO DATABASE
-        input = imas.ids(self.IDS__shot,self.IDS__run,0,0)
-        input.open_env(self.IDS__username,self.IDS__imasdb,'3')
-
-        # READ INPUT IDS'S AND CLOSE INPUT FILE
-        input.equilibrium.get()
-        input.core_profiles.get()
-        input.nbi.get()
-        input.distribution_sources.get()
-        input.distributions.get()
-        input.close()
-
-        # DURATION TO SIMULATE (S)
-        dt_required = 2.0
-
-        # IF DISTRIBUTIONS HAS NEVER BEEN FILLED
-        # (IF THIS IS THE FIRST TIME STEP OF THE SIMULATION)
-        # THEN HOMOGENEOUS_TIME HAS NEVER BEEN FILLED
-        # => SYSTEMATICALLY FILLED HERE THEN
-        input.distributions.ids_properties.homogeneous_time = 1
-
-        # OPEN OUTPUT OBJECT, IN VIEW OF SAVING RESULTS TO LOCAL DB
-        output = imas.ids(self.IDS__shot,self.IDS__run,0,0)
-
-        # EXECUTE PHYSICS CODE
-        fokker_flag = 0
-        nmarker = 50000
-        output.distributions = nemo(input.equilibrium,input.core_profiles,input.nbi,
-                                    input.distribution_sources,fokker_flag,nmarker,'input/input_nemo_sa_imas.xml')
-
-        # CREATE OUTPUT DATAFILE AND EXPORT RESULTS TO LOCAL DATABASE
-        output.create_env(self.IDS__username,self.IDS__imasdb,version)
-        output.distribution_sources.put()
-        output.close()
+        NEMO_workflow.call_NEMO_actor_command_line()
 
     def get_beam_deposition(self,*args,**kwargs):
         """

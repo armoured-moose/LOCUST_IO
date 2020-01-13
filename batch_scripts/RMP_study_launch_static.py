@@ -91,6 +91,47 @@ kinetic_profs_tF_tE_string__options=['05','057','065','072','073','1','2'] #vers
 kinetic_profs_Pr__options=[0.3,1.] #prandl number
 kinetic_profs_Pr_string__options=['03','1'] #version used in strings describing data in storage
 
+#dispatch table matching parameter values to corresponding IDS shot/run numbers
+#XXX NEED TO COMPLETE THIS DISPATCH TABLE
+target_IDS_dispatch_shot={}
+target_IDS_dispatch_run={}
+
+#XXX might need to add an extra layer here based on parameters__database if this is another deciding factor
+#XXX need to check prandl numbers etc. here 
+target_IDS_dispatch_shot['ITER_15MAQ5_case4']=131024
+target_IDS_dispatch_run['ITER_15MAQ5_case4']={} #run depends on three parameters - dispatch table needs to be three levels deep - first level is scenario, second is Prandl number and third  is tF/tE
+target_IDS_dispatch_run['ITER_15MAQ5_case4']['1']={} 
+target_IDS_dispatch_run['ITER_15MAQ5_case4']['1']['2']=0
+target_IDS_dispatch_run['ITER_15MAQ5_case4']['1']['1']=1 
+target_IDS_dispatch_run['ITER_15MAQ5_case4']['1']['05']=2
+target_IDS_dispatch_run['ITER_15MAQ5_case4']['03']={} 
+target_IDS_dispatch_run['ITER_15MAQ5_case4']['03']['2']=3
+target_IDS_dispatch_run['ITER_15MAQ5_case4']['03']['1']=4
+target_IDS_dispatch_run['ITER_15MAQ5_case4']['03']['073']=5
+
+target_IDS_dispatch_shot['ITER_15MAQ10_case5']=131025
+target_IDS_dispatch_run['ITER_15MAQ10_case5']={}
+target_IDS_dispatch_run['ITER_15MAQ10_case5']['1']={} 
+target_IDS_dispatch_run['ITER_15MAQ10_case5']['1']['2']=0
+target_IDS_dispatch_run['ITER_15MAQ10_case5']['1']['1']=1 
+target_IDS_dispatch_run['ITER_15MAQ10_case5']['1']['05']=2
+target_IDS_dispatch_run['ITER_15MAQ10_case5']['03']={} 
+target_IDS_dispatch_run['ITER_15MAQ10_case5']['03']['2']=3
+target_IDS_dispatch_run['ITER_15MAQ10_case5']['03']['1']=4
+target_IDS_dispatch_run['ITER_15MAQ10_case5']['03']['073']=5
+
+target_IDS_dispatch_shot['ITER_5MAH_case1']=101007
+target_IDS_dispatch_run['ITER_5MAH_case1']={}
+target_IDS_dispatch_run['ITER_5MAH_case1']['1']={} 
+target_IDS_dispatch_run['ITER_5MAH_case1']['1']['2']=0
+target_IDS_dispatch_run['ITER_5MAH_case1']['1']['1']=1 
+target_IDS_dispatch_run['ITER_5MAH_case1']['1']['05']=2 
+
+target_IDS_dispatch_shot['ITER_7d5MAHalfB_case2']=131020 #or 131021
+target_IDS_dispatch_run['ITER_7d5MAHalfB_case2']={}
+target_IDS_dispatch_run['ITER_7d5MAHalfB_case2']['1']={} 
+target_IDS_dispatch_run['ITER_7d5MAHalfB_case2']['1']['2']=0 #XXX this could go up to 2
+
 #################################
 #define parameters fixed within a scenario here
 
@@ -112,6 +153,11 @@ LOCUST_run__flags={}
 #LOCUST_run__flags['']=
 #LOCUST_run__flags['']=
 #LOCUST_run__flags['']=
+
+#fixed parameters needed for NEMO_run
+NEMO_run__dir_NEMO=support.dir_nemo
+NEMO_run__nmarker=int(1.e6)
+NEMO_run__fokker_flag=0
 
 #fixed parameters needed by MARS_read
 MARS_read__tail_U='_U_VAC'
@@ -149,6 +195,13 @@ parameters__rotations_upper=[0]
 parameters__rotations_middle=[0]
 parameters__rotations_lower=[0]
 
+#################################
+#misc workflow settings
+IDS__shot=1
+IDS__run=1
+IDS__username=[settings.username]
+IDS__imasdb=[settings.imasdb]
+
 ##################################################################
 #initialise __batch args needed for Batch class
 
@@ -176,6 +229,9 @@ LOCUST_run__repo_URL__batch=[]
 LOCUST_run__commit_hash__batch=[]
 LOCUST_run__settings_prec_mod__batch=[]
 LOCUST_run__flags__batch=[]
+NEMO_run__dir_NEMO__batch=[]
+NEMO_run__nmarker__batch=[]
+NEMO_run__fokker_flag__batch=[]
 MARS_read__tail_U__batch=[]
 MARS_read__tail_M__batch=[]
 MARS_read__tail_L__batch=[]
@@ -189,6 +245,12 @@ RMP_study__filepaths_additional_data__batch=[]
 RMP_study__filepaths_3D_field_U__batch=[]
 RMP_study__filepaths_3D_field_M__batch=[]
 RMP_study__filepaths_3D_field_L__batch=[]
+IDS__shot__batch=[]
+IDS__run__batch=[]
+IDS__username__batch=[]
+IDS__imasdb__batch=[]
+IDS__target_IDS_shot__batch=[]
+IDS__target_IDS_run__batch=[]
 
 ##################################################################
 #create every valid combination of parameter, returned in flat lists
@@ -230,7 +292,6 @@ for parameters__database, \
                 parameters__kinetic_profs_Pr_string
                 ):
             for parameters__toroidal_mode_number in parameters__toroidal_mode_numbers:
-                print(parameters__toroidal_mode_number)
                 for parameters__phase_upper in parameters__phases_upper:
                     for parameters__phase_middle in parameters__phases_middle:
                         for parameters__phase_lower in parameters__phases_lower:
@@ -292,6 +353,9 @@ for parameters__database, \
                                         LOCUST_run__commit_hash__batch.append(LOCUST_run__commit_hash)
                                         LOCUST_run__settings_prec_mod__batch.append(LOCUST_run__settings_prec_mod)
                                         LOCUST_run__flags__batch.append(LOCUST_run__flags)
+                                        NEMO_run__dir_NEMO__batch.append(NEMO_run__dir_NEMO)
+                                        NEMO_run__nmarker__batch.append(NEMO_run__nmarker)
+                                        NEMO_run__fokker_flag__batch.append(NEMO_run__fokker_flag)
                                         MARS_read__tail_U__batch.append(MARS_read__tail_U)
                                         MARS_read__tail_M__batch.append(MARS_read__tail_M)
                                         MARS_read__tail_L__batch.append(MARS_read__tail_L)
@@ -320,6 +384,13 @@ for parameters__database, \
                                         RMP_study__filepaths_3D_field_U__batch.append(RMP_study__filepaths_3D_field_head/RMP_study__filepaths_3D_field_tail_U) 
                                         RMP_study__filepaths_3D_field_M__batch.append(RMP_study__filepaths_3D_field_head/RMP_study__filepaths_3D_field_tail_M) 
                                         RMP_study__filepaths_3D_field_L__batch.append(RMP_study__filepaths_3D_field_head/RMP_study__filepaths_3D_field_tail_L)
+
+                                        IDS__shot__batch.append(IDS__shot)
+                                        IDS__run__batch.append(IDS__run)
+                                        IDS__username__batch.append(IDS__username)
+                                        IDS__imasdb__batch.append(IDS__imasdb)
+                                        IDS__target_IDS_shot__batch.append(target_IDS_dispatch_shot[parameters__database])
+                                        IDS__target_IDS_run__batch.append(target_IDS_dispatch_run[parameters__database][parameters__kinetic_prof_Pr_string][parameters__kinetic_prof_tF_tE_string])
 
 ##################################################################
 #define and launch the batch scripts
@@ -381,6 +452,9 @@ RMP_batch_run=Batch(
     LOCUST_run__commit_hash=LOCUST_run__commit_hash__batch,
     LOCUST_run__settings_prec_mod=LOCUST_run__settings_prec_mod__batch,
     LOCUST_run__flags=LOCUST_run__flags__batch,
+    NEMO_run__dir_NEMO=NEMO_run__dir_NEMO__batch,
+    NEMO_run__nmarker=NEMO_run__nmarker__batch,
+    NEMO_run__fokker_flag=NEMO_run__fokker_flag__batch,
     MARS_read__tail_U=MARS_read__tail_U__batch,
     MARS_read__tail_M=MARS_read__tail_M__batch,
     MARS_read__tail_L=MARS_read__tail_L__batch,
@@ -393,7 +467,13 @@ RMP_batch_run=Batch(
     RMP_study__filepath_additional_data=RMP_study__filepaths_additional_data__batch,
     RMP_study__filepaths_3D_field_U=RMP_study__filepaths_3D_field_U__batch,
     RMP_study__filepaths_3D_field_M=RMP_study__filepaths_3D_field_M__batch,
-    RMP_study__filepaths_3D_field_L=RMP_study__filepaths_3D_field_L__batch
+    RMP_study__filepaths_3D_field_L=RMP_study__filepaths_3D_field_L__batch,
+    IDS__shot=IDS__shot__batch,
+    IDS__run=IDS__run__batch,
+    IDS__username=IDS__username__batch,
+    IDS__imasdb=IDS__imasdb__batch,
+    IDS__target_IDS_shot=IDS__target_IDS_shot__batch,
+    IDS__target_IDS_run=IDS__target_IDS_run__batch
     )
 RMP_batch_run.launch(workflow_filepath='RMP_study_run_static.py',system_name='TITAN')   
 
