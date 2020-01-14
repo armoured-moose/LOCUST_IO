@@ -11,6 +11,18 @@ notes:
     at first care was taken to decide as many parameters as possible outside of this script (best practice to be able to reuse this script) however I ran out of time and started deriving information herein
     all filepaths are absolute at the beginning
 todo:
+
+    XXX make a 'prec_mod edits add' section wherer:
+        record actual species stored in excel and adjust prec_mod densities
+
+    XXX need read_rotation_IDS
+
+    XXX need to add missing species masses e.g. W to prec_mod.f90
+
+    XXX need to rename wall and GEQDSK?
+
+    XXX maybe add some clean up scripts for removing input files
+
     XXX might need to call get_3D_fields twice, once for fundamental and another for harmonic - just make two identical functions but each referring to a different harmonic variable that is passed via parameters__toroidal_mode_numbers_fundamental, parameters__toroidal_mode_numbers_harmonics
     XXX or equally, call once but instead of parameters__toroidal_mode_numbers=[1] you could maybe have parameters__toroidal_mode_numbers=[[1,4],[2,6]] for two simulations with two harmonics each - this would also need to be appleid to RMP_study__filepaths_3D_field_U__batch
 
@@ -18,7 +30,20 @@ todo:
     
     XXX for resolution scans, dXR and dXZ need to be varied
 
-    XXX add some progress messages to workflow stages
+    XXX check I'm calculating rho_tor correctly using QTP? / looking in the equilibrium IDS (plot against rho_tor in there if it already exists)
+
+    XXX try following env + unloading additional libs such as matplotlib
+    module load IMAS
+    module unload imkl/2018.1.163-iimpi-2018a
+    module unload intel/2018a
+    module unload Tkinter/3.6.4-intel-2018a-Python-3.6.4
+    module unload matplotlib/2.1.2-intel-2018a-Python-3.6.4
+    #module load intel/2018a
+    module unload Python/3.6.4-intel-2018a
+    module unload PyYAML/3.12-intel-2018a-Python-3.6.4
+    module unload Anaconda3/5.0.1
+    module load Python/3.6.4-foss-2018a
+
 ---
 '''
 
@@ -126,23 +151,6 @@ except:
 ##################################################################
 #Main
 
-#need to make some additions to the LOCUST_run workflow component
-class LOCUST_run_RMP(run_scripts.LOCUST_run.LOCUST_run):
-    def get_inputs(self,*args,**kwargs):
-        """
-        LOCUST_run stage for moving inputs to correct location
-
-        notes:
-            edited for RMP workflow to move instead of copy
-        """
-
-        #copy input and cache files to correct location
-        for file in self.dir_input.glob('*'): #move all input files to correct location
-            subprocess.run(shlex.split('mv {file} {inputdir}'.format(file=str(file),inputdir=str(self.root / settings.username / self.tokhead / settings.LOCUST_dir_inputfiles_default))),shell=False)
-        for file in self.dir_cache.glob('*'): #move all cache files to correct location
-            subprocess.run(shlex.split('mv {file} {cachedir}'.format(file=str(file),cachedir=str(self.root / settings.username / self.tokhead / settings.LOCUST_dir_cachefiles_default))),shell=False)
-
-
 class RMP_study_run(run_scripts.workflow.Workflow):
     """
     defines a workflow which runs a 3D field RMP run
@@ -235,7 +243,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         self.LOCUST_run__commit_hash=LOCUST_run__commit_hash
         self.LOCUST_run__settings_prec_mod=LOCUST_run__settings_prec_mod
         self.LOCUST_run__flags=LOCUST_run__flags
-        self.NEMO_run__dir_NEMO=NEMO_run__dir_NEMO
+        self.NEMO_run__dir_NEMO=pathlib.Path(NEMO_run__dir_NEMO)
         self.NEMO_run__nmarker=NEMO_run__nmarker
         self.NEMO_run__fokker_flag=NEMO_run__fokker_flag
         self.MARS_read__tail_U=MARS_read__tail_U
@@ -260,17 +268,43 @@ class RMP_study_run(run_scripts.workflow.Workflow):
 
         #################################
         #derive some information
+        
+        #dispatch tables for species stored in IDSs and prec_mod
+        self.table_species_AZ={} #A,Z
+        self.table_species_AZ['deuterium']=[2.,1.] #need to stay floats
+        self.table_species_AZ['tritium']=[3.,1.]
+        self.table_species_AZ['helium3']=[3.,2.]
+        self.table_species_AZ['helium']=[4.,2.]
+        self.table_species_AZ['hydrogen']=[1.,1.]
+        self.table_species_AZ['oxygen']=[8.,4.]
+        self.table_species_AZ['neon']=[20.2,10.]
+        self.table_species_AZ['tungsten']=[183.8,74.]
+        self.table_species_LOCUST={}
+        self.table_species_LOCUST['deuterium']='AD'
+        self.table_species_LOCUST['tritium']='AT'
+        self.table_species_LOCUST['helium3']='AHe3'
+        self.table_species_LOCUST['helium']='AHe4'
+        self.table_species_LOCUST['hydrogen']='AH'
+        #self.table_species_LOCUST['oxygen']=
+        #self.table_species_LOCUST['neon']=
+        #self.table_species_LOCUST['tungsten']=
+
+        #add some prec_mod settings
+        self.LOCUST_run__settings_prec_mod['Ab']='AD' 
+        self.LOCUST_run__settings_prec_mod['Zb']='+1.0_gpu' 
 
         #################################
         #add workflow stages
 
         self.add_command(command_name='mkdir',command_function=self.setup_RMP_study_dirs,position=1) #add new workflow stages
-        #self.add_command(command_name='get_kinetic',command_function=self.get_kinetic_profiles,position=2)
+        #self.add_command(command_name='get_kinetic',command_function=self.get_kinetic_profiles_IDS,position=2)
+        self.add_command(command_name='get_kinetic',command_function=self.get_kinetic_profiles_excel,position=2)
         self.add_command(command_name='get_3D',command_function=self.get_3D_fields,position=3) 
         self.add_command(command_name='get_others',command_function=self.get_other_input_files,position=4)
         self.add_command(command_name='create_IDS',command_function=self.create_IDS,position=5) 
-        self.add_command(command_name='run_NEMO',command_function=self.run_NEMO,position=7) 
-        #self.add_command(command_name='get_beam_deposition',command_function=self.get_beam_deposition,position=8)
+        self.add_command(command_name='run_NEMO',command_function=self.run_NEMO,position=6) 
+        self.add_command(command_name='get_beam_depo',command_function=self.get_beam_deposition,position=7)
+        self.add_command(command_name='run_LOCUST',command_function=self.LOCUST_run_RMP,position=8)
 
     def setup_RMP_study_dirs(self,*args,**kwargs):
         """
@@ -285,29 +319,86 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                         ]:
             if not direc.is_dir(): direc.mkdir(parents=True)
 
-    '''
-    def get_kinetic_profiles(self,*args,**kwargs):
+    def get_kinetic_profiles_IDS(self,*args,**kwargs):
+        """
+
+        notes:
+            adds prec_mod.f90 settings to adjust background ion fractions
+        """
+
+        #XXX need to check whether flux_pol_norm is stored in the IDSs
+        density=Number_Density(ID='',data_format='IDS',
+                species=species_name,shot=IDS__target_IDS_shot,run=IDS__target_IDS_run)
+        density.dump_data(data_format='LOCUST',
+            filename=self.LOCUST_run__dir_input / 'profile_ne.dat')
+        #all ion temperatures same so just read Deuterium
+        temperature=Temperature(ID='', data_format='IDS',
+                    species='deuterium',shot=IDS__target_IDS_shot,
+                    run=IDS__target_IDS_run,A=2,Z=1) 
+        temperature.dump_data(data_format='LOCUST',
+            filename=self.LOCUST_run__dir_input / 'profile_Ti.dat'.format(temperature.properties['species']))
+        temperature=Temperature(ID='',data_format='IDS',
+                    species='electrons',shot=IDS__target_IDS_shot,
+                    run=IDS__target_IDS_run) 
+        temperature.dump_data(data_format='LOCUST',
+            filename=self.LOCUST_run__dir_input / 'profile_Te.dat'.format(temperature.properties['species']))
+
+        species_present=[] #record which species stored in IDS
+        for species_name,species_AZ in self.table_species_AZ.items(): #loop through all non-electronic ion species and set equal temperature
+            try:
+                density=Number_Density(ID='',data_format='IDS',
+                        species=species_name,shot=IDS__target_IDS_shot,
+                        run=IDS__target_IDS_run,A=species_AZ[0],Z=species_AZ[1])
+                density.dump_data(data_format='LOCUST',filename=self.LOCUST_run__dir_input / 'density_{}'.format(density.properties['species']))
+                species_present.append(species_name)
+                #XXX DOES THIS EXIST IN IDS?
+                rotation=Rotation(ID='',data_format='IDS',
+                        species=species_name,shot=IDS__target_IDS_shot,
+                        run=IDS__target_IDS_run,A=species_AZ[0],Z=species_AZ[1])
+                rotation.dump_data(data_format='LOCUST',filename=self.LOCUST_run__dir_input / 'rotation_{}'.format(rotation.properties['species']))
+            except:
+                pass
+
+        #XXX add some setting prec_mod.f90
+
+    
+    def get_kinetic_profiles_excel(self,*args,**kwargs):
         """
         prepare kinetic profiles for LOCUST
+
         notes:
             extracts from excel spreadsheet provided by Yueqiang
+            adds prec_mod.f90 settings to adjust background ion fractions
         """
 
-        temperatures=[]
-        densities=[]
-
-        for species in ['electrons','deuterium']: #XXX HACK WITH SINGLE SPECIES FOR NOW - WAITING FOR https://jira.iter.org/browse/IMAS-2804,'tritium','helium','hydrogen','tungsten','helium3']:
+        species_present=[] #record which species stored in excel
+        species_densities=[]
+        for species_name,species_AZ in self.table_species_AZ.items(): #loop through all non-electronic ion species and set equal temperature
             try:
-                densities.append(Number_Density(ID='',data_format='EXCEL1',species=species,filename=self.RMP_study__filepath_kinetic_profiles.relative_to(support.dir_input_files),sheet_name=self.parameters__sheet_name_kinetic_prof))
+                density=Number_Density(ID='',data_format='EXCEL1',species=species,filename=self.RMP_study__filepath_kinetic_profiles.relative_to(support.dir_input_files),sheet_name=self.parameters__sheet_name_kinetic_prof)
+                density.dump_data(data_format='LOCUST',filename=self.LOCUST_run__dir_input / 'density_{}'.format(density.properties['species']))
+                species_present.append(species_name)
+                species_densities.append(np.mean(density['n'])) #XXX take average density then find Zeff or find Zeff at each point then mean? same thing?
             except:
                 pass
         for species in ['electrons','ions']:
-            temperatures.append(Temperature(ID='',data_format='EXCEL1',species=species,filename=self.RMP_study__filepath_kinetic_profiles.relative_to(support.dir_input_files),sheet_name=self.parameters__sheet_name_kinetic_prof))
-        for temperature in temperatures: temperature.dump_data(data_format='LOCUST',filename=self.LOCUST_run__dir_input / 'temperature_{}'.format(temperature.properties['species']))
-        for density in densities: density.dump_data(data_format='LOCUST',filename=self.LOCUST_run__dir_input / 'density_{}'.format(density.properties['species']))
+            temperature=Temperature(ID='',data_format='EXCEL1',species=species,filename=self.RMP_study__filepath_kinetic_profiles.relative_to(support.dir_input_files),sheet_name=self.parameters__sheet_name_kinetic_prof)
+            temperature.dump_data(data_format='LOCUST',filename=self.LOCUST_run__dir_input / 'profile_T{}.dat'.format(temperature.properties['species'][0]))
+        
+        density_electrons=Number_Density(ID='',data_format='EXCEL1',species='electrons',filename=self.RMP_study__filepath_kinetic_profiles.relative_to(support.dir_input_files),sheet_name=self.parameters__sheet_name_kinetic_prof)
+        density.dump_data(data_format='LOCUST',filename=self.LOCUST_run__dir_input / 'profile_ne.dat')
         rotation=Rotation(ID='',data_format='EXCEL1',filename=self.RMP_study__filepath_kinetic_profiles.relative_to(support.dir_input_files),sheet_name=self.parameters__sheet_name_kinetic_prof,rotation_name=self.parameters__var_name_rotation,sheet_name_rotation=self.parameters__sheet_name_rotation)
-        rotation.dump_data(data_format='LOCUST',filename=self.LOCUST_run__dir_input / 'rotation') 
-    '''
+        rotation.dump_data(data_format='LOCUST',filename=self.LOCUST_run__dir_input / 'profile_wT.dat') 
+
+        #add some setting prec_mod.f90
+        self.LOCUST_run__settings_prec_mod['fi']='[{}]'.format(','.join([str(species_density/np.mean(density_electrons['n']))+'_gpu' for species_density in species_densities]))
+        self.LOCUST_run__settings_prec_mod['Ai']='[{}]'.format(','.join([table_species_LOCUST[species] for species in species_present])) 
+        self.LOCUST_run__settings_prec_mod['Zi']='[{}]'.format(','.join([str(table_species_AZ[species][1])+'_gpu' for species in species_present]))
+
+        #compare LOCUST-calculated Zeff with that stored in kinetic profiles        
+        zeff_input=run_scripts.utils.read_kinetic_profile_data_excel_1(filepath=self.RMP_study__filepath_kinetic_profiles,
+                                                    y='Zeff',x='Fp',sheet_name=parameters__sheet_name_kinetic_prof):
+        zeff_locust=processing.utils.Zeff_calc(density=[species_density for species_density in species_densities],charge=[table_species_AZ[species][1] for species in species_present])
 
     def get_3D_fields(self,*args,**kwargs):
         """
@@ -338,8 +429,6 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         """
         fetch 2D equilibrium, tokamak wall description and cross section data
         notes:
-        todo:
-            make sure that beam depositions that are eventually generated are also copied over too
         """
 
         #equilibrium=Equilibrium(ID='',data_format='GEQDSK',filename=self.RMP_study__filepath_equilibrium)
@@ -357,7 +446,6 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         except:
             raise ImportError("ERROR: LOCUST_run_RMP.create_new_IDS could not import IMAS module!\nreturning\n")
             return
-
         new_IDS=imas.ids(self.IDS__shot,self.IDS__run) #initialise new blank IDS
         new_IDS.create_env(self.IDS__username,self.IDS__imasdb,settings.imas_version) 
         new_IDS_nbi_ctx=new_IDS.nbi.getPulseCtx() #retain file handles for later
@@ -394,16 +482,13 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         new_IDS.distribution_sources=copy.deepcopy(IDS_source.distribution_sources) #grab the part of the IDS we want
         new_IDS.distribution_sources.setPulseCtx(new_IDS_distribution_sources_ctx) #reset file handle
 
-
-        #fill in some blank rho_tor field
+        #calculate/fill in blank rho_tor field
         for filename_equilibrium in self.LOCUST_run__dir_input.glob('*GEQDSK*'): #retrieve equilibrium for this simulation
             equilibrium=Equilibrium(ID='',data_format='GEQDSK',filename=filename_equilibrium)
         temperature_example=Temperature(ID='',data_format='EXCEL1',species='ions',filename=self.RMP_study__filepath_kinetic_profiles.relative_to(support.dir_input_files),sheet_name=self.parameters__sheet_name_kinetic_prof)
         temperature_example['flux_pol']=temperature_example['flux_pol_norm']*(equilibrium['sibry']-equilibrium['simag'])+equilibrium['simag']
-
         rho_tor_eq=np.sqrt(np.abs(equilibrium['flux_tor'])*2.*np.pi/(np.pi*np.abs(equilibrium['bcentr']))) #calculate rho_tor on equilibrium flux grid - rho_tor = sqrt(b_flux_tor/(pi*b0)) where I think b_flux_tor is in [Wb]
-        interpolator_rho_tor=processing.utils.interpolate_1D(equilibrium['flux_pol'],rho_tor_eq) #interpolate this onto flux grid of kinetic profiles 
-        #new_IDS.core_profiles.profiles_1d[0].grid.rho_tor=np.linspace(0,1,len(new_IDS.core_profiles.profiles_1d[0].grid.rho_tor_norm))#interpolator_rho_tor(temperature_example['flux_pol']) #use spare temperature object's grid to determine corresponding rho_tor grid
+        interpolator_rho_tor=processing.utils.interpolate_1D(equilibrium['flux_pol'],rho_tor_eq,type='interp1d') #interpolate this onto flux grid of kinetic profiles - type=RBF currently breaks due to bugs in module environment 
         rho_tor_core_prof=interpolator_rho_tor(temperature_example['flux_pol']) #use grid taken from a random temperature from the source data to determine corresponding rho_tor grid
         new_IDS.core_profiles.profiles_1d[0].grid.rho_tor=rho_tor_core_prof
         new_IDS.core_profiles.profiles_1d[0].grid.rho_tor_norm=(rho_tor_core_prof-rho_tor_core_prof[0])/(rho_tor_core_prof[-1]-rho_tor_core_prof[0]) #remove rho_tor_norm as this grid seems to be different
@@ -419,68 +504,29 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         new_IDS.core_profiles.time = np.array([0.0])
         new_IDS.nbi.time = np.array([0.0])
         new_IDS.distribution_sources.time = np.array([0.0])
+        new_IDS.distributions.time = np.array([0.0])
 
         new_IDS.nbi.put()
         new_IDS.core_profiles.put()
         new_IDS.equilibrium.put()
         new_IDS.distribution_sources.put()
+        new_IDS.distributions.put()
            
         IDS_nbi.close()
         IDS_source.close()
         new_IDS.close()
 
         #fill in blank temperatures
-        data_elements_table={} #A,Z
-        data_elements_table['deuterium']=[2.,1.]
-        data_elements_table['tritium']=[3.,1.]
-        data_elements_table['helium3']=[3.,2.]
-        data_elements_table['helium']=[4.,2.]
-        data_elements_table['hydrogen']=[1.,1.]
-        data_elements_table['oxygen']=[8.,4.]
-        data_elements_table['neon']=[20.2,10.]
-        data_elements_table['tungsten']=[183.8,74.]
-        
-        for species in data_elements_table.keys(): #loop through all non-electronic ion species and set equal temperature
+        for species,species_AZ in self.table_species_AZ.items(): #loop through all non-electronic ion species and set equal temperature
             temperature=Temperature(ID='',data_format='EXCEL1',species='ions',filename=self.RMP_study__filepath_kinetic_profiles.relative_to(support.dir_input_files),sheet_name=self.parameters__sheet_name_kinetic_prof)
             temperature['flux_pol']=temperature['flux_pol_norm']*(equilibrium['sibry']-equilibrium['simag'])+equilibrium['simag']
-            temperature.dump_data(data_format='IDS',shot=self.IDS__shot,run=self.IDS__run,species=species,A=data_elements_table[species][0],Z=data_elements_table[species][1])
-
-#XXX works up to here
+            temperature.dump_data(data_format='IDS',shot=self.IDS__shot,run=self.IDS__run,species=species,A=species_AZ[0],Z=species_AZ[1])
 
     def run_NEMO(self,*args,**kwargs):
         """
         notes:
         """
 
-        NEMO_run_args={}
-        NEMO_run_args['dir_NEMO']=[self.NEMO_run__dir_NEMO]
-        NEMO_run_args['shot_in']=[self.IDS__shot]
-        NEMO_run_args['shot_out']=[self.IDS__shot]
-        NEMO_run_args['run_in']=[self.IDS__run]
-        NEMO_run_args['run_out']=[self.IDS__run]
-        NEMO_run_args['username']=[self.IDS__username]
-        NEMO_run_args['imasdb']=[self.IDS__imasdb]
-        NEMO_run_args['imas_version']=[settings.imas_version]
-        NEMO_run_args['nmarker']=[self.NEMO_run__nmarker]
-        NEMO_run_args['fokker_flag']=[self.NEMO_run__fokker_flag]
-
-        NEMO_run_environment=run_scripts.environment.Environment('TITAN_NEMO')
-        command=' '.join([NEMO_run_environment.create_command_string(),
-                                '; python NEMO_run.py',
-                                run_scripts.utils.command_line_arg_parse_generate_string(**NEMO_run_args)])
-
-
-
-
-        #try:
-        #    pass
-        #subprocess.call(command,shell=True,cwd=str(support.dir_run_scripts))# as proc: #stdin=PIPE, stdout=PIPE, stderr=STDOUT
-
-        #except subprocess.CalledProcessError as err:
-        #    print("ERROR: {workflow_name}.call_NEMO_actor_command_line() failed to run NEMO!\nreturning\n".format(workflow_name=self.workflow_name))
-            #raise(err)
-
-        '''
         NEMO_workflow=run_scripts.NEMO_run.NEMO_run(
         dir_NEMO=self.NEMO_run__dir_NEMO,
         shot_in=self.IDS__shot,
@@ -490,42 +536,58 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         username=settings.username,
         imasdb=settings.imasdb,
         imas_version=settings.imas_version,
-        nmarker=self.NEMO_run__nmarker,
+        nmarker=int(3.e6),#self.NEMO_run__nmarker,
         fokker_flag=self.NEMO_run__fokker_flag)
 
         NEMO_workflow.call_NEMO_actor_command_line()
-        '''
+
 
     def get_beam_deposition(self,*args,**kwargs):
         """
         notes:
         """
 
-        beam_deposition=Beam_Deposition(data_format='IDS',shot=self.IDS__shot,run=self.IDS__run)
-        beam_deposition.dump_data(data_format='LOCUST',filename=self.LOCUST_run__dir_input / 'ptcles.dat') 
+        beam_deposition=Beam_Deposition(ID='',data_format='IDS',shot=self.IDS__shot,run=self.IDS__run)
+        beam_deposition.dump_data(data_format='LOCUST_FO',filename=self.LOCUST_run__dir_input / 'ptcles.dat') 
+        #beam_deposition['X']=beam_deposition['R']*np.cos(beam_deposition['phi'])
+        #beam_deposition['Y']=beam_deposition['R']*np.sin(beam_deposition['phi'])
+        #beam_deposition.plot(number_bins=300,real_scale=True,axes=['X','Y'])
 
 
-'''
-    def setup_directories(self,*args,**kwargs):
+#XXX works up to here
+
+    def run_LOCUST(self,*args,**kwargs):
         """
         notes:
         """
 
-    def run_LOCUST(self,*args,**kwargs)
-        import locust_run here
+        #need to make some custom edits to LOCUST_run workflow class
+        class LOCUST_run_RMP(run_scripts.LOCUST_run.LOCUST_run):
+            def get_inputs(self,*args,**kwargs):
+                """
+                LOCUST_run stage for moving inputs to correct location
 
-        this_run=LOCUST_run_RMP(system_name=args.system_name,repo_URL=args.repo_URL,commit_hash=args.commit_hash,dir_locust=args.dir_locust,dir_input=args.dir_input,dir_output=args.dir_output,dir_cache=args.dir_cache,settings_prec_mod=settings_prec_mod,flags=flags)
+                notes:
+                    edited for RMP workflow to move instead of copy
+                """
+
+                #copy input and cache files to correct location
+                for file in self.dir_input.glob('*'): #move all input files to correct location
+                    subprocess.run(shlex.split('mv {file} {inputdir}'.format(file=str(file),inputdir=str(self.root / settings.username / self.tokhead / settings.LOCUST_dir_inputfiles_default))),shell=False)
+                for file in self.dir_cache.glob('*'): #move all cache files to correct location
+                    subprocess.run(shlex.split('mv {file} {cachedir}'.format(file=str(file),cachedir=str(self.root / settings.username / self.tokhead / settings.LOCUST_dir_cachefiles_default))),shell=False)
+
+        this_run=LOCUST_run_RMP(system_name=self.LOCUST_run__system_name,
+            repo_URL=self.LOCUST_run__repo_URL,
+            commit_hash=self.LOCUST_run__commit_hash,
+            dir_locust=self.LOCUST_run__dir_LOCUST,
+            dir_input=self.LOCUST_run__dir_input,
+            dir_output=self.LOCUST_run__dir_output,
+            dir_cache=self.LOCUST_run__dir_cache,
+            settings_prec_mod=self.LOCUST_run__settings_prec_mod,
+            flags=self.LOCUST_run__flags)
         
-        #default run order is: mkdir-get_code-make-get_input-run_code-get_output-cleanup
-        #add new step to retrieve cache here
-        def retrieve_cache():
-            something
-
-        this_run.add_command(retrieve_cache)
-
         this_run.run()
-
-'''
 
 if __name__=='__main__':
 
@@ -578,7 +640,6 @@ if __name__=='__main__':
     parser.add_argument('--IDS__imasdb',type=str,action='store',dest='IDS__imasdb',help="",default=None)
     parser.add_argument('--IDS__target_IDS_shot',type=int,action='store',dest='IDS__target_IDS_shot',help="",default=1)
     parser.add_argument('--IDS__target_IDS_run',type=int,action='store',dest='IDS__target_IDS_run',help="",default=1)
-
 
     args=parser.parse_args()
 
@@ -638,8 +699,11 @@ if __name__=='__main__':
         )
 
     #this_run.run()
-    #this_run.create_IDS()
+    #this_run.get_other_input_files()
+    this_run.create_IDS() 
     this_run.run_NEMO()
+    this_run.get_beam_deposition()
+    this.run.run_LOCUST()
 
 #################################
 

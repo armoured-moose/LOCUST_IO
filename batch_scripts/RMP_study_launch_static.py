@@ -155,7 +155,7 @@ LOCUST_run__flags={}
 #LOCUST_run__flags['']=
 
 #fixed parameters needed for NEMO_run
-NEMO_run__dir_NEMO=support.dir_nemo
+NEMO_run__dir_NEMO=pathlib.Path('home') / 'ITER' / 'wards2' / 'scratch' / 'nemo'
 NEMO_run__nmarker=int(1.e6)
 NEMO_run__fokker_flag=0
 
