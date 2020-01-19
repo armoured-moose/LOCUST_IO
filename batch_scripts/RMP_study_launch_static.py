@@ -147,6 +147,7 @@ target_IDS_dispatch_run['ITER_7d5MAHalfB_case2']={}
 target_IDS_dispatch_run['ITER_7d5MAHalfB_case2']['1']={} 
 target_IDS_dispatch_run['ITER_7d5MAHalfB_case2']['1']['2']=0 #XXX this could go up to 2
 
+##################################################################
 #################################
 #define parameters fixed within a scenario here
 
@@ -158,9 +159,9 @@ parameters__kinetic_profs_n=['flat']
 #define the parameter space which varies for a given scenario
 
 #kinetic profile parameters which vary as one
-parameters__kinetic_profs_tF_tE=[2.] #XXX single choice here
+parameters__kinetic_profs_tF_tE=[2.]
 parameters__kinetic_profs_tF_tE_string=[parameters__kinetic_profs_tF_tE__dispatch[parameters__kinetic_prof_tF_tE] for parameters__kinetic_prof_tF_tE in parameters__kinetic_profs_tF_tE]  #version used in strings describing data in storage
-parameters__kinetic_profs_Pr=[1.0] #XXX single choice here prandl number
+parameters__kinetic_profs_Pr=[1.0]
 parameters__kinetic_profs_Pr_string=[parameters__kinetic_profs_Pr__dispatch[parameters__kinetic_prof_Pr] for parameters__kinetic_prof_Pr in parameters__kinetic_profs_Pr]  #version used in strings describing data in storage
 parameters__sheet_names_rotation=["'Pr=1'"]
 parameters__var_names_rotation=["'Vt(tF/tE=2)'"]
@@ -174,8 +175,8 @@ parameters__rotations_upper=[[0.,0.]]
 parameters__rotations_middle=[[0.,0.]]
 parameters__rotations_lower=[[0.,0.]]
 
-#################################
-#define parameters which are fixed throughout a parameter scan
+##################################################################
+#define parameters which are fixed throughout a parameter scan - if we want to vary then add as a layer in the for loops
 
 #fixed parameters needed by LOCUST_run
 LOCUST_run__system_name='TITAN'
@@ -197,7 +198,7 @@ MARS_read__settings['TAIL']="{}".format(MARS_read__tails)
 MARS_read__flags={}
 
 #define parameters needed by the RMP_study workflow for a given scenario
-RMP_study__name='test_study'
+RMP_study__name='RMP_study_test'
 RMP_study__dir_input_database=support.dir_input_files / 'ITER_fields_yueqiang' / 'DataBase'
 RMP_study__filepaths_kinetic_profiles=[list((RMP_study__dir_input_database / parameters__database / folder_name_DataEq).glob('*.xlsx'))[0] for parameters__database in parameters__databases] #define the paths to kinetic profiles
 RMP_study__filepaths_equilibrium=[list((RMP_study__dir_input_database / parameters__database / folder_name_DataEq).glob('*eqdsk*'))[0] for parameters__database in parameters__databases] #define the paths to equilibria
@@ -219,12 +220,6 @@ parameters__kinetic_profs_n__batch=[]
 parameters__kinetic_profs_tF_tE__batch=[]
 parameters__kinetic_profs_Pr__batch=[]
 parameters__toroidal_mode_numbers__batch=[]
-parameters__phases_upper__batch=[]
-parameters__phases_middle__batch=[]
-parameters__phases_lower__batch=[]
-parameters__rotations_upper__batch=[]
-parameters__rotations_middle__batch=[]
-parameters__rotations_lower__batch=[]
 parameters__parameter_string__batch=[]
 LOCUST_run__dir_LOCUST__batch=[]
 LOCUST_run__dir_input__batch=[]

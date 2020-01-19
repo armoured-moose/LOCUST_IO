@@ -18,16 +18,6 @@ todo:
     XXX need to add missing species masses e.g. W to prec_mod.f90
     XXX fix shot/run look up tables
     XXX implement option where LOCUST code can be retrieved from local repository, then copied to LOCUST_dir - in case bitbucket goes down...
-    XXX have it so that reading kineitc profiles from IDS does not have to read flux_pol.....then can set afterwards :| 
-    XXX need to edit mars_read
-    XXX can get rid of parameters__phase_upper etc  in the passed settings because already in the prec_mod settings
-
-    XXX - NEED MULTIPLE COIL ROWS
-
-    XXX - NEED MULTIPLE MODE NUMBERS
-    XXX might need to call get_3D_fields twice, once for fundamental and another for harmonic - just make two identical functions but each referring to a different harmonic variable that is passed via parameters__toroidal_mode_numbers_fundamental, parameters__toroidal_mode_numbers_harmonics
-    XXX or equally, call once but instead of parameters__toroidal_mode_numbers=[1] you could maybe have parameters__toroidal_mode_numbers=[[1,4],[2,6]] for two simulations with two harmonics each - this would also need to be appleid to RMP_study__filepaths_3D_fields_U__batch
-    XXX if we cannot parse lists from command line then maybe just have fundamental and first harmonic passed via regular args as floats?
 
     XXX eventually need it so that in launch everything above the parameter loop is pure python, then below all the prec_mod settings are set etc based on that - so set prandl to 1 and that goes into a dispatch table that gives the prandl string etc.
     --> could even make a function to do it for you! you set obvious things pythonically and it then creates the appropriate corresponding prec_mod dictionary
@@ -47,6 +37,7 @@ todo:
 
 
 
+    XXX have it so that reading kineitc profiles from IDS does not have to read flux_pol.....then can set afterwards :| 
 
     XXX copy all BPLASMA original files to look the same, then re-run my workflow and see if output is only one coil row
     
