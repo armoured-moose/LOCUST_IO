@@ -78,6 +78,9 @@ except:
 ################################################################## 
 #Main 
 
+#################################
+#define options and dispatch tables for choosing settings
+
 #random variables to help
 folder_name_DataMarsf='DataMarsf' #3D field directory name however this can sometimes vary between scenarios e.g. if using vacuum field
 folder_name_DataEq='DataEq' #equilibrium 
@@ -86,10 +89,22 @@ folder_name_DataEq='DataEq' #equilibrium
 database__options=['ITER_15MAQ10_case5','ITER_15MAQ5_case4','ITER_5MAH_case1','ITER_7d5MAFullB_case3','ITER_7d5MAHalfB_case2']
 parameters__toroidal_mode_numbers__options=[1,2,3,4,5,6]
 kinetic_profs_n__options=['flat','peaked']
-kinetic_profs_tF_tE__options=[0.5,0.57,0.65,0.72,0.73,1.,2.] #0.7 is actually 0.72
-kinetic_profs_tF_tE_string__options=['05','057','065','072','073','1','2'] #version used in strings describing data in storage
-kinetic_profs_Pr__options=[0.3,1.] #prandl number
-kinetic_profs_Pr_string__options=['03','1'] #version used in strings describing data in storage
+
+parameters__kinetic_profs_tF_tE__dispatch={}
+parameters__kinetic_profs_tF_tE__dispatch[0.5]='05' #strings corresponding to variables in data storage
+parameters__kinetic_profs_tF_tE__dispatch[0.57]='057'
+parameters__kinetic_profs_tF_tE__dispatch[0.65]='065'
+parameters__kinetic_profs_tF_tE__dispatch[0.72]='072'
+parameters__kinetic_profs_tF_tE__dispatch[0.73]='073'
+parameters__kinetic_profs_tF_tE__dispatch[1.]='1'
+parameters__kinetic_profs_tF_tE__dispatch[2.]='2'
+
+parameters__kinetic_profs_Pr__dispatch={} #prandl number
+parameters__kinetic_profs_Pr__dispatch[0.3]='03'
+parameters__kinetic_profs_Pr__dispatch[1.]='1'
+
+parameters__toroidal_mode_numbers__options={} #XXX needs studying - toroidal mode number combinations
+parameters__toroidal_mode_numbers__options['n=2']=[-2,-6]
 
 #dispatch table matching parameter values to corresponding IDS shot/run numbers
 #XXX NEED TO COMPLETE THIS DISPATCH TABLE
@@ -137,25 +152,38 @@ target_IDS_dispatch_run['ITER_7d5MAHalfB_case2']['1']['2']=0 #XXX this could go 
 
 parameters__databases=['ITER_15MAQ5_case4'] #these all zipped at same level in main loop because source data is not consistent enough
 parameters__sheet_names_kinetic_prof=["'Out_iterDD.iterDDL-R'"]
-parameters__sheet_names_rotation=["'Pr=0.3'"]
-parameters__var_names_rotation=["'Vt(tF/tE=2)'"]
 parameters__kinetic_profs_n=['flat']
+
+#################################
+#define the parameter space which varies for a given scenario
+
+#kinetic profile parameters which vary as one
+parameters__kinetic_profs_tF_tE=[2.] #XXX single choice here
+parameters__kinetic_profs_tF_tE_string=[parameters__kinetic_profs_tF_tE__dispatch[parameters__kinetic_prof_tF_tE] for parameters__kinetic_prof_tF_tE in parameters__kinetic_profs_tF_tE]  #version used in strings describing data in storage
+parameters__kinetic_profs_Pr=[1.0] #XXX single choice here prandl number
+parameters__kinetic_profs_Pr_string=[parameters__kinetic_profs_Pr__dispatch[parameters__kinetic_prof_Pr] for parameters__kinetic_prof_Pr in parameters__kinetic_profs_Pr]  #version used in strings describing data in storage
+parameters__sheet_names_rotation=["'Pr=1'"]
+parameters__var_names_rotation=["'Vt(tF/tE=2)'"]
+
+#3D field parameters which vary independently - if you want to vary these together then put them into the same loop nesting below
+parameters__toroidal_mode_numbers=[[-3,-6]]
+parameters__phases_upper=[[0.,0.]]
+parameters__phases_middle=[[0.,0.]]
+parameters__phases_lower=[[0.,0.]]
+parameters__rotations_upper=[[0.,0.]]
+parameters__rotations_middle=[[0.,0.]]
+parameters__rotations_lower=[[0.,0.]]
+
+#################################
+#define parameters which are fixed throughout a parameter scan
 
 #fixed parameters needed by LOCUST_run
 LOCUST_run__system_name='TITAN'
 LOCUST_run__repo_URL=None
 LOCUST_run__commit_hash=None
-#these may vary in future - in which case add a new nesting to the parameter loop below
-LOCUST_run__settings_prec_mod={}
-#LOCUST_run__settings_prec_mod['']=
-LOCUST_run__flags={}
-#LOCUST_run__flags['TOKAMAK']=1
-#LOCUST_run__flags['']=
-#LOCUST_run__flags['']=
-#LOCUST_run__flags['']=
 
 #fixed parameters needed for NEMO_run
-NEMO_run__dir_NEMO=pathlib.Path('home') / 'ITER' / 'wards2' / 'scratch' / 'nemo'
+NEMO_run__dir_NEMO=pathlib.Path('/home') / 'ITER' / 'wards2' / 'scratch' / 'nemo'
 NEMO_run__nmarker=int(1.e6)
 NEMO_run__fokker_flag=0
 
@@ -167,36 +195,14 @@ MARS_read__tails=[MARS_read__tail_U,MARS_read__tail_M,MARS_read__tail_L]
 MARS_read__settings={}
 MARS_read__settings['TAIL']="{}".format(MARS_read__tails)
 MARS_read__flags={}
-MARS_read__flags['TOKAMAK']=1
 
 #define parameters needed by the RMP_study workflow for a given scenario
 RMP_study__name='test_study'
 RMP_study__dir_input_database=support.dir_input_files / 'ITER_fields_yueqiang' / 'DataBase'
 RMP_study__filepaths_kinetic_profiles=[list((RMP_study__dir_input_database / parameters__database / folder_name_DataEq).glob('*.xlsx'))[0] for parameters__database in parameters__databases] #define the paths to kinetic profiles
-RMP_study__filepaths_equilibrium=[list((RMP_study__dir_input_database / parameters__database / folder_name_DataEq).glob('eqdsk*'))[0] for parameters__database in parameters__databases] #define the paths to equilibria
+RMP_study__filepaths_equilibrium=[list((RMP_study__dir_input_database / parameters__database / folder_name_DataEq).glob('*eqdsk*'))[0] for parameters__database in parameters__databases] #define the paths to equilibria
 RMP_study__filepaths_additional_data=support.dir_input_files / 'ITER_additional_data'
 
-#################################
-#define the parameter space which varies for a given scenario
-
-#kinetic profile parameters
-parameters__kinetic_profs_tF_tE=[2.0] 
-parameters__kinetic_profs_tF_tE_string=['2'] #version used in strings describing data in storage
-
-parameters__kinetic_profs_Pr=[1.0] #prandl number
-parameters__kinetic_profs_Pr_string=['1'] #version used in strings describing data in storage
-
-#3D field parameters
-parameters__toroidal_mode_numbers=[1]
-parameters__phases_upper=[0]
-parameters__phases_middle=[0]
-parameters__phases_lower=[0]
-parameters__rotations_upper=[0]
-parameters__rotations_middle=[0]
-parameters__rotations_lower=[0]
-
-#################################
-#misc workflow settings
 IDS__shot=1
 IDS__run=1
 IDS__username=settings.username
@@ -242,9 +248,9 @@ RMP_study__dir_input_database__batch=[]
 RMP_study__filepaths_kinetic_profiles__batch=[]
 RMP_study__filepaths_equilibrium__batch=[]
 RMP_study__filepaths_additional_data__batch=[]
-RMP_study__filepaths_3D_field_U__batch=[]
-RMP_study__filepaths_3D_field_M__batch=[]
-RMP_study__filepaths_3D_field_L__batch=[]
+RMP_study__filepaths_3D_fields_U__batch=[]
+RMP_study__filepaths_3D_fields_M__batch=[]
+RMP_study__filepaths_3D_fields_L__batch=[]
 IDS__shot__batch=[]
 IDS__run__batch=[]
 IDS__username__batch=[]
@@ -301,131 +307,149 @@ for parameters__database, \
                                     
                                         run_number+=1 #increment run counter                                         
                                         parameters__parameter_string=''
-                                        for parameter,value in zip([
+                                        parameters__parameter_string+='_'.join(['{}_{}'.format(parameter,str(value)) for parameter,value in zip([
                                                         'n',
                                                         'tFtE',
-                                                        'Pr',
-                                                        'ntor',
-                                                        'phaseu',
-                                                        'phasem',
-                                                        'phasel',
-                                                        'rotu',
-                                                        'rotm',
-                                                        'rotl'
+                                                        'Pr'
                                                         ],[
                                                         parameters__kinetic_prof_n,
                                                         parameters__kinetic_prof_tF_tE,
-                                                        parameters__kinetic_prof_Pr,
-                                                        parameters__toroidal_mode_number,
-                                                        parameters__phase_upper,
-                                                        parameters__phase_middle,
-                                                        parameters__phase_lower,
-                                                        parameters__rotation_upper,
-                                                        parameters__rotation_middle,
-                                                        parameters__rotation_lower]):
-                                            parameters__parameter_string='_'.join([parameters__parameter_string,parameter,str(value)])
-                                            parameters__parameter_string=parameters__parameter_string[1:]
+                                                        parameters__kinetic_prof_Pr])])
+
+                                        for counter_mode,mode in enumerate(parameters__toroidal_mode_number):
+                                            parameters__parameter_string+='_ntor_{}_'.format(str(mode)) #add toroidal mode information
+                                            parameters__parameter_string+='_'.join(['{}_{}'.format(parameter,str(value)) for parameter,value in zip([
+                                                    'phaseu',
+                                                    'phasem',
+                                                    'phasel',
+                                                    'rotu',
+                                                    'rotm',
+                                                    'rotl'],[
+                                                    parameters__phase_upper[counter_mode],
+                                                    parameters__phase_middle[counter_mode],
+                                                    parameters__phase_lower[counter_mode],
+                                                    parameters__rotation_upper[counter_mode],
+                                                    parameters__rotation_middle[counter_mode],
+                                                    parameters__rotation_lower[counter_mode]])])
+
 
                                         #################################
                                         #define corresponding workflow args passed to batch (denoted wth __batch)
 
-                                        parameters__databases__batch.append(parameters__database)
-                                        parameters__sheet_names_kinetic_prof__batch.append(parameters__sheet_name_kinetic_prof)
-                                        parameters__sheet_names_rotation__batch.append(parameters__sheet_name_rotation)
-                                        parameters__var_names_rotation__batch.append(parameters__var_name_rotation)
-                                        parameters__kinetic_profs_n__batch.append(parameters__kinetic_prof_n)
-                                        parameters__kinetic_profs_tF_tE__batch.append(parameters__kinetic_prof_tF_tE)
-                                        parameters__kinetic_profs_Pr__batch.append(parameters__kinetic_prof_Pr)
-                                        parameters__toroidal_mode_numbers__batch.append(parameters__toroidal_mode_number)
-                                        parameters__phases_upper__batch.append(parameters__phase_upper)
-                                        parameters__phases_middle__batch.append(parameters__phase_middle)
-                                        parameters__phases_lower__batch.append(parameters__phase_lower)
-                                        parameters__rotations_upper__batch.append(parameters__rotation_upper)
-                                        parameters__rotations_middle__batch.append(parameters__rotation_middle)
-                                        parameters__rotations_lower__batch.append(parameters__rotation_lower)
-                                        parameters__parameter_strings__batch.append(parameters__parameter_string)
-                                        LOCUST_run__dir_LOCUST__batch.append("'{}'".format(str(support.dir_locust / parameters__database / RMP_study__name / parameters__parameter_string)))
-                                        LOCUST_run__dir_input__batch.append("'{}'".format(str(support.dir_input_files / parameters__database / RMP_study__name / parameters__parameter_string)))
-                                        LOCUST_run__dir_output__batch.append("'{}'".format(str(support.dir_output_files / parameters__database / RMP_study__name / parameters__parameter_string)))
-                                        LOCUST_run__dir_cache__batch.append("'{}'".format(str(support.dir_cache_files / parameters__database / RMP_study__name))) #one level less to pool cache files into same directory across simulations
-                                        LOCUST_run__system_name__batch.append(LOCUST_run__system_name)
-                                        LOCUST_run__repo_URL__batch.append(LOCUST_run__repo_URL)
-                                        LOCUST_run__commit_hash__batch.append(LOCUST_run__commit_hash)
-                                        LOCUST_run__settings_prec_mod__batch.append(LOCUST_run__settings_prec_mod)
-                                        LOCUST_run__flags__batch.append(LOCUST_run__flags)
-                                        NEMO_run__dir_NEMO__batch.append(NEMO_run__dir_NEMO)
-                                        NEMO_run__nmarker__batch.append(NEMO_run__nmarker)
-                                        NEMO_run__fokker_flag__batch.append(NEMO_run__fokker_flag)
-                                        MARS_read__tail_U__batch.append(MARS_read__tail_U)
-                                        MARS_read__tail_M__batch.append(MARS_read__tail_M)
-                                        MARS_read__tail_L__batch.append(MARS_read__tail_L)
-                                        MARS_read__settings__batch.append(MARS_read__settings)
-                                        MARS_read__flags__batch.append(MARS_read__flags)
-                                        RMP_study__name__batch.append(RMP_study__name)
-                                        RMP_study__dir_input_database__batch.append(RMP_study__dir_input_database)
-                                        RMP_study__filepaths_kinetic_profiles__batch.append(RMP_study__filepath_kinetic_profiles)
-                                        RMP_study__filepaths_equilibrium__batch.append(RMP_study__filepath_equilibrium)
-                                        RMP_study__filepaths_additional_data__batch.append(RMP_study__filepaths_additional_data)
-                                        
-                                        #find path to 3D field corresponding to desired parameters here
-                                        RMP_study__filepaths_3D_field_head=RMP_study__dir_input_database / parameters__database / folder_name_DataMarsf 
-                                        RMP_study__filepaths_3D_field_tail_U='BPLASMA_MARSF_n{parameters__toroidal_mode_number}_cU_Pr{parameters__kinetic_prof_Pr_string}_tfte{parameters__kinetic_prof_tF_tE_string}.IN'.format(
-                                                                                                    parameters__toroidal_mode_number=str(parameters__toroidal_mode_number),
-                                                                                                    parameters__kinetic_prof_Pr_string=str(parameters__kinetic_prof_Pr_string),
-                                                                                                    parameters__kinetic_prof_tF_tE_string=str(parameters__kinetic_prof_tF_tE_string))
-                                        RMP_study__filepaths_3D_field_tail_M='BPLASMA_MARSF_n{parameters__toroidal_mode_number}_cM_Pr{parameters__kinetic_prof_Pr_string}_tfte{parameters__kinetic_prof_tF_tE_string}.IN'.format(
-                                                                                                    parameters__toroidal_mode_number=str(parameters__toroidal_mode_number),
-                                                                                                    parameters__kinetic_prof_Pr_string=str(parameters__kinetic_prof_Pr_string),
-                                                                                                    parameters__kinetic_prof_tF_tE_string=str(parameters__kinetic_prof_tF_tE_string))
-                                        RMP_study__filepaths_3D_field_tail_L='BPLASMA_MARSF_n{parameters__toroidal_mode_number}_cL_Pr{parameters__kinetic_prof_Pr_string}_tfte{parameters__kinetic_prof_tF_tE_string}.IN'.format(
-                                                                                                    parameters__toroidal_mode_number=str(parameters__toroidal_mode_number),
-                                                                                                    parameters__kinetic_prof_Pr_string=str(parameters__kinetic_prof_Pr_string),
-                                                                                                    parameters__kinetic_prof_tF_tE_string=str(parameters__kinetic_prof_tF_tE_string))
-                                        RMP_study__filepaths_3D_field_U__batch.append(RMP_study__filepaths_3D_field_head/RMP_study__filepaths_3D_field_tail_U) 
-                                        RMP_study__filepaths_3D_field_M__batch.append(RMP_study__filepaths_3D_field_head/RMP_study__filepaths_3D_field_tail_M) 
-                                        RMP_study__filepaths_3D_field_L__batch.append(RMP_study__filepaths_3D_field_head/RMP_study__filepaths_3D_field_tail_L)
+                                        #run-specific settings
 
-                                        IDS__shot__batch.append(IDS__shot)
-                                        IDS__run__batch.append(IDS__run)
-                                        IDS__username__batch.append(IDS__username)
-                                        IDS__imasdb__batch.append(IDS__imasdb)
-                                        IDS__target_IDS_shot__batch.append(target_IDS_dispatch_shot[parameters__database])
-                                        IDS__target_IDS_run__batch.append(target_IDS_dispatch_run[parameters__database][parameters__kinetic_prof_Pr_string][parameters__kinetic_prof_tF_tE_string])
+                                        #these may vary in future - in which case add a new nesting to the parameter loop below
+                                        LOCUST_run__flags={}
+                                        LOCUST_run__flags['TOKAMAK']=1
+                                        LOCUST_run__flags['LEIID']=8
+                                        LOCUST_run__flags['WLIST']=True
+                                        LOCUST_run__flags['BRELAX']=True
+                                        LOCUST_run__flags['UNBOR']=100
+                                        LOCUST_run__flags['OPENMESH']=True
+                                        LOCUST_run__flags['OPENTRACK']=True
+                                        LOCUST_run__flags['PFCMOD']=True
+                                        #LOCUST_run__flags['NOPFC']=True
+                                        LOCUST_run__flags['TOKHEAD']=True
+                                        LOCUST_run__flags['JXB2']=True
+                                        LOCUST_run__flags['PROV']=True
+                                        LOCUST_run__flags['PITCHCUR']=True
+                                        LOCUST_run__flags['EBASE']=True
+                                        LOCUST_run__flags['UHST']=True
+                                        LOCUST_run__flags['LNLBT']=True
+                                        LOCUST_run__flags['GEQDSKFIX1']=True
+                                        LOCUST_run__flags['BP']=True
+                                        LOCUST_run__flags['TIMAX']='0.05D0'
+                                        LOCUST_run__flags['B3D']=True
+                                        LOCUST_run__flags['B3D_EX']=True
+                                        LOCUST_run__flags['SPLIT']=True
+                                        LOCUST_run__flags['SMALLEQ']=True #XXX test whether we need this when using mesh
+                                        LOCUST_run__flags['NCOILS']=3
+                                        LOCUST_run__settings_prec_mod={}
+                                        LOCUST_run__settings_prec_mod['Ab']='AD' 
+                                        LOCUST_run__settings_prec_mod['Zb']='+1.0_gpu' 
+                                        LOCUST_run__settings_prec_mod['file_tet']="'locust_wall'" 
+                                        LOCUST_run__settings_prec_mod['file_eqm']="'locust_eqm'" 
+                                        LOCUST_run__settings_prec_mod['threadsPerBlock']=64
+                                        LOCUST_run__settings_prec_mod['blocksPerGrid']=64
+                                        LOCUST_run__settings_prec_mod['root']="'/tmp/wards2/{study}/{params}'".format(study=RMP_study__name,params=parameters__parameter_string)
+                                        LOCUST_run__settings_prec_mod['nnum']=str(parameters__toroidal_mode_number)
+                                        LOCUST_run__settings_prec_mod['nmde']=len(parameters__toroidal_mode_number)*3 #number of modes * number of coils = number of total harmonics
+                                        
+                                        phase_string='['
+                                        omega_string='['
+                                        for counter_mode,mode in enumerate(parameters__toroidal_mode_number):
+                                            for phase,omega in zip([parameters__phase_upper[counter_mode],parameters__phase_middle[counter_mode],parameters__phase_lower[counter_mode]],
+                                                                    [parameters__rotation_upper[counter_mode],parameters__rotation_middle[counter_mode],parameters__rotation_lower[counter_mode]]):
+                                                phase_string+='{}_gpu,'.format(phase)
+                                                omega_string+='{}_gpu,'.format(omega)
+                                        phase_string=phase_string[:-1]+']'
+                                        omega_string=omega_string[:-1]+']'
+                                        LOCUST_run__settings_prec_mod['phase']=phase_string
+                                        LOCUST_run__settings_prec_mod['omega']=omega_string
+                                        MARS_read__flags['NC']=np.abs(parameters__toroidal_mode_number[0])
+
+                                        parameters__databases__batch.append(copy.deepcopy(parameters__database))
+                                        parameters__sheet_names_kinetic_prof__batch.append(copy.deepcopy(parameters__sheet_name_kinetic_prof))
+                                        parameters__sheet_names_rotation__batch.append(copy.deepcopy(parameters__sheet_name_rotation))
+                                        parameters__var_names_rotation__batch.append(copy.deepcopy(parameters__var_name_rotation))
+                                        parameters__kinetic_profs_n__batch.append(copy.deepcopy(parameters__kinetic_prof_n))
+                                        parameters__kinetic_profs_tF_tE__batch.append(copy.deepcopy(parameters__kinetic_prof_tF_tE))
+                                        parameters__kinetic_profs_Pr__batch.append(copy.deepcopy(parameters__kinetic_prof_Pr))
+                                        parameters__toroidal_mode_numbers__batch.append(copy.deepcopy("'{}'".format(parameters__toroidal_mode_number)))
+                                        parameters__phases_upper__batch.append(copy.deepcopy(parameters__phase_upper))
+                                        parameters__phases_middle__batch.append(copy.deepcopy(parameters__phase_middle))
+                                        parameters__phases_lower__batch.append(copy.deepcopy(parameters__phase_lower))
+                                        parameters__rotations_upper__batch.append(copy.deepcopy(parameters__rotation_upper))
+                                        parameters__rotations_middle__batch.append(copy.deepcopy(parameters__rotation_middle))
+                                        parameters__rotations_lower__batch.append(copy.deepcopy(parameters__rotation_lower))
+                                        parameters__parameter_strings__batch.append(copy.deepcopy(parameters__parameter_string))
+                                        LOCUST_run__dir_LOCUST__batch.append(copy.deepcopy("'{}'".format(str(support.dir_locust / parameters__database / RMP_study__name / parameters__parameter_string))))
+                                        LOCUST_run__dir_input__batch.append(copy.deepcopy("'{}'".format(str(support.dir_input_files / parameters__database / RMP_study__name / parameters__parameter_string))))
+                                        LOCUST_run__dir_output__batch.append(copy.deepcopy("'{}'".format(str(support.dir_output_files / parameters__database / RMP_study__name / parameters__parameter_string))))
+                                        LOCUST_run__dir_cache__batch.append(copy.deepcopy("'{}'".format(str(support.dir_cache_files / parameters__database / RMP_study__name)))) #one level less to pool cache files into same directory across simulations
+                                        LOCUST_run__system_name__batch.append(copy.deepcopy(LOCUST_run__system_name))
+                                        LOCUST_run__repo_URL__batch.append(copy.deepcopy(LOCUST_run__repo_URL))
+                                        LOCUST_run__commit_hash__batch.append(copy.deepcopy(LOCUST_run__commit_hash))
+                                        LOCUST_run__settings_prec_mod__batch.append(copy.deepcopy(LOCUST_run__settings_prec_mod))
+                                        LOCUST_run__flags__batch.append(copy.deepcopy(LOCUST_run__flags))
+                                        NEMO_run__dir_NEMO__batch.append(copy.deepcopy(NEMO_run__dir_NEMO))
+                                        NEMO_run__nmarker__batch.append(copy.deepcopy(NEMO_run__nmarker))
+                                        NEMO_run__fokker_flag__batch.append(copy.deepcopy(NEMO_run__fokker_flag))
+                                        MARS_read__tail_U__batch.append(copy.deepcopy(MARS_read__tail_U))
+                                        MARS_read__tail_M__batch.append(copy.deepcopy(MARS_read__tail_M))
+                                        MARS_read__tail_L__batch.append(copy.deepcopy(MARS_read__tail_L))
+                                        MARS_read__settings__batch.append(copy.deepcopy(MARS_read__settings))
+                                        MARS_read__flags__batch.append(copy.deepcopy(MARS_read__flags))
+                                        RMP_study__name__batch.append(copy.deepcopy(RMP_study__name))
+                                        RMP_study__dir_input_database__batch.append(copy.deepcopy(RMP_study__dir_input_database))
+                                        RMP_study__filepaths_kinetic_profiles__batch.append(copy.deepcopy(RMP_study__filepath_kinetic_profiles))
+                                        RMP_study__filepaths_equilibrium__batch.append(copy.deepcopy(RMP_study__filepath_equilibrium))
+                                        RMP_study__filepaths_additional_data__batch.append(copy.deepcopy(RMP_study__filepaths_additional_data))
+                                        
+                                        #find paths to 3D fields corresponding to desired parameters here
+                                        RMP_study__filepaths_3D_field_head=RMP_study__dir_input_database / parameters__database / folder_name_DataMarsf
+                                        RMP_study__filepaths_3D_fields_U__batch.append("'{}'".format(copy.deepcopy([RMP_study__filepaths_3D_field_head/'BPLASMA_MARSF_n{parameters__toroidal_mode_number}_cU_Pr{parameters__kinetic_prof_Pr_string}_tfte{parameters__kinetic_prof_tF_tE_string}.IN'.format(
+                                                                                                    parameters__toroidal_mode_number=str(np.abs(mode)),
+                                                                                                    parameters__kinetic_prof_Pr_string=str(parameters__kinetic_prof_Pr_string),
+                                                                                                    parameters__kinetic_prof_tF_tE_string=str(parameters__kinetic_prof_tF_tE_string)) for mode in parameters__toroidal_mode_number])))
+                                        RMP_study__filepaths_3D_fields_M__batch.append("'{}'".format(copy.deepcopy([RMP_study__filepaths_3D_field_head/'BPLASMA_MARSF_n{parameters__toroidal_mode_number}_cM_Pr{parameters__kinetic_prof_Pr_string}_tfte{parameters__kinetic_prof_tF_tE_string}.IN'.format(
+                                                                                                    parameters__toroidal_mode_number=str(np.abs(mode)),
+                                                                                                    parameters__kinetic_prof_Pr_string=str(parameters__kinetic_prof_Pr_string),
+                                                                                                    parameters__kinetic_prof_tF_tE_string=str(parameters__kinetic_prof_tF_tE_string)) for mode in parameters__toroidal_mode_number])))
+                                        RMP_study__filepaths_3D_fields_L__batch.append("'{}'".format(copy.deepcopy([RMP_study__filepaths_3D_field_head/'BPLASMA_MARSF_n{parameters__toroidal_mode_number}_cL_Pr{parameters__kinetic_prof_Pr_string}_tfte{parameters__kinetic_prof_tF_tE_string}.IN'.format(
+                                                                                                    parameters__toroidal_mode_number=str(np.abs(mode)),
+                                                                                                    parameters__kinetic_prof_Pr_string=str(parameters__kinetic_prof_Pr_string),
+                                                                                                    parameters__kinetic_prof_tF_tE_string=str(parameters__kinetic_prof_tF_tE_string)) for mode in parameters__toroidal_mode_number]))) 
+
+                                        IDS__shot__batch.append(copy.deepcopy(IDS__shot))
+                                        IDS__run__batch.append(copy.deepcopy(IDS__run))
+                                        IDS__username__batch.append(copy.deepcopy(IDS__username))
+                                        IDS__imasdb__batch.append(copy.deepcopy(IDS__imasdb))
+                                        IDS__target_IDS_shot__batch.append(copy.deepcopy(target_IDS_dispatch_shot[parameters__database]))
+                                        IDS__target_IDS_run__batch.append(copy.deepcopy(target_IDS_dispatch_run[parameters__database][parameters__kinetic_prof_Pr_string][parameters__kinetic_prof_tF_tE_string]))
 
 ##################################################################
 #define and launch the batch scripts
-'''
-print(parameters__databases__batch)
-print(parameters__sheet_names_kinetic_prof__batch)
-print(parameters__sheet_names_rotation__batch)
-print(parameters__kinetic_profs_n__batch)
-print(parameters__kinetic_profs_tF_tE__batch)
-print(parameters__kinetic_profs_Pr__batch)
-print(parameters__toroidal_mode_numbers__batch)
-print(parameters__phases_upper__batch)
-print(parameters__phases_middle__batch)
-print(parameters__phases_lower__batch)
-print(parameters__rotations_upper__batch)
-print(parameters__rotations_middle__batch)
-print(parameters__rotations_lower__batch)
-print(parameters__parameter_strings__batch)
-print(LOCUST_run__dir_LOCUST__batch)
-print(LOCUST_run__dir_input__batch)
-print(LOCUST_run__dir_output__batch)
-print(LOCUST_run__dir_cache__batch)
-print(LOCUST_run__system_name__batch)
-print(LOCUST_run__repo_URL__batch)
-print(LOCUST_run__commit_hash__batch)
-print(LOCUST_run__settings_prec_mod__batch)
-print(LOCUST_run__flags__batch)
-print(RMP_study__name__batch)
-print(RMP_study__dir_input_database__batch)
-print(RMP_study__filepaths_kinetic_profiles__batch)
-print(RMP_study__filepaths_3D_field_U__batch)
-print(RMP_study__filepaths_3D_field_M__batch)
-print(RMP_study__filepaths_3D_field_L__batch)
-print(run_number)
-'''
 
 RMP_batch_run=Batch(
     parameters__database=parameters__databases__batch,
@@ -435,13 +459,7 @@ RMP_batch_run=Batch(
     parameters__kinetic_prof_n=parameters__kinetic_profs_n__batch,
     parameters__kinetic_prof_tF_tE=parameters__kinetic_profs_tF_tE__batch,
     parameters__kinetic_prof_Pr=parameters__kinetic_profs_Pr__batch,
-    parameters__toroidal_mode_number=parameters__toroidal_mode_numbers__batch,
-    parameters__phase_upper=parameters__phases_upper__batch,
-    parameters__phase_middle=parameters__phases_middle__batch,
-    parameters__phase_lower=parameters__phases_lower__batch,
-    parameters__rotation_upper=parameters__rotations_upper__batch,
-    parameters__rotation_middle=parameters__rotations_middle__batch,
-    parameters__rotation_lower=parameters__rotations_lower__batch,
+    parameters__toroidal_mode_numbers=parameters__toroidal_mode_numbers__batch,
     parameters__parameter_string=parameters__parameter_strings__batch,
     LOCUST_run__dir_LOCUST=LOCUST_run__dir_LOCUST__batch,
     LOCUST_run__dir_input=LOCUST_run__dir_input__batch,
@@ -465,9 +483,9 @@ RMP_batch_run=Batch(
     RMP_study__filepath_kinetic_profiles=RMP_study__filepaths_kinetic_profiles__batch,
     RMP_study__filepath_equilibrium=RMP_study__filepaths_equilibrium__batch,
     RMP_study__filepath_additional_data=RMP_study__filepaths_additional_data__batch,
-    RMP_study__filepaths_3D_field_U=RMP_study__filepaths_3D_field_U__batch,
-    RMP_study__filepaths_3D_field_M=RMP_study__filepaths_3D_field_M__batch,
-    RMP_study__filepaths_3D_field_L=RMP_study__filepaths_3D_field_L__batch,
+    RMP_study__filepaths_3D_fields_U=RMP_study__filepaths_3D_fields_U__batch,
+    RMP_study__filepaths_3D_fields_M=RMP_study__filepaths_3D_fields_M__batch,
+    RMP_study__filepaths_3D_fields_L=RMP_study__filepaths_3D_fields_L__batch,
     IDS__shot=IDS__shot__batch,
     IDS__run=IDS__run__batch,
     IDS__username=IDS__username__batch,
