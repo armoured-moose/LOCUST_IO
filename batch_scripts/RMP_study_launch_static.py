@@ -189,9 +189,9 @@ NEMO_run__nmarker=int(1.e6)
 NEMO_run__fokker_flag=0
 
 #fixed parameters needed by MARS_read
-MARS_read__tail_U='_U_VAC'
-MARS_read__tail_M='_M_VAC'
-MARS_read__tail_L='_L_VAC'
+MARS_read__tail_U='_U_PLS'
+MARS_read__tail_M='_M_PLS'
+MARS_read__tail_L='_L_PLS'
 MARS_read__tails=[MARS_read__tail_U,MARS_read__tail_M,MARS_read__tail_L]
 MARS_read__settings={}
 MARS_read__settings['TAIL']="{}".format(MARS_read__tails)
@@ -370,6 +370,7 @@ for parameters__database, \
                                         LOCUST_run__settings_prec_mod['nnum']=str(['{}'.format(mode) for mode in parameters__toroidal_mode_number for coil in range(3)]).replace('\'','')
                                         LOCUST_run__settings_prec_mod['nmde']=len(parameters__toroidal_mode_number)*3 #number of modes * number of coils = number of total harmonics
                                         MARS_read__flags['TOKAMAK']=1
+                                        MARS_read__flags['PLS']=True
 
                                         phase_string='['
                                         omega_string='['
