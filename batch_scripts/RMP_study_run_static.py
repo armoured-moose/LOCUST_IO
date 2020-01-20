@@ -14,8 +14,6 @@ notes:
 
 todo:
 
-    XXX add a get cache_files stage where we retrieve the ITER mesh
-    XXX need to add missing species masses e.g. W to prec_mod.f90
     XXX fix shot/run look up tables
     XXX implement option where LOCUST code can be retrieved from local repository, then copied to LOCUST_dir - in case bitbucket goes down...
 
