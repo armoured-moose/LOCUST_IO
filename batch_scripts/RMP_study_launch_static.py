@@ -367,8 +367,9 @@ for parameters__database, \
                                         LOCUST_run__settings_prec_mod['threadsPerBlock']=64
                                         LOCUST_run__settings_prec_mod['blocksPerGrid']=64
                                         LOCUST_run__settings_prec_mod['root']="'/tmp/wards2/{study}/{params}'".format(study=RMP_study__name,params=parameters__parameter_string)
-                                        LOCUST_run__settings_prec_mod['nnum']=str(parameters__toroidal_mode_number)
+                                        LOCUST_run__settings_prec_mod['nnum']=str(['{}'.format(mode) for mode in parameters__toroidal_mode_number for coil in range(3)]).replace('\'','')
                                         LOCUST_run__settings_prec_mod['nmde']=len(parameters__toroidal_mode_number)*3 #number of modes * number of coils = number of total harmonics
+                                        MARS_read__flags['TOKAMAK']=1
                                         
                                         phase_string='['
                                         omega_string='['
@@ -381,7 +382,6 @@ for parameters__database, \
                                         omega_string=omega_string[:-1]+']'
                                         LOCUST_run__settings_prec_mod['phase']=phase_string
                                         LOCUST_run__settings_prec_mod['omega']=omega_string
-                                        MARS_read__flags['NC']=np.abs(parameters__toroidal_mode_number[0])
 
                                         parameters__databases__batch.append(copy.deepcopy(parameters__database))
                                         parameters__sheet_names_kinetic_prof__batch.append(copy.deepcopy(parameters__sheet_name_kinetic_prof))
@@ -391,12 +391,6 @@ for parameters__database, \
                                         parameters__kinetic_profs_tF_tE__batch.append(copy.deepcopy(parameters__kinetic_prof_tF_tE))
                                         parameters__kinetic_profs_Pr__batch.append(copy.deepcopy(parameters__kinetic_prof_Pr))
                                         parameters__toroidal_mode_numbers__batch.append(copy.deepcopy("'{}'".format(parameters__toroidal_mode_number)))
-                                        parameters__phases_upper__batch.append(copy.deepcopy(parameters__phase_upper))
-                                        parameters__phases_middle__batch.append(copy.deepcopy(parameters__phase_middle))
-                                        parameters__phases_lower__batch.append(copy.deepcopy(parameters__phase_lower))
-                                        parameters__rotations_upper__batch.append(copy.deepcopy(parameters__rotation_upper))
-                                        parameters__rotations_middle__batch.append(copy.deepcopy(parameters__rotation_middle))
-                                        parameters__rotations_lower__batch.append(copy.deepcopy(parameters__rotation_lower))
                                         parameters__parameter_strings__batch.append(copy.deepcopy(parameters__parameter_string))
                                         LOCUST_run__dir_LOCUST__batch.append(copy.deepcopy("'{}'".format(str(support.dir_locust / parameters__database / RMP_study__name / parameters__parameter_string))))
                                         LOCUST_run__dir_input__batch.append(copy.deepcopy("'{}'".format(str(support.dir_input_files / parameters__database / RMP_study__name / parameters__parameter_string))))
@@ -423,18 +417,18 @@ for parameters__database, \
                                         
                                         #find paths to 3D fields corresponding to desired parameters here
                                         RMP_study__filepaths_3D_field_head=RMP_study__dir_input_database / parameters__database / folder_name_DataMarsf
-                                        RMP_study__filepaths_3D_fields_U__batch.append("'{}'".format(copy.deepcopy([RMP_study__filepaths_3D_field_head/'BPLASMA_MARSF_n{parameters__toroidal_mode_number}_cU_Pr{parameters__kinetic_prof_Pr_string}_tfte{parameters__kinetic_prof_tF_tE_string}.IN'.format(
+                                        RMP_study__filepaths_3D_fields_U__batch.append('"{}"'.format(copy.deepcopy([str(RMP_study__filepaths_3D_field_head/'BPLASMA_MARSF_n{parameters__toroidal_mode_number}_cU_Pr{parameters__kinetic_prof_Pr_string}_tfte{parameters__kinetic_prof_tF_tE_string}.IN'.format(
                                                                                                     parameters__toroidal_mode_number=str(np.abs(mode)),
                                                                                                     parameters__kinetic_prof_Pr_string=str(parameters__kinetic_prof_Pr_string),
-                                                                                                    parameters__kinetic_prof_tF_tE_string=str(parameters__kinetic_prof_tF_tE_string)) for mode in parameters__toroidal_mode_number])))
-                                        RMP_study__filepaths_3D_fields_M__batch.append("'{}'".format(copy.deepcopy([RMP_study__filepaths_3D_field_head/'BPLASMA_MARSF_n{parameters__toroidal_mode_number}_cM_Pr{parameters__kinetic_prof_Pr_string}_tfte{parameters__kinetic_prof_tF_tE_string}.IN'.format(
+                                                                                                    parameters__kinetic_prof_tF_tE_string=str(parameters__kinetic_prof_tF_tE_string))) for mode in parameters__toroidal_mode_number])))
+                                        RMP_study__filepaths_3D_fields_M__batch.append('"{}"'.format(copy.deepcopy([str(RMP_study__filepaths_3D_field_head/'BPLASMA_MARSF_n{parameters__toroidal_mode_number}_cM_Pr{parameters__kinetic_prof_Pr_string}_tfte{parameters__kinetic_prof_tF_tE_string}.IN'.format(
                                                                                                     parameters__toroidal_mode_number=str(np.abs(mode)),
                                                                                                     parameters__kinetic_prof_Pr_string=str(parameters__kinetic_prof_Pr_string),
-                                                                                                    parameters__kinetic_prof_tF_tE_string=str(parameters__kinetic_prof_tF_tE_string)) for mode in parameters__toroidal_mode_number])))
-                                        RMP_study__filepaths_3D_fields_L__batch.append("'{}'".format(copy.deepcopy([RMP_study__filepaths_3D_field_head/'BPLASMA_MARSF_n{parameters__toroidal_mode_number}_cL_Pr{parameters__kinetic_prof_Pr_string}_tfte{parameters__kinetic_prof_tF_tE_string}.IN'.format(
+                                                                                                    parameters__kinetic_prof_tF_tE_string=str(parameters__kinetic_prof_tF_tE_string))) for mode in parameters__toroidal_mode_number])))
+                                        RMP_study__filepaths_3D_fields_L__batch.append('"{}"'.format(copy.deepcopy([str(RMP_study__filepaths_3D_field_head/'BPLASMA_MARSF_n{parameters__toroidal_mode_number}_cL_Pr{parameters__kinetic_prof_Pr_string}_tfte{parameters__kinetic_prof_tF_tE_string}.IN'.format(
                                                                                                     parameters__toroidal_mode_number=str(np.abs(mode)),
                                                                                                     parameters__kinetic_prof_Pr_string=str(parameters__kinetic_prof_Pr_string),
-                                                                                                    parameters__kinetic_prof_tF_tE_string=str(parameters__kinetic_prof_tF_tE_string)) for mode in parameters__toroidal_mode_number]))) 
+                                                                                                    parameters__kinetic_prof_tF_tE_string=str(parameters__kinetic_prof_tF_tE_string))) for mode in parameters__toroidal_mode_number]))) 
 
                                         IDS__shot__batch.append(copy.deepcopy(IDS__shot))
                                         IDS__run__batch.append(copy.deepcopy(IDS__run))

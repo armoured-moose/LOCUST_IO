@@ -26,7 +26,8 @@ todo:
 
 
 
-
+    XXX logic needs testing which copies complete mesh across since it keeps being copied
+    
 
     XXX in launch.py need it so that multiple toroidal mode numbers are passed in with signs included - must take this into account when producing the filenames (abs)
 
@@ -451,22 +452,26 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         """
 
         for counter_mode,mode in enumerate(self.parameters__toroidal_mode_numbers):
-            for counter_coil_row,(file,TAIL,section_to_remove) in enumerate(zip( #move all input files to correct location and add appropriate TAIL
-                            [self.RMP_study__filepaths_3D_fields_U[mode_counter],self.RMP_study__filepaths_3D_fields_M[mode_counter],self.RMP_study__filepaths_3D_fields_L[mode_counter]],
+            for file,TAIL,section_to_remove in zip( #move all input files to correct location and add appropriate TAIL
+                            [self.RMP_study__filepaths_3D_fields_U[counter_mode],self.RMP_study__filepaths_3D_fields_M[counter_mode],self.RMP_study__filepaths_3D_fields_L[counter_mode]],
                             [self.MARS_read__tail_U,self.MARS_read__tail_M,self.MARS_read__tail_L],
-                            ['_cU_','_cM_','_cL_'])): 
-
+                            ['_cU_','_cM_','_cL_']): 
                 destination=(str(self.LOCUST_run__dir_input / file.parts[-1])+TAIL).replace(section_to_remove,'_')
                 HEAD=pathlib.Path((str(self.LOCUST_run__dir_input / file.parts[-1])).replace(section_to_remove,'_')) #while we are here grab the original filepath without added TAIL
                 subprocess.run(shlex.split('cp {file} {inputdir}'.format(file=str(file),inputdir=destination)),shell=False)
-                settings_mars_read['COILROW']=counter_coil_row+1
+
+            for counter_coil_row in range(3): #now all files in place, run MARS_builder for each coil row
+                self.MARS_read__flags['COILROW']=counter_coil_row+1
+                self.MARS_read__flags['NC']=np.abs(mode)
                 field_builder=MARS_builder_run(filepath_input=HEAD,dir_output=self.LOCUST_run__dir_input,
                                                 dir_MARS_builder=self.LOCUST_run__dir_cache / 'MARS_builder',system_name='TITAN',
                                                 settings_mars_read=self.MARS_read__settings,flags=self.MARS_read__flags)
                 field_builder.run()
 
-        for file in self.LOCUST_run__dir_input.glob(str(HEAD.parts[-1])+'*'):
-            subprocess.run(shlex.split('rm {file}'.format(file=str(file))),shell=False) #delete old perturbation input files
+            for file in self.LOCUST_run__dir_input.glob(str(HEAD.parts[-1])+'*'):
+                subprocess.run(shlex.split('rm {file}'.format(file=str(file))),shell=False) #delete old perturbation input files
+            for file in self.LOCUST_run__dir_input.glob('mars_read*CACHE'):
+                subprocess.run(shlex.split('rm {file}'.format(file=str(file))),shell=False) #delete cache files after all coilrows (different coilrows can re-use cache!) 
 
     def get_other_input_files(self,*args,**kwargs):
         """
@@ -482,7 +487,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         
         #fetch additional required data
         for file in self.RMP_study__filepath_additional_data.glob('*'):
-            if 'ITER_meshC.mesh.inp_ANSYS' in str(file) and not list(self.RMP_study__filepath_additional_data.glob('MESH_*CACHE')): #if we are dealing with the mesh, first check if cache files are present - since mesh usually large
+            if 'ITER_meshC.mesh.inp_ANSYS' in str(file) and not list(self.LOCUST_run__dir_cache.glob('MESH_*CACHE')): #if we are dealing with the mesh, first check if cache files are present in cache dir - since mesh usually large
                 dir_input=self.LOCUST_run__dir_input / self.LOCUST_run__settings_prec_mod['file_tet']
                 subprocess.run(shlex.split('cp {file} {dir_input}'.format(file=str(file),dir_input=str(dir_input))),shell=False)
             else:
@@ -658,7 +663,7 @@ if __name__=='__main__':
     parser.add_argument('--parameters__kinetic_prof_n',type=str,action='store',dest='parameters__kinetic_prof_n',help="",default=None)
     parser.add_argument('--parameters__kinetic_prof_tF_tE',type=str,action='store',dest='parameters__kinetic_prof_tF_tE',help="",default=None)
     parser.add_argument('--parameters__kinetic_prof_Pr',type=str,action='store',dest='parameters__kinetic_prof_Pr',help="",default=None)
-    parser.add_argument('--parameters__toroidal_mode_numbers',type=int,action='store',dest='parameters__toroidal_mode_numbers',help="",default=None)
+    parser.add_argument('--parameters__toroidal_mode_numbers',type=str,action='store',dest='parameters__toroidal_mode_numbers',help="",default=None)
     parser.add_argument('--parameters__parameter_string',type=str,action='store',dest='parameters__parameter_string',help="",default=None)
     parser.add_argument('--LOCUST_run__dir_LOCUST',type=str,action='store',dest='LOCUST_run__dir_LOCUST',help="",default=support.dir_locust)
     parser.add_argument('--LOCUST_run__dir_input',type=str,action='store',dest='LOCUST_run__dir_input',help="",default=support.dir_input_files)
