@@ -27,7 +27,7 @@ todo:
 
 
     XXX logic needs testing which copies complete mesh across since it keeps being copied
-    
+
 
     XXX in launch.py need it so that multiple toroidal mode numbers are passed in with signs included - must take this into account when producing the filenames (abs)
 
@@ -293,9 +293,9 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         self.table_species_LOCUST['helium3']='AHe3'
         self.table_species_LOCUST['helium']='AHe4'
         self.table_species_LOCUST['hydrogen']='AH'
-        self.table_species_LOCUST['beryllium']='AH'#'ABe' #XXX not currently implemented in LOCUST
-        self.table_species_LOCUST['neon']='AH'#'ANe' #XXX not currently implemented in LOCUST
-        self.table_species_LOCUST['tungsten']='AH'#'AW' #XXX not currently implemented in LOCUST
+        self.table_species_LOCUST['beryllium']='ABe9'
+        self.table_species_LOCUST['neon']='ANe20'
+        self.table_species_LOCUST['tungsten']='AW184'
 
         #################################
         #add workflow stages

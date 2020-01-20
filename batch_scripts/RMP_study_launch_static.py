@@ -170,7 +170,7 @@ parameters__var_names_rotation=["'Vt(tF/tE=2)'"]
 parameters__toroidal_mode_numbers=[[-3,-6]]
 parameters__phases_upper=[[0.,0.]]
 parameters__phases_middle=[[0.,0.]]
-parameters__phases_lower=[[0.,0.]]
+parameters__phases_lower=[[0.,0.],[30.,-30.],[60.,-60.],[90.,-90.],[120.,-120.],[150.,-150.]]
 parameters__rotations_upper=[[0.,0.]]
 parameters__rotations_middle=[[0.,0.]]
 parameters__rotations_lower=[[0.,0.]]
@@ -198,7 +198,7 @@ MARS_read__settings['TAIL']="{}".format(MARS_read__tails)
 MARS_read__flags={}
 
 #define parameters needed by the RMP_study workflow for a given scenario
-RMP_study__name='RMP_study_test'
+RMP_study__name='rotate_lower_coil'
 RMP_study__dir_input_database=support.dir_input_files / 'ITER_fields_yueqiang' / 'DataBase'
 RMP_study__filepaths_kinetic_profiles=[list((RMP_study__dir_input_database / parameters__database / folder_name_DataEq).glob('*.xlsx'))[0] for parameters__database in parameters__databases] #define the paths to kinetic profiles
 RMP_study__filepaths_equilibrium=[list((RMP_study__dir_input_database / parameters__database / folder_name_DataEq).glob('*eqdsk*'))[0] for parameters__database in parameters__databases] #define the paths to equilibria
@@ -343,7 +343,7 @@ for parameters__database, \
                                         LOCUST_run__flags['OPENMESH']=True
                                         LOCUST_run__flags['OPENTRACK']=True
                                         LOCUST_run__flags['PFCMOD']=True
-                                        #LOCUST_run__flags['NOPFC']=True
+                                        LOCUST_run__flags['NOPFC']=True
                                         LOCUST_run__flags['TOKHEAD']=True
                                         LOCUST_run__flags['JXB2']=True
                                         LOCUST_run__flags['PROV']=True
@@ -353,7 +353,7 @@ for parameters__database, \
                                         LOCUST_run__flags['LNLBT']=True
                                         LOCUST_run__flags['GEQDSKFIX1']=True
                                         LOCUST_run__flags['BP']=True
-                                        LOCUST_run__flags['TIMAX']='0.05D0'
+                                        LOCUST_run__flags['TIMAX']='0.01D0'
                                         LOCUST_run__flags['B3D']=True
                                         LOCUST_run__flags['B3D_EX']=True
                                         LOCUST_run__flags['SPLIT']=True
@@ -365,12 +365,12 @@ for parameters__database, \
                                         LOCUST_run__settings_prec_mod['file_tet']="'locust_wall'" 
                                         LOCUST_run__settings_prec_mod['file_eqm']="'locust_eqm'" 
                                         LOCUST_run__settings_prec_mod['threadsPerBlock']=64
-                                        LOCUST_run__settings_prec_mod['blocksPerGrid']=64
+                                        LOCUST_run__settings_prec_mod['blocksPerGrid']=256
                                         LOCUST_run__settings_prec_mod['root']="'/tmp/wards2/{study}/{params}'".format(study=RMP_study__name,params=parameters__parameter_string)
                                         LOCUST_run__settings_prec_mod['nnum']=str(['{}'.format(mode) for mode in parameters__toroidal_mode_number for coil in range(3)]).replace('\'','')
                                         LOCUST_run__settings_prec_mod['nmde']=len(parameters__toroidal_mode_number)*3 #number of modes * number of coils = number of total harmonics
                                         MARS_read__flags['TOKAMAK']=1
-                                        
+
                                         phase_string='['
                                         omega_string='['
                                         for counter_mode,mode in enumerate(parameters__toroidal_mode_number):
