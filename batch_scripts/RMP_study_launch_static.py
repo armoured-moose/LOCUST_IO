@@ -185,7 +185,6 @@ LOCUST_run__commit_hash=None
 
 #fixed parameters needed for NEMO_run
 NEMO_run__dir_NEMO=pathlib.Path('/home') / 'ITER' / 'wards2' / 'scratch' / 'nemo'
-NEMO_run__nmarker=int(1.e6)
 NEMO_run__fokker_flag=0
 
 #fixed parameters needed by MARS_read
@@ -371,6 +370,7 @@ for parameters__database, \
                                         LOCUST_run__settings_prec_mod['nmde']=len(parameters__toroidal_mode_number)*3 #number of modes * number of coils = number of total harmonics
                                         MARS_read__flags['TOKAMAK']=1
                                         MARS_read__flags['PLS']=True
+                                        NEMO_run__nmarker=LOCUST_run__settings_prec_mod['threadsPerBlock']*LOCUST_run__settings_prec_mod['blocksPerGrid']*8
 
                                         phase_string='['
                                         omega_string='['
