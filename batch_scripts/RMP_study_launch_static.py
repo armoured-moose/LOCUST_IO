@@ -171,6 +171,7 @@ parameters__toroidal_mode_numbers=[[-3,-6]]
 parameters__phases_upper=np.array([[0.,0.]])*2.*np.pi/360.
 parameters__phases_middle=np.array([[0.,0.]])*2.*np.pi/360.
 parameters__phases_lower=np.array([[0.,0.],[30.,-30.],[60.,-60.],[90.,-90.],[120.,-120.],[150.,-150.]])*2.*np.pi/360.
+parameters__phases_lower=np.array([[0.,0.]])*2.*np.pi/360. #XXX DEBUG
 parameters__rotations_upper=np.array([[0.,0.]])
 parameters__rotations_middle=np.array([[0.,0.]])
 parameters__rotations_lower=np.array([[0.,0.]])
@@ -219,7 +220,7 @@ parameters__kinetic_profs_n__batch=[]
 parameters__kinetic_profs_tF_tE__batch=[]
 parameters__kinetic_profs_Pr__batch=[]
 parameters__toroidal_mode_numbers__batch=[]
-parameters__parameter_string__batch=[]
+parameters__parameter_strings__batch=[]
 LOCUST_run__dir_LOCUST__batch=[]
 LOCUST_run__dir_input__batch=[]
 LOCUST_run__dir_output__batch=[]
@@ -257,10 +258,7 @@ IDS__target_IDS_run__batch=[]
 #use zip and nest levels to define specific combinations which cannot be varied
 #e.g. zip together parameters__kinetic_profs_tF_tE and parameters__kinetic_profs_tF_tE_string since these should iterate together
 
-#generate string holding this parameter combination - used for labelling directories/filenames
-parameters__parameter_strings__batch=[]
 run_number=0
-
 #first level are the data which remain constant for a parameter scan
 for parameters__database, \
     parameters__sheet_name_kinetic_prof, \
@@ -392,7 +390,6 @@ for parameters__database, \
                                         parameters__kinetic_profs_tF_tE__batch.append(copy.deepcopy(parameters__kinetic_prof_tF_tE))
                                         parameters__kinetic_profs_Pr__batch.append(copy.deepcopy(parameters__kinetic_prof_Pr))
                                         parameters__toroidal_mode_numbers__batch.append(copy.deepcopy("'{}'".format(parameters__toroidal_mode_number)))
-                                        parameters__parameter_strings__batch.append(copy.deepcopy(parameters__parameter_string))
                                         LOCUST_run__dir_LOCUST__batch.append(copy.deepcopy("'{}'".format(str(support.dir_locust / parameters__database / RMP_study__name / parameters__parameter_string))))
                                         LOCUST_run__dir_input__batch.append(copy.deepcopy("'{}'".format(str(support.dir_input_files / parameters__database / RMP_study__name / parameters__parameter_string))))
                                         LOCUST_run__dir_output__batch.append(copy.deepcopy("'{}'".format(str(support.dir_output_files / parameters__database / RMP_study__name / parameters__parameter_string))))

@@ -20,6 +20,7 @@ todo:
     XXX eventually need it so that in launch everything above the parameter loop is pure python, then below all the prec_mod settings are set etc based on that - so set prandl to 1 and that goes into a dispatch table that gives the prandl string etc.
     --> could even make a function to do it for you! you set obvious things pythonically and it then creates the appropriate corresponding prec_mod dictionary
 
+    XXX copy all BPLASMA original files to look the same, then re-run my workflow and see if output is only one coil row
 
 
 
@@ -38,7 +39,6 @@ todo:
 
     XXX have it so that reading kineitc profiles from IDS does not have to read flux_pol.....then can set afterwards :| 
 
-    XXX copy all BPLASMA original files to look the same, then re-run my workflow and see if output is only one coil row
     
     XXX for resolution scans, dXR and dXZ need to be varied
 
@@ -295,18 +295,21 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         self.table_species_LOCUST['neon']='ANe20'
         self.table_species_LOCUST['tungsten']='AW184'
 
+        self.MARS_read__HEAD=pathlib.Path((str(self.LOCUST_run__dir_input / self.RMP_study__filepaths_3D_fields_U[0].parts[-1])).replace('_cU_','_')) #get 3D field filenames
+
         #################################
         #add workflow stages
 
         self.add_command(command_name='mkdir',command_function=self.setup_RMP_study_dirs,position=1) #add new workflow stages
-        #self.add_command(command_name='get_kinetic',command_function=self.get_kinetic_profiles_IDS,position=2)
         self.add_command(command_name='get_kinetic',command_function=self.get_kinetic_profiles_excel,position=2)
         self.add_command(command_name='get_3D',command_function=self.get_3D_fields,position=3) 
-        self.add_command(command_name='get_others',command_function=self.get_other_input_files,position=4)
-        self.add_command(command_name='create_IDS',command_function=self.create_IDS,position=5) 
-        self.add_command(command_name='run_NEMO',command_function=self.run_NEMO,position=6) 
-        self.add_command(command_name='get_beam_depo',command_function=self.get_beam_deposition,position=7)
-        self.add_command(command_name='run_LOCUST',command_function=self.run_LOCUST,position=8)
+        self.add_command(command_name='calc_3D',command_function=self.calc_3D_fields,position=4) 
+        self.add_command(command_name='get_others',command_function=self.get_other_input_files,position=5)
+        self.add_command(command_name='create_IDS',command_function=self.create_IDS,position=6) 
+        self.add_command(command_name='run_NEMO',command_function=self.run_NEMO,position=7) 
+        self.add_command(command_name='get_beam_depo',command_function=self.get_beam_deposition,position=8)
+        #self.add_command(command_name='check_B_field',command_function=self.BCHECK,position=9)
+        self.add_command(command_name='run_LOCUST',command_function=self.run_LOCUST,position=9)
 
     def setup_RMP_study_dirs(self,*args,**kwargs):
         """
@@ -441,6 +444,19 @@ class RMP_study_run(run_scripts.workflow.Workflow):
 
     def get_3D_fields(self,*args,**kwargs):
         """
+        notes:
+        """
+
+        for counter_mode,mode in enumerate(self.parameters__toroidal_mode_numbers):
+            for file,TAIL,section_to_remove in zip( #move all input files to correct location and add appropriate TAIL
+                            [self.RMP_study__filepaths_3D_fields_U[counter_mode],self.RMP_study__filepaths_3D_fields_M[counter_mode],self.RMP_study__filepaths_3D_fields_L[counter_mode]],
+                            [self.MARS_read__tail_U,self.MARS_read__tail_M,self.MARS_read__tail_L],
+                            ['_cU_','_cM_','_cL_']): 
+                destination=(str(self.LOCUST_run__dir_input / file.parts[-1])+TAIL).replace(section_to_remove,'_')
+                subprocess.run(shlex.split('cp {file} {inputdir}'.format(file=str(file),inputdir=destination)),shell=False)
+
+    def calc_3D_fields(self,*args,**kwargs):
+        """
         prepare 3D fields for LOCUST
 
         notes:
@@ -450,24 +466,17 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         """
 
         for counter_mode,mode in enumerate(self.parameters__toroidal_mode_numbers):
-            for file,TAIL,section_to_remove in zip( #move all input files to correct location and add appropriate TAIL
-                            [self.RMP_study__filepaths_3D_fields_U[counter_mode],self.RMP_study__filepaths_3D_fields_M[counter_mode],self.RMP_study__filepaths_3D_fields_L[counter_mode]],
-                            [self.MARS_read__tail_U,self.MARS_read__tail_M,self.MARS_read__tail_L],
-                            ['_cU_','_cM_','_cL_']): 
-                destination=(str(self.LOCUST_run__dir_input / file.parts[-1])+TAIL).replace(section_to_remove,'_')
-                HEAD=pathlib.Path((str(self.LOCUST_run__dir_input / file.parts[-1])).replace(section_to_remove,'_')) #while we are here grab the original filepath without added TAIL
-                subprocess.run(shlex.split('cp {file} {inputdir}'.format(file=str(file),inputdir=destination)),shell=False)
-
             for counter_coil_row in range(3): #now all files in place, run MARS_builder for each coil row
                 self.MARS_read__flags['COILROW']=counter_coil_row+1
                 self.MARS_read__flags['NC']=np.abs(mode)
-                field_builder=MARS_builder_run(filepath_input=HEAD,dir_output=self.LOCUST_run__dir_input,
+                field_builder=MARS_builder_run(filepath_input=self.MARS_read__HEAD,dir_output=self.LOCUST_run__dir_input,
                                                 dir_MARS_builder=self.LOCUST_run__dir_cache / 'MARS_builder',system_name='TITAN',
                                                 settings_mars_read=self.MARS_read__settings,flags=self.MARS_read__flags)
                 field_builder.run()
-
-            for file in self.LOCUST_run__dir_input.glob(str(HEAD.parts[-1])+'*'):
+            '''
+            for file in self.LOCUST_run__dir_input.glob(str(self.MARS_read__HEAD.parts[-1])+'*'):
                 subprocess.run(shlex.split('rm {file}'.format(file=str(file))),shell=False) #delete old perturbation input files
+            '''
             for file in self.LOCUST_run__dir_input.glob('mars_read*CACHE'):
                 subprocess.run(shlex.split('rm {file}'.format(file=str(file))),shell=False) #delete cache files after all coilrows (different coilrows can re-use cache!) 
 
@@ -489,7 +498,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                 dir_input=self.LOCUST_run__dir_input / self.LOCUST_run__settings_prec_mod['file_tet']
                 subprocess.run(shlex.split('cp {file} {dir_input}'.format(file=str(file),dir_input=str(dir_input))),shell=False)
             else:
-                dir_input=self.LOCUST_run__dir_input / file.parts[-1]
+                dir_input=self.LOCUST_run__dir_input
                 subprocess.run(shlex.split('cp {file} {dir_input}'.format(file=str(file),dir_input=str(dir_input))),shell=False)
 
     def create_IDS(self,*args,**kwargs):
@@ -608,12 +617,104 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         """
         notes:
         """
+        beam_deposition.dump_data(data_format='LOCUST_FO_weighted',filename=self.LOCUST_run__dir_input / 'ptcles.dat') 
 
         beam_deposition=Beam_Deposition(ID='',data_format='IDS',shot=self.IDS__shot,run=self.IDS__run)
-        beam_deposition.dump_data(data_format='LOCUST_FO_weighted',filename=self.LOCUST_run__dir_input / 'ptcles.dat') 
         #beam_deposition['X']=beam_deposition['R']*np.cos(beam_deposition['phi'])
         #beam_deposition['Y']=beam_deposition['R']*np.sin(beam_deposition['phi'])
         #beam_deposition.plot(number_bins=300,real_scale=True,axes=['X','Y'])
+
+    def BCHECK(self,*args,**kwargs):
+        """
+        step for checking 3D field perturbation is correct as separate coils vs combined
+
+        notes:
+        """
+
+        for counter_mode,mode in enumerate(self.parameters__toroidal_mode_numbers):
+
+            #rebuild field but already combined into one
+            MARS_read__flags=copy.deepcopy(self.MARS_read__flags)
+            MARS_read__flags['NC']=np.abs(mode)    
+            if 'COILROW' in MARS_read__flags: 
+                del(MARS_read__flags['COILROW'])
+            field_builder=MARS_builder_run(filepath_input=self.MARS_read__HEAD,dir_output=self.LOCUST_run__dir_input,
+                                            dir_MARS_builder=self.LOCUST_run__dir_cache / 'MARS_builder',system_name='TITAN',
+                                            settings_mars_read=self.MARS_read__settings,flags=MARS_read__flags)
+            field_builder.run()
+
+            #look for BPLASMA file just produced and get the R, Z grid dimensions from them
+            combined_field=Perturbation('',data_format='LOCUST',filename=list(self.LOCUST_run__dir_input.glob('BPLASMA_n{}'.format(np.abs(mode))))[0].relative_to(support.dir_input_files))
+            combined_field.set(time_point_data=np.full(len(combined_field['R_1D']),0.),phi_point_data=np.full(len(combined_field['R_1D']),0.))
+            combined_field.set(R_point_data=combined_field['R_1D'],Z_point_data=combined_field['Z_1D'])
+            combined_field.dump_data(data_format='point_data',filename=self.LOCUST_run__dir_input / 'point_data.inp')
+            #also evaluate field using my own routine and check against
+            dbr,dbtor,dbz=combined_field.evaluate(R=combined_field['R_point_data'],
+                                                                phi=combined_field['phi_point_data'],
+                                                                Z=combined_field['Z_point_data'],
+                                                                mode_number=mode,i3dr=-1,phase=0)
+            combined_field.set(dB_field_R=dbr,dB_field_tor=dbtor,dB_field_Z=dbz)
+            
+            LOCUST_run__flags_combined=copy.deepcopy(self.LOCUST_run__flags) #alter LOCUST compile flags to control run mode
+            del(LOCUST_run__flags_combined['NCOILS'])
+            LOCUST_run__flags_combined['BCHECK']=1
+            LOCUST_run__flags_separate=copy.deepcopy(self.LOCUST_run__flags)
+            LOCUST_run__flags_separate['BCHECK']=1
+
+            LOCUST_run__settings_prec_mod_combined=copy.deepcopy(self.LOCUST_run__settings_prec_mod)
+            LOCUST_run__settings_prec_mod_combined['phase']='[0.0_gpu]'
+            LOCUST_run__settings_prec_mod_combined['omega']='[0.0_gpu]'
+            LOCUST_run__settings_prec_mod_combined['nmde']=1
+            LOCUST_run__settings_prec_mod_combined['nnum']='[{}]'.format(mode)
+            
+            LOCUST_workflow=run_scripts.LOCUST_run.LOCUST_run(system_name=self.LOCUST_run__system_name,
+                repo_URL=self.LOCUST_run__repo_URL,
+                commit_hash=self.LOCUST_run__commit_hash,
+                dir_locust=self.LOCUST_run__dir_LOCUST,
+                dir_input=self.LOCUST_run__dir_input,
+                dir_output=self.LOCUST_run__dir_output,
+                dir_cache=self.LOCUST_run__dir_cache,
+                settings_prec_mod=LOCUST_run__settings_prec_mod_combined,
+                flags=LOCUST_run__flags_combined)
+            LOCUST_workflow.run()
+            (self.LOCUST_run__dir_output / 'field_data.out').rename(self.LOCUST_run__dir_output / 'field_data_combined.out')
+
+            LOCUST_run__settings_prec_mod_separate=copy.deepcopy(self.LOCUST_run__settings_prec_mod)
+            LOCUST_run__settings_prec_mod_separate['phase']='[0.0_gpu,0.0_gpu,0.0_gpu]'
+            LOCUST_run__settings_prec_mod_separate['omega']='[0.0_gpu,0.0_gpu,0.0_gpu]'
+            LOCUST_run__settings_prec_mod_separate['nmde']=3
+            LOCUST_run__settings_prec_mod_separate['nnum']='[{},{},{}]'.format(mode,mode,mode)
+
+            LOCUST_workflow=run_scripts.LOCUST_run.LOCUST_run(system_name=self.LOCUST_run__system_name,
+                repo_URL=self.LOCUST_run__repo_URL,
+                commit_hash=self.LOCUST_run__commit_hash,
+                dir_locust=self.LOCUST_run__dir_LOCUST,
+                dir_input=self.LOCUST_run__dir_input,
+                dir_output=self.LOCUST_run__dir_output,
+                dir_cache=self.LOCUST_run__dir_cache,
+                settings_prec_mod=LOCUST_run__settings_prec_mod_separate,
+                flags=LOCUST_run__flags_separate)
+            LOCUST_workflow.run()
+            (self.LOCUST_run__dir_output / 'field_data.out').rename(self.LOCUST_run__dir_output / 'field_data_separate.out')
+
+            field_combined_eval=Perturbation('',data_format='LOCUST_field_data',filename=(self.LOCUST_run__dir_output / 'field_data_combined.out').relative_to(support.dir_output_files))
+            field_separate_eval=Perturbation('',data_format='LOCUST_field_data',filename=(self.LOCUST_run__dir_output / 'field_data_separate.out').relative_to(support.dir_output_files))
+            field_difference=copy.deepcopy(field_separate_eval)
+
+            field_separate_eval.look()
+
+            import matplotlib.pyplot as plt
+            import matplotlib
+            fig,(ax1,ax2)=plt.subplots(2,1)
+            for quantity in ['dB_field_R','dB_field_tor','dB_field_Z']:
+                field_difference[quantity]-=field_combined_eval[quantity]
+                field_difference[quantity]/=field_combined_eval[quantity] #get fractional difference between the two fields
+                ax1.plot(field_difference[quantity],'m-')
+                ax2.plot(field_separate_eval[quantity],'g-')
+                ax2.plot(combined_field[quantity],'b-')
+                ax2.plot(field_combined_eval[quantity],'r-')
+            #plt.savefig('BCHECK_{}.png'.format(mode),bbox_inches='tight')
+            plt.show()
 
     def run_LOCUST(self,*args,**kwargs):
         """
@@ -749,14 +850,6 @@ if __name__=='__main__':
     IDS__target_IDS_shot=args.IDS__target_IDS_shot,
     IDS__target_IDS_run=args.IDS__target_IDS_run
         )
-
-    #RMP_workflow.get_3D_fields()
-    #RMP_workflow.get_other_input_files()
-    #RMP_workflow.create_IDS() 
-    #RMP_workflow.run_NEMO()
-    #RMP_workflow.get_beam_deposition()
-    #RMP_workflow.run_LOCUST()
-    #RMP_workflow.get_kinetic_profiles_excel()
 
     RMP_workflow.run()
 
