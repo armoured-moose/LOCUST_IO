@@ -670,7 +670,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
             LOCUST_workflow=run_scripts.LOCUST_run.LOCUST_run(system_name=self.LOCUST_run__system_name,
                 repo_URL=self.LOCUST_run__repo_URL,
                 commit_hash=self.LOCUST_run__commit_hash,
-                dir_locust=self.LOCUST_run__dir_LOCUST,
+                dir_LOCUST=self.LOCUST_run__dir_LOCUST,
                 dir_input=self.LOCUST_run__dir_input,
                 dir_output=self.LOCUST_run__dir_output,
                 dir_cache=self.LOCUST_run__dir_cache,
@@ -688,7 +688,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
             LOCUST_workflow=run_scripts.LOCUST_run.LOCUST_run(system_name=self.LOCUST_run__system_name,
                 repo_URL=self.LOCUST_run__repo_URL,
                 commit_hash=self.LOCUST_run__commit_hash,
-                dir_locust=self.LOCUST_run__dir_LOCUST,
+                dir_LOCUST=self.LOCUST_run__dir_LOCUST,
                 dir_input=self.LOCUST_run__dir_input,
                 dir_output=self.LOCUST_run__dir_output,
                 dir_cache=self.LOCUST_run__dir_cache,
@@ -740,7 +740,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         LOCUST_workflow=LOCUST_run_RMP(system_name=self.LOCUST_run__system_name,
             repo_URL=self.LOCUST_run__repo_URL,
             commit_hash=self.LOCUST_run__commit_hash,
-            dir_locust=self.LOCUST_run__dir_LOCUST,
+            dir_LOCUST=self.LOCUST_run__dir_LOCUST,
             dir_input=self.LOCUST_run__dir_input,
             dir_output=self.LOCUST_run__dir_output,
             dir_cache=self.LOCUST_run__dir_cache,
@@ -764,7 +764,7 @@ if __name__=='__main__':
     parser.add_argument('--parameters__kinetic_prof_Pr',type=str,action='store',dest='parameters__kinetic_prof_Pr',help="",default=None)
     parser.add_argument('--parameters__toroidal_mode_numbers',type=str,action='store',dest='parameters__toroidal_mode_numbers',help="",default=None)
     parser.add_argument('--parameters__parameter_string',type=str,action='store',dest='parameters__parameter_string',help="",default=None)
-    parser.add_argument('--LOCUST_run__dir_LOCUST',type=str,action='store',dest='LOCUST_run__dir_LOCUST',help="",default=support.dir_locust)
+    parser.add_argument('--LOCUST_run__dir_LOCUST',type=str,action='store',dest='LOCUST_run__dir_LOCUST',help="",default=support.dir_LOCUST)
     parser.add_argument('--LOCUST_run__dir_input',type=str,action='store',dest='LOCUST_run__dir_input',help="",default=support.dir_input_files)
     parser.add_argument('--LOCUST_run__dir_output',type=str,action='store',dest='LOCUST_run__dir_output',help="",default=support.dir_output_files)
     parser.add_argument('--LOCUST_run__dir_cache',type=str,action='store',dest='LOCUST_run__dir_cache',help="",default=support.dir_cache_files)
