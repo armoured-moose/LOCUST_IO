@@ -79,11 +79,7 @@ except:
 #Main 
 
 #################################
-#define options and dispatch tables for choosing settings
-
-#random variables to help
-folder_name_DataMarsf='DataMarsf' #3D field directory name however this can sometimes vary between scenarios e.g. if using vacuum field
-folder_name_DataEq='DataEq' #equilibrium 
+#define options and dispatch tables for helping choosing settings
 
 #some variables to act as reminders/notes, storing possible options to choose from
 database__options=['ITER_15MAQ10_case5','ITER_15MAQ5_case4','ITER_5MAH_case1','ITER_7d5MAFullB_case3','ITER_7d5MAHalfB_case2']
@@ -148,36 +144,10 @@ target_IDS_dispatch_run['ITER_7d5MAHalfB_case2']['1']={}
 target_IDS_dispatch_run['ITER_7d5MAHalfB_case2']['1']['2']=0 #XXX this could go up to 2
 
 ##################################################################
-#################################
-#define parameters fixed within a scenario here
-
-parameters__databases=['ITER_15MAQ5_case4'] #these all zipped at same level in main loop because source data is not consistent enough
-parameters__sheet_names_kinetic_prof=["'Out_iterDD.iterDDL-R'"]
-parameters__kinetic_profs_n=['flat']
-
-#################################
-#define the parameter space which varies for a given scenario
-
-#kinetic profile parameters which vary as one
-parameters__kinetic_profs_tF_tE=[2.]
-parameters__kinetic_profs_tF_tE_string=[parameters__kinetic_profs_tF_tE__dispatch[parameters__kinetic_prof_tF_tE] for parameters__kinetic_prof_tF_tE in parameters__kinetic_profs_tF_tE]  #version used in strings describing data in storage
-parameters__kinetic_profs_Pr=[1.0]
-parameters__kinetic_profs_Pr_string=[parameters__kinetic_profs_Pr__dispatch[parameters__kinetic_prof_Pr] for parameters__kinetic_prof_Pr in parameters__kinetic_profs_Pr]  #version used in strings describing data in storage
-parameters__sheet_names_rotation=["'Pr=1'"]
-parameters__var_names_rotation=["'Vt(tF/tE=2)'"]
-
-#3D field parameters which vary independently - if you want to vary these together then put them into the same loop nesting below
-parameters__toroidal_mode_numbers=[[-3,-6]]
-parameters__phases_upper=np.array([[0.,0.]])*2.*np.pi/360.
-parameters__phases_middle=np.array([[0.,0.]])*2.*np.pi/360.
-parameters__phases_lower=np.array([[0.,0.],[30.,-30.],[60.,-60.],[90.,-90.],[120.,-120.],[150.,-150.]])*2.*np.pi/360.
-parameters__phases_lower=np.array([[0.,0.]])*2.*np.pi/360. #XXX DEBUG
-parameters__rotations_upper=np.array([[0.,0.]])
-parameters__rotations_middle=np.array([[0.,0.]])
-parameters__rotations_lower=np.array([[0.,0.]])
-
-##################################################################
 #define parameters which are fixed throughout a parameter scan - if we want to vary then add as a layer in the for loops
+
+folder_name_DataMarsf='DataMarsf' #3D field directory name however this can sometimes vary between scenarios e.g. if using vacuum field
+folder_name_DataEq='DataEq' #equilibrium 
 
 #fixed parameters needed by LOCUST_run
 LOCUST_run__system_name='TITAN'
@@ -197,17 +167,50 @@ MARS_read__settings={}
 MARS_read__settings['TAIL']="{}".format(MARS_read__tails)
 MARS_read__flags={}
 
-#define parameters needed by the RMP_study workflow for a given scenario
-RMP_study__name='rotate_lower_coil'
+IDS__shot=1
+IDS__run=1
+IDS__username=settings.username
+IDS__imasdb=settings.imasdb
+
+##################################################################
+#choose the scenarios we will want to examine
+
+parameters__databases=['ITER_15MAQ5_case4'] #these all zipped at same level in main loop because source data is not consistent enough
+parameters__sheet_names_kinetic_prof=["'Out_iterDD.iterDDL-R'"]
+parameters__kinetic_profs_n=['flat']
+
+#derive associated parameters needed by the RMP_study workflow for these scenarios
+RMP_study__name='rotate_lower_coil_n3_only'
 RMP_study__dir_input_database=support.dir_input_files / 'ITER_fields_yueqiang' / 'DataBase'
 RMP_study__filepaths_kinetic_profiles=[list((RMP_study__dir_input_database / parameters__database / folder_name_DataEq).glob('*.xlsx'))[0] for parameters__database in parameters__databases] #define the paths to kinetic profiles
 RMP_study__filepaths_equilibrium=[list((RMP_study__dir_input_database / parameters__database / folder_name_DataEq).glob('*eqdsk*'))[0] for parameters__database in parameters__databases] #define the paths to equilibria
 RMP_study__filepaths_additional_data=support.dir_input_files / 'ITER_additional_data'
 
-IDS__shot=1
-IDS__run=1
-IDS__username=settings.username
-IDS__imasdb=settings.imasdb
+##################################################################
+#define the parameter space for a given scenario
+
+#kinetic profile parameters which vary as one
+parameters__kinetic_profs_tF_tE=[2.]
+parameters__kinetic_profs_tF_tE_string=[parameters__kinetic_profs_tF_tE__dispatch[parameters__kinetic_prof_tF_tE] for parameters__kinetic_prof_tF_tE in parameters__kinetic_profs_tF_tE]  #version used in strings describing data in storage
+parameters__kinetic_profs_Pr=[1.0]
+parameters__kinetic_profs_Pr_string=[parameters__kinetic_profs_Pr__dispatch[parameters__kinetic_prof_Pr] for parameters__kinetic_prof_Pr in parameters__kinetic_profs_Pr]  #version used in strings describing data in storage
+parameters__sheet_names_rotation=["'Pr=1'"]
+parameters__var_names_rotation=["'Vt(tF/tE=2)'"]
+
+#3D field parameters which vary independently - if you want to vary these together then put them into the same loop nesting below
+#2D arrays, each element has length = number of modes
+parameters__toroidal_mode_numbers=[[-3]]
+parameters__phases_upper=np.array([[0.]])*2.*np.pi/360.
+parameters__phases_middle=np.array([[0.]])*2.*np.pi/360.
+parameters__phases_lower=np.array([[0.,0.0],[30.,-30.],[60.,-60.],[90.,-90.],[120.,-120.],[150.,-150.]])*2.*np.pi/360.
+
+parameters__phases_upper=np.array([[0.]])*2.*np.pi/360. #first value is for axisymmetric simulation
+parameters__phases_middle=np.array([[0.]])*2.*np.pi/360.
+parameters__phases_lower=np.linspace(-10,110,13).reshape(13,1)*2.*np.pi/360. 
+
+parameters__rotations_upper=np.array([[0.]])
+parameters__rotations_middle=np.array([[0.]])
+parameters__rotations_lower=np.array([[0.]])
 
 ##################################################################
 #initialise __batch args needed for Batch class
@@ -220,7 +223,6 @@ parameters__kinetic_profs_n__batch=[]
 parameters__kinetic_profs_tF_tE__batch=[]
 parameters__kinetic_profs_Pr__batch=[]
 parameters__toroidal_mode_numbers__batch=[]
-parameters__parameter_strings__batch=[]
 LOCUST_run__dir_LOCUST__batch=[]
 LOCUST_run__dir_input__batch=[]
 LOCUST_run__dir_output__batch=[]
@@ -340,7 +342,7 @@ for parameters__database, \
                                         LOCUST_run__flags['OPENMESH']=True
                                         LOCUST_run__flags['OPENTRACK']=True
                                         LOCUST_run__flags['PFCMOD']=True
-                                        LOCUST_run__flags['NOPFC']=True
+                                        #LOCUST_run__flags['NOPFC']=True
                                         LOCUST_run__flags['TOKHEAD']=True
                                         LOCUST_run__flags['JXB2']=True
                                         LOCUST_run__flags['PROV']=True
@@ -351,20 +353,21 @@ for parameters__database, \
                                         LOCUST_run__flags['GEQDSKFIX1']=True
                                         LOCUST_run__flags['BP']=True
                                         LOCUST_run__flags['TIMAX']='0.01D0'
-                                        LOCUST_run__flags['B3D']=True
-                                        LOCUST_run__flags['B3D_EX']=True
                                         LOCUST_run__flags['SPLIT']=True
                                         LOCUST_run__flags['SMALLEQ']=True #XXX test whether we need this when using mesh
                                         LOCUST_run__flags['NCOILS']=3
+                                        if run_number!=1: #make first run axisymmetric
+                                            LOCUST_run__flags['B3D']=True
+                                            LOCUST_run__flags['B3D_EX']=True
                                         LOCUST_run__settings_prec_mod={}
                                         LOCUST_run__settings_prec_mod['Ab']='AD' 
                                         LOCUST_run__settings_prec_mod['Zb']='+1.0_gpu' 
                                         LOCUST_run__settings_prec_mod['file_tet']="'locust_wall'" 
                                         LOCUST_run__settings_prec_mod['file_eqm']="'locust_eqm'" 
                                         LOCUST_run__settings_prec_mod['threadsPerBlock']=64
-                                        LOCUST_run__settings_prec_mod['blocksPerGrid']=256
+                                        LOCUST_run__settings_prec_mod['blocksPerGrid']=2048
                                         LOCUST_run__settings_prec_mod['root']="'/tmp/wards2/{study}/{params}'".format(study=RMP_study__name,params=parameters__parameter_string)
-                                        LOCUST_run__settings_prec_mod['nnum']=str(['{}'.format(mode) for mode in parameters__toroidal_mode_number for coil in range(3)]).replace('\'','')
+                                        LOCUST_run__settings_prec_mod['nnum']=str(['{}'.format(mode) for mode in parameters__toroidal_mode_number for coilrow in range(3)]).replace('\'','')
                                         LOCUST_run__settings_prec_mod['nmde']=len(parameters__toroidal_mode_number)*3 #number of modes * number of coils = number of total harmonics
                                         MARS_read__flags['TOKAMAK']=1
                                         MARS_read__flags['PLS']=True
@@ -447,7 +450,6 @@ RMP_batch_run=Batch(
     parameters__kinetic_prof_tF_tE=parameters__kinetic_profs_tF_tE__batch,
     parameters__kinetic_prof_Pr=parameters__kinetic_profs_Pr__batch,
     parameters__toroidal_mode_numbers=parameters__toroidal_mode_numbers__batch,
-    parameters__parameter_string=parameters__parameter_strings__batch,
     LOCUST_run__dir_LOCUST=LOCUST_run__dir_LOCUST__batch,
     LOCUST_run__dir_input=LOCUST_run__dir_input__batch,
     LOCUST_run__dir_output=LOCUST_run__dir_output__batch,
