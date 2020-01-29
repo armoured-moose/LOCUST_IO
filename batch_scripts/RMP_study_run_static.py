@@ -15,32 +15,14 @@ notes:
 todo:
 
     XXX fix shot/run look up tables
-    XXX implement option where LOCUST code can be retrieved from local repository, then copied to LOCUST_dir - in case bitbucket goes down...
 
-    XXX eventually need it so that in launch everything above the parameter loop is pure python, then below all the prec_mod settings are set etc based on that - so set prandl to 1 and that goes into a dispatch table that gives the prandl string etc.
-    --> could even make a function to do it for you! you set obvious things pythonically and it then creates the appropriate corresponding prec_mod dictionary
-
-    XXX copy all BPLASMA original files to look the same, then re-run my workflow and see if output is only one coil row
-
-
-
+    XXX see why LOCUSt directories are not being cleaned up - or is it because of timeout?
 
     XXX logic needs testing which copies complete mesh across since it keeps being copied
 
-
-    XXX in launch.py need it so that multiple toroidal mode numbers are passed in with signs included - must take this into account when producing the filenames (abs)
-
     XXX for NEMO develop latest need function to edit xml file
-
-    XXX maybe add some clean up scripts for removing input files
     
-
-
-
     XXX have it so that reading kineitc profiles from IDS does not have to read flux_pol.....then can set afterwards :| 
-
-    
-    XXX for resolution scans, dXR and dXZ need to be varied
 
     XXX check I'm calculating rho_tor correctly using QTP? / looking in the equilibrium IDS (plot against rho_tor in there if it already exists)
 
@@ -617,9 +599,9 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         """
         notes:
         """
-        beam_deposition.dump_data(data_format='LOCUST_FO_weighted',filename=self.LOCUST_run__dir_input / 'ptcles.dat') 
 
         beam_deposition=Beam_Deposition(ID='',data_format='IDS',shot=self.IDS__shot,run=self.IDS__run)
+        beam_deposition.dump_data(data_format='LOCUST_FO_weighted',filename=self.LOCUST_run__dir_input / 'ptcles.dat') 
         #beam_deposition['X']=beam_deposition['R']*np.cos(beam_deposition['phi'])
         #beam_deposition['Y']=beam_deposition['R']*np.sin(beam_deposition['phi'])
         #beam_deposition.plot(number_bins=300,real_scale=True,axes=['X','Y'])
@@ -764,7 +746,7 @@ if __name__=='__main__':
     parser.add_argument('--parameters__kinetic_prof_Pr',type=str,action='store',dest='parameters__kinetic_prof_Pr',help="",default=None)
     parser.add_argument('--parameters__toroidal_mode_numbers',type=str,action='store',dest='parameters__toroidal_mode_numbers',help="",default=None)
     parser.add_argument('--parameters__parameter_string',type=str,action='store',dest='parameters__parameter_string',help="",default=None)
-    parser.add_argument('--LOCUST_run__dir_LOCUST',type=str,action='store',dest='LOCUST_run__dir_LOCUST',help="",default=support.dir_LOCUST)
+    parser.add_argument('--LOCUST_run__dir_LOCUST',type=str,action='store',dest='LOCUST_run__dir_LOCUST',help="",default=support.dir_locust)
     parser.add_argument('--LOCUST_run__dir_input',type=str,action='store',dest='LOCUST_run__dir_input',help="",default=support.dir_input_files)
     parser.add_argument('--LOCUST_run__dir_output',type=str,action='store',dest='LOCUST_run__dir_output',help="",default=support.dir_output_files)
     parser.add_argument('--LOCUST_run__dir_cache',type=str,action='store',dest='LOCUST_run__dir_cache',help="",default=support.dir_cache_files)

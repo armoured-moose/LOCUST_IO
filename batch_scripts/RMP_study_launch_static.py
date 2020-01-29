@@ -200,14 +200,9 @@ parameters__var_names_rotation=["'Vt(tF/tE=2)'"]
 #3D field parameters which vary independently - if you want to vary these together then put them into the same loop nesting below
 #2D arrays, each element has length = number of modes
 parameters__toroidal_mode_numbers=[[-3]]
-parameters__phases_upper=np.array([[0.]])*2.*np.pi/360.
-parameters__phases_middle=np.array([[0.]])*2.*np.pi/360.
-parameters__phases_lower=np.array([[0.,0.0],[30.,-30.],[60.,-60.],[90.,-90.],[120.,-120.],[150.,-150.]])*2.*np.pi/360.
-
 parameters__phases_upper=np.array([[0.]])*2.*np.pi/360. #first value is for axisymmetric simulation
 parameters__phases_middle=np.array([[0.]])*2.*np.pi/360.
 parameters__phases_lower=np.linspace(-10,110,13).reshape(13,1)*2.*np.pi/360. 
-
 parameters__rotations_upper=np.array([[0.]])
 parameters__rotations_middle=np.array([[0.]])
 parameters__rotations_lower=np.array([[0.]])
