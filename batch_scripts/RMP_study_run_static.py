@@ -14,6 +14,8 @@ notes:
 
 todo:
 
+    XXX need to see why n=-6 modes do not look same for separate and combined coils
+
     XXX fix shot/run look up tables
 
     XXX see why LOCUSt directories are not being cleaned up - or is it because of timeout?
@@ -25,19 +27,6 @@ todo:
     XXX have it so that reading kineitc profiles from IDS does not have to read flux_pol.....then can set afterwards :| 
 
     XXX check I'm calculating rho_tor correctly using QTP? / looking in the equilibrium IDS (plot against rho_tor in there if it already exists)
-
-    XXX try following env + unloading additional libs such as matplotlib
-    module load IMAS
-    module unload imkl/2018.1.163-iimpi-2018a
-    module unload intel/2018a
-    module unload Tkinter/3.6.4-intel-2018a-Python-3.6.4
-    module unload matplotlib/2.1.2-intel-2018a-Python-3.6.4
-    #module load intel/2018a
-    module unload Python/3.6.4-intel-2018a
-    module unload PyYAML/3.12-intel-2018a-Python-3.6.4
-    module unload Anaconda3/5.0.1
-    module load Python/3.6.4-foss-2018a
-
 ---
 '''
 
