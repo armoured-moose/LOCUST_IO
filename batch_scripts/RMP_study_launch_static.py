@@ -151,8 +151,8 @@ folder_name_DataEq='DataEq' #equilibrium
 
 #fixed parameters needed by LOCUST_run
 LOCUST_run__environment_name='TITAN'
-LOCUST_run__repo_URL=None
-LOCUST_run__commit_hash=None
+LOCUST_run__repo_URL=f"'{settings.repo_URL_LOCUST}'"
+LOCUST_run__commit_hash=f"'{settings.commit_hash_default_LOCUST}'"
 
 #fixed parameters needed for NEMO_run
 NEMO_run__dir_NEMO=pathlib.Path('/home') / 'ITER' / 'wards2' / 'scratch' / 'nemo'
@@ -345,6 +345,7 @@ for parameters__database, \
                                         LOCUST_run__flags['UHST']=True
                                         LOCUST_run__flags['LNLBT']=True
                                         LOCUST_run__flags['GEQDSKFIX1']=True
+                                        LOCUST_run__flags['GEQDSKFIX2']=True
                                         LOCUST_run__flags['BP']=True
                                         LOCUST_run__flags['TIMAX']='0.01D0'
                                         LOCUST_run__flags['SPLIT']=True
