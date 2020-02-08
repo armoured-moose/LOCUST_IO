@@ -155,7 +155,7 @@ LOCUST_run__repo_URL=f"'{settings.repo_URL_LOCUST}'"
 LOCUST_run__commit_hash=f"'{settings.commit_hash_default_LOCUST}'"
 
 #fixed parameters needed for NEMO_run
-NEMO_run__dir_NEMO=pathlib.Path('/home') / 'ITER' / 'wards2' / 'scratch' / 'nemo'
+NEMO_run__dir_NEMO=pathlib.Path('/home') / 'ITER' / f'{settings.username}' / 'scratch' / 'nemo'
 NEMO_run__fokker_flag=0
 
 #fixed parameters needed by MARS_read

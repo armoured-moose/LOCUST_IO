@@ -18,8 +18,6 @@ todo:
 
     XXX fix shot/run look up tables
 
-    XXX see why LOCUSt directories are not being cleaned up - or is it because of timeout?
-
     XXX logic needs testing which copies complete mesh across since it keeps being copied
 
     XXX for NEMO develop latest need function to edit xml file
