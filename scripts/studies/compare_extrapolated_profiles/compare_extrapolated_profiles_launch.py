@@ -134,7 +134,6 @@ extrapolation=['on','off']
 ##################################################################
 #create every valid combination of parameter, returned in flat lists
 #use zip and nest levels to define specific combinations which cannot be varied
-#e.g. zip together parameters__kinetic_profs_tF_tE and parameters__kinetic_profs_tF_tE_string since these should iterate together
 
 run_number=0
 parameter_strings=[]
@@ -316,7 +315,7 @@ if __name__=='__main__':
         workflow_filepath=path_template_run,
         environment_name_batch='TITAN',
         environment_name_workflow='TITAN',
-        interactive=True)   
+        interactive=False)   
 
 #################################
  

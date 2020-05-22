@@ -167,15 +167,15 @@ target_IDS_dispatch['ITER_15MAQ10_case5']['1']['1']['run']=1
 target_IDS_dispatch['ITER_15MAQ10_case5']['1']['1']['sheet_name_kinetic_prof']='Flat n'
 target_IDS_dispatch['ITER_15MAQ10_case5']['1']['1']['sheet_name_rotation']='Flat n,Pr=1'
 target_IDS_dispatch['ITER_15MAQ10_case5']['1']['1']['var_name_rotation']='Vt(tF/tE=1)'
-target_IDS_dispatch['ITER_15MAQ10_case5']['1']['05']={}
+target_IDS_dispatch['ITER_15MAQ10_case5']['1']['05']={} #lowest rotation
 target_IDS_dispatch['ITER_15MAQ10_case5']['1']['05']['shot']=131025
 target_IDS_dispatch['ITER_15MAQ10_case5']['1']['05']['run']=2
 target_IDS_dispatch['ITER_15MAQ10_case5']['1']['05']['sheet_name_kinetic_prof']='Flat n'
 target_IDS_dispatch['ITER_15MAQ10_case5']['1']['05']['sheet_name_rotation']='Flat n,Pr=1'
 target_IDS_dispatch['ITER_15MAQ10_case5']['1']['05']['var_name_rotation']='Vt(tF/tE=0.5)'
 target_IDS_dispatch['ITER_15MAQ10_case5']['03']={} 
-target_IDS_dispatch['ITER_15MAQ10_case5']['03']['2']={}
-target_IDS_dispatch['ITER_15MAQ10_case5']['03']['2']['shot']=131025
+target_IDS_dispatch['ITER_15MAQ10_case5']['03']['2']={} #highest rotation
+target_IDS_dispatch['ITER_15MAQ10_case5']['03']['2']['shot']=131025 
 target_IDS_dispatch['ITER_15MAQ10_case5']['03']['2']['run']=3
 target_IDS_dispatch['ITER_15MAQ10_case5']['03']['2']['sheet_name_kinetic_prof']='Flat n'
 target_IDS_dispatch['ITER_15MAQ10_case5']['03']['2']['sheet_name_rotation']='Flat n, Pr=0.3'

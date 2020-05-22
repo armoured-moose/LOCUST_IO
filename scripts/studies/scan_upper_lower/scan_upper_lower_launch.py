@@ -1,10 +1,10 @@
-#scan_resolution_launch.py
+#scan_upper_lower_launch.py
  
 """
 Samuel Ward
-13/05/20
+14/10/19
 ----
-explore effects of changing resolution on ITER RMP simulations
+launch script for RMP study parameter scan for upper/lower coil phase
 ---
  
 notes:         
@@ -100,7 +100,7 @@ parameters__toroidal_mode_numbers__options['n=3']=[-3,-6]
 ##################################################################
 #choose the scenarios we will want to examine
 
-RMP_study__name='resolution_scan'
+RMP_study__name='scan_upper_lower_launch'
 parameters__databases=['ITER_15MAQ10_case5'] #these all zipped at same level in main loop because source data is not consistent enough
 parameters__sheet_names_kinetic_prof=["'Flat n'"]
 RMP_study__dir_input_database=support.dir_input_files / 'ITER_fields_yueqiang' / 'DataBase' #derive associated parameters needed by the RMP_study workflow for these scenarios
@@ -110,32 +110,26 @@ RMP_study__filepaths_additional_data=support.dir_input_files / 'ITER_additional_
 #define the parameter space for a given scenario
 
 #kinetic profile parameters which vary independently
-parameters__kinetic_profs_Pr=[0.3]
-parameters__kinetic_profs_tF_tE=[2.]
+parameters__kinetic_profs_Pr=[0.3,1.] #pick highest then lowest rotation
+parameters__kinetic_profs_tF_tE=[2.,0.5]
 
 #3D field parameters which vary independently - if you want to vary these together then put them into the same loop nesting below
 #2D arrays, each element has length = number of modes
 parameters__toroidal_mode_numbers=[[-3,-6]]
-parameters__phases_upper=np.array([0.])#np.linspace(-10,140,16) #first value is for axisymmetric simulation
-parameters__phases_middle=np.array([0.])#np.linspace(-10,140,16)
-parameters__phases_lower=np.array([0.])#np.linspace(-10,140,16)
+parameters__phases_upper=np.linspace(0,110,12) #first value is for axisymmetric simulation - 86,0,34 = default for maximmum stochasticity
+parameters__phases_middle=np.array([0.])
+parameters__phases_lower=np.linspace(0,110,12)
 parameters__rotations_upper=np.array([0.])
 parameters__rotations_middle=np.array([0.])
 parameters__rotations_lower=np.array([0.])
 parameters__currents_upper=np.array([90.])*1000.
 parameters__currents_middle=np.array([90.])*1000.
-parameters__currents_lower=np.array([90.])*1000.
+parameters__currents_lower=np.array([90])*1000.
 
 ##################################################################
 #define the workflow commands in order we want to execute them
 
-workflow__commands="\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create','kin_extrap','run_NEMO','depo_get','run_LOCUST']\""
-
-##################################################################
-#define resolution settings
-
-parameters__perturbation_resolutions_R=np.array([1.2345,2.,1.,0.1,0.01,0.005]) #first value is axisymmetric case - so supply any value
-parameters__perturbation_resolutions_Z=copy.deepcopy(parameters__perturbation_resolutions_R)
+workflow__commands="\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create','kin_extrap','run_NEMO','depo_get','run_LOCUST','clean_input']\""
 
 ##################################################################
 #create every valid combination of parameter, returned in flat lists
@@ -144,22 +138,51 @@ parameters__perturbation_resolutions_Z=copy.deepcopy(parameters__perturbation_re
 run_number=0
 parameter_strings=[]
 #first level are the data which remain constant for a parameter scan
-for parameters__perturbation_resolution_R,parameters__perturbation_resolution_Z in zip(parameters__perturbation_resolutions_R,parameters__perturbation_resolutions_Z):
-    for parameters__database,parameters__sheet_name_kinetic_prof in zip(
-            parameters__databases,parameters__sheet_names_kinetic_prof): 
-        for parameters__kinetic_prof_tF_tE in parameters__kinetic_profs_tF_tE:
-            for parameters__kinetic_prof_Pr in parameters__kinetic_profs_Pr:
-                for parameters__toroidal_mode_number in parameters__toroidal_mode_numbers:
-                    for parameters__phase_upper,parameters__phase_middle,parameters__phase_lower in zip(parameters__phases_upper,parameters__phases_middle,parameters__phases_lower): #nest at same level == offset them together rigidly 
-                        for parameters__rotation_upper,parameters__rotation_middle,parameters__rotation_lower in zip(parameters__rotations_upper,parameters__rotations_middle,parameters__rotations_lower): #nest at same level == rotating them together rigidly
+for parameters__database,parameters__sheet_name_kinetic_prof in zip(parameters__databases,parameters__sheet_names_kinetic_prof): 
+    for parameters__kinetic_prof_tF_tE,parameters__kinetic_prof_Pr in zip(parameters__kinetic_profs_tF_tE,parameters__kinetic_profs_Pr):
+        for parameters__toroidal_mode_number in parameters__toroidal_mode_numbers:
+            for parameters__phase_upper in parameters__phases_upper:
+                for parameters__phase_middle in parameters__phases_middle:
+                    for parameters__phase_lower in parameters__phases_lower:
+                        for parameters__rotation_upper,parameters__rotation_middle,parameters__rotation_lower in zip(parameters__rotations_upper,parameters__rotations_middle,parameters__rotations_lower): 
                             for parameters__current_upper,parameters__current_middle,parameters__current_lower in zip(parameters__currents_upper,parameters__currents_middle,parameters__currents_lower):
 
-                                run_number+=1 #increment run counter                                         
-
+                                run_number+=1 #increment run counter              
+                                                           
                                 #create a string of variables identifying this run
                                 parameters__kinetic_prof_tF_tE_string=parameters__kinetic_profs_tF_tE__dispatch[parameters__kinetic_prof_tF_tE] #generate some variable string equivalents for later
                                 parameters__kinetic_prof_Pr_string=parameters__kinetic_profs_Pr__dispatch[parameters__kinetic_prof_Pr]
-                                parameters__parameter_string=f'dR_{parameters__perturbation_resolution_R}_dZ_{parameters__perturbation_resolution_Z}'
+
+                                parameters__parameter_string=''
+                                parameters__parameter_string+='_'.join(['{}_{}'.format(parameter,str(value)) for parameter,value in zip([
+                                                'tFtE',
+                                                'Pr'
+                                                ],[
+                                                parameters__kinetic_prof_tF_tE,
+                                                parameters__kinetic_prof_Pr])])
+
+                                parameters__parameter_string+='_ntor_'
+                                for mode in parameters__toroidal_mode_number:
+                                    parameters__parameter_string+='{}_'.format(str(mode)) #add toroidal mode information    
+                                parameters__parameter_string+='_'.join(['{}_{}'.format(parameter,str(value)) for parameter,value in zip([
+                                        'phaseu',
+                                        'phasem',
+                                        'phasel',
+                                        'rotu',
+                                        'rotm',
+                                        'rotl',
+                                        'ikatu',
+                                        'ikatm',
+                                        'ikatl'],[
+                                        parameters__phase_upper,
+                                        parameters__phase_middle,
+                                        parameters__phase_lower,
+                                        parameters__rotation_upper,
+                                        parameters__rotation_middle,
+                                        parameters__rotation_lower,
+                                        parameters__current_upper,
+                                        parameters__current_middle,
+                                        parameters__current_lower])])
                                 parameter_strings.append(parameters__parameter_string)
 
                                 #################################
@@ -188,8 +211,8 @@ for parameters__perturbation_resolution_R,parameters__perturbation_resolution_Z 
                                 LOCUST_run__flags['GEQDSKFIX1']=True
                                 LOCUST_run__flags['GEQDSKFIX2']=True
                                 LOCUST_run__flags['BP']=True
-                                LOCUST_run__flags['TIMAX']='0.5D0'
-                                LOCUST_run__flags['SPLIT']=True
+                                LOCUST_run__flags['TIMAX']='0.25D0'
+                                #LOCUST_run__flags['SPLIT']=True
                                 LOCUST_run__flags['SMALLEQ']=True #XXX test whether we need this when using mesh
                                 LOCUST_run__flags['CONLY']=True
                                 #XXX CURRENTLY WAITING FOR FIX LOCUST_run__flags['I3DR']=-1 
@@ -200,7 +223,7 @@ for parameters__perturbation_resolution_R,parameters__perturbation_resolution_Z 
                                 LOCUST_run__settings_prec_mod['file_tet']="'locust_wall'" 
                                 LOCUST_run__settings_prec_mod['file_eqm']="'locust_eqm'" 
                                 LOCUST_run__settings_prec_mod['threadsPerBlock']=64
-                                LOCUST_run__settings_prec_mod['blocksPerGrid']=512
+                                LOCUST_run__settings_prec_mod['blocksPerGrid']=64
                                 LOCUST_run__settings_prec_mod['root']="'/tmp/{username}/{study}/{params}'".format(username=settings.username,study=RMP_study__name,params=parameters__parameter_string)
                                 LOCUST_run__settings_prec_mod['i3dr']=-1 #XXX WHILST I3DR FLAG IS BROKE
                                 LOCUST_run__settings_prec_mod['niter']=1
@@ -210,17 +233,14 @@ for parameters__perturbation_resolution_R,parameters__perturbation_resolution_Z 
                                 MARS_read__flags['MPHASE']=f'{parameters__phase_middle}D0'
                                 MARS_read__flags['LPHASE']=f'{parameters__phase_lower}D0'
                                 MARS_read__settings['IKATN']=f'[{parameters__current_upper/1000.}_gpu,{parameters__current_middle/1000.}_gpu,{parameters__current_lower/1000.}_gpu]'
-                                MARS_read__settings['dXR']=f'{parameters__perturbation_resolution_R}_gpu'
-                                MARS_read__settings['dXZ']=f'{parameters__perturbation_resolution_Z}_gpu'
 
                                 NEMO_run__xml_settings={}
                                 NEMO_run__xml_settings['nmarker']=LOCUST_run__settings_prec_mod['threadsPerBlock']*LOCUST_run__settings_prec_mod['blocksPerGrid']*8
                                 NEMO_run__xml_settings['fokker_flag']=0
 
                                 #3D field settings
-                                if run_number!=1: #make first run axisymmetric as control run
-                                    LOCUST_run__flags['B3D']=True
-                                    LOCUST_run__flags['B3D_EX']=True
+                                LOCUST_run__flags['B3D']=True
+                                LOCUST_run__flags['B3D_EX']=True
                                 #if all coilsets do not rotate together we must split them up individually!
                                 if all(rotation==parameters__rotation_upper for rotation in [parameters__rotation_upper,parameters__rotation_middle,parameters__rotation_lower]): 
                                     #if coils rotate together but we still want one row offset with others then define relative phase for mars_read
@@ -311,9 +331,8 @@ if __name__=='__main__':
     RMP_batch_run.launch(
         workflow_filepath=path_template_run,
         environment_name_batch='TITAN',
-        environment_name_workflow='TITAN',
-        interactive=True)   
-
+        environment_name_workflow='TITAN',   
+        interactive=False)   
 
 #################################
  

@@ -80,9 +80,11 @@ except:
     sys.exit(1)
 
 try:
-    from .template_mod import *
+    cwd=pathlib.Path(os.path.dirname(os.path.realpath(__file__)))
+    sys.path.append(str(cwd.parents[1]))
+    from templates.template_mod import *
 except:
-    raise ImportError("ERROR: template_mod.py could not be imported!\nreturning\n") 
+    raise ImportError("ERROR: templates/template_mod.py could not be imported!\nreturning\n") 
     sys.exit(1)
 
 
@@ -98,7 +100,7 @@ parameters__toroidal_mode_numbers__options['n=3']=[-3,-6]
 ##################################################################
 #choose the scenarios we will want to examine
 
-RMP_study__name='compare_impurities_on_off'
+RMP_study__name='template_launch'
 parameters__databases=['ITER_15MAQ10_case5'] #these all zipped at same level in main loop because source data is not consistent enough
 parameters__sheet_names_kinetic_prof=["'Flat n'"]
 RMP_study__dir_input_database=support.dir_input_files / 'ITER_fields_yueqiang' / 'DataBase' #derive associated parameters needed by the RMP_study workflow for these scenarios
@@ -127,12 +129,11 @@ parameters__currents_lower=np.array([90])*1000.
 ##################################################################
 #define the workflow commands in order we want to execute them
 
-workflow__commands="\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create','kin_extrap','run_NEMO','depo_get','run_LOCUST']\""
+workflow__commands="\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create','kin_extrap','run_NEMO','depo_get','run_LOCUST','clean_input']\""
 
 ##################################################################
 #create every valid combination of parameter, returned in flat lists
 #use zip and nest levels to define specific combinations which cannot be varied
-#e.g. zip together parameters__kinetic_profs_tF_tE and parameters__kinetic_profs_tF_tE_string since these should iterate together
 
 run_number=0
 parameter_strings=[]
@@ -329,7 +330,7 @@ if __name__=='__main__':
     
     RMP_batch_run=Batch(**args_batch)
     RMP_batch_run.launch(
-        workflow_filepath='template_run.py',
+        workflow_filepath=path_template_run,
         environment_name_batch='TITAN',
         environment_name_workflow='TITAN',   
         interactive=False)   

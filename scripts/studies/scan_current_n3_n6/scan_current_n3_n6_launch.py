@@ -134,7 +134,6 @@ workflow__commands="\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_cre
 ##################################################################
 #create every valid combination of parameter, returned in flat lists
 #use zip and nest levels to define specific combinations which cannot be varied
-#e.g. zip together parameters__kinetic_profs_tF_tE and parameters__kinetic_profs_tF_tE_string since these should iterate together
 
 run_number=0
 parameter_strings=[]
@@ -331,7 +330,7 @@ if __name__=='__main__':
     
     RMP_batch_run=Batch(**args_batch)
     RMP_batch_run.launch(
-        workflow_filepath='template_run.py',
+        workflow_filepath=path_template_run,
         environment_name_batch='TITAN',
         environment_name_workflow='TITAN',
         interactive=False)   
