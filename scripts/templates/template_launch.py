@@ -1,4 +1,4 @@
-#RMP_study_launch.py
+#template_launch.py
  
 """
 Samuel Ward
@@ -8,7 +8,8 @@ script for controlling and launching LOCUST parameter scans for static RMP studi
 ---
  
 notes:         
-    launches the workflow defined in RMP_study_run.py
+    look at template_mod for additional variables!
+    launches the workflow defined in template_run.py
     since only flat arrays are passed to Batch class, __ labels are designed to help distiniguish what variables are needed for 
 
     directory structure goes as:
@@ -43,6 +44,7 @@ try:
     import numpy as np
     import pathlib
     import copy
+    import os
 except:
     raise ImportError("ERROR: initial modules could not be imported!\nreturning\n")
     sys.exit(1)
@@ -77,6 +79,13 @@ except:
     raise ImportError("ERROR: LOCUST_IO/src/settings.py could not be imported!\nreturning\n") 
     sys.exit(1)
 
+try:
+    from .template_mod import *
+except:
+    raise ImportError("ERROR: template_mod.py could not be imported!\nreturning\n") 
+    sys.exit(1)
+
+
 ################################################################## 
 #Main 
 
@@ -86,199 +95,10 @@ except:
 parameters__toroidal_mode_numbers__options={} #XXX needs studying - toroidal mode number combinations 
 parameters__toroidal_mode_numbers__options['n=3']=[-3,-6]
 
-parameters__kinetic_profs_tF_tE__dispatch={}
-parameters__kinetic_profs_tF_tE__dispatch[0.5]='05'
-parameters__kinetic_profs_tF_tE__dispatch[0.57]='057'
-parameters__kinetic_profs_tF_tE__dispatch[0.65]='065'
-parameters__kinetic_profs_tF_tE__dispatch[0.72]='072'
-parameters__kinetic_profs_tF_tE__dispatch[0.73]='073'
-parameters__kinetic_profs_tF_tE__dispatch[1.]='1'
-parameters__kinetic_profs_tF_tE__dispatch[2.]='2'
-parameters__kinetic_profs_Pr__dispatch={} #prandl number
-parameters__kinetic_profs_Pr__dispatch[0.3]='03'
-parameters__kinetic_profs_Pr__dispatch[1.]='1'
-
-#dispatch table matching parameter values to corresponding IDS shot/run numbers
-#run depends on three parameters - sp dispatch table needs to be three levels deep - first level is scenario, second is Prandl number and third  is tF/tE - after that comes requested data
-#XXX if multiple kinetic profile types (e.g. nT=0.2ne, nT=0.5) exist for same prandl number/tFtE then sheet_name_kinetic_prof will need to be made into its own dispatch level
-target_IDS_dispatch={}
-target_IDS_dispatch['ITER_5MAH_case1']={}
-target_IDS_dispatch['ITER_5MAH_case1']['03']={} 
-target_IDS_dispatch['ITER_5MAH_case1']['03']['2']={}
-target_IDS_dispatch['ITER_5MAH_case1']['03']['2']['shot']=101007
-target_IDS_dispatch['ITER_5MAH_case1']['03']['2']['run']=0
-target_IDS_dispatch['ITER_5MAH_case1']['03']['2']['sheet_name_kinetic_prof']='H-5MA-20EC-10NBI'
-target_IDS_dispatch['ITER_5MAH_case1']['03']['2']['sheet_name_rotation']='Pr=0.3'
-target_IDS_dispatch['ITER_5MAH_case1']['03']['2']['var_name_rotation']='Vt(tF/tE=2)'
-target_IDS_dispatch['ITER_5MAH_case1']['03']['1']={}
-target_IDS_dispatch['ITER_5MAH_case1']['03']['1']['shot']=101007
-target_IDS_dispatch['ITER_5MAH_case1']['03']['1']['run']=1 
-target_IDS_dispatch['ITER_5MAH_case1']['03']['1']['sheet_name_kinetic_prof']='H-5MA-20EC-10NBI'
-target_IDS_dispatch['ITER_5MAH_case1']['03']['1']['sheet_name_rotation']='Pr=0.3'
-target_IDS_dispatch['ITER_5MAH_case1']['03']['1']['var_name_rotation']='Vt(tF/tE=1)'
-target_IDS_dispatch['ITER_5MAH_case1']['03']['065']={}
-target_IDS_dispatch['ITER_5MAH_case1']['03']['065']['shot']=101007 
-target_IDS_dispatch['ITER_5MAH_case1']['03']['065']['run']=2 
-target_IDS_dispatch['ITER_5MAH_case1']['03']['065']['sheet_name_kinetic_prof']='H-5MA-20EC-10NBI'
-target_IDS_dispatch['ITER_5MAH_case1']['03']['065']['sheet_name_rotation']='Pr=0.3'
-target_IDS_dispatch['ITER_5MAH_case1']['03']['065']['var_name_rotation']='Vt(tF/tE=0.65)'
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']={}
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03']={} 
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03'][None]={}# Pr=0.3
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03'][None]['shot']=131020
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03'][None]['run']=0
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03'][None]['sheet_name_kinetic_prof']='nT=0.2ne'
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03'][None]['sheet_name_rotation']='Pr=0.3'
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03'][None]['var_name_rotation']=None
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03']['2']={}
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03']['2']['shot']=131021
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03']['2']['run']=0
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03']['2']['sheet_name_kinetic_prof']='nT=0.5ne'
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03']['2']['sheet_name_rotation']='Pr=0.3'
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03']['2']['var_name_rotation']='Vt(tF/tE=2)'
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03']['1']={}
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03']['1']['shot']=131021
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03']['1']['run']=1
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03']['1']['sheet_name_kinetic_prof']='nT=0.5ne'
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03']['1']['sheet_name_rotation']='Pr=0.3'
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03']['1']['var_name_rotation']='Vt(tF/tE=1)'
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03']['057']={}
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03']['057']['shot']=131021
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03']['057']['run']=2
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03']['057']['sheet_name_kinetic_prof']='nT=0.5ne'
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03']['057']['sheet_name_rotation']='Pr=0.3'
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03']['057']['var_name_rotation']='Vt(tF/tE=0.57)'
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03'][None]={}
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03'][None]['shot']=131022
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03'][None]['run']=0
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03'][None]['sheet_name_kinetic_prof']='nT=0.76ne'
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03'][None]['sheet_name_rotation']='Pr=0.3'
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03'][None]['var_name_rotation']=None
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03'][None]={}
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03'][None]['shot']=131023
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03'][None]['run']=0
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03'][None]['sheet_name_kinetic_prof']='nT<<ne'
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03'][None]['sheet_name_rotation']='Pr=0.3'
-target_IDS_dispatch['ITER_7d5MAHalfB_case2']['03'][None]['var_name_rotation']=None
-target_IDS_dispatch['ITER_15MAQ5_case4']={} 
-target_IDS_dispatch['ITER_15MAQ5_case4']['1']={} 
-target_IDS_dispatch['ITER_15MAQ5_case4']['1']['2']={}
-target_IDS_dispatch['ITER_15MAQ5_case4']['1']['2']['shot']=131024
-target_IDS_dispatch['ITER_15MAQ5_case4']['1']['2']['run']=0
-target_IDS_dispatch['ITER_15MAQ5_case4']['1']['2']['sheet_name_kinetic_prof']='Out_iterDD.iterDDL-R'
-target_IDS_dispatch['ITER_15MAQ5_case4']['1']['2']['sheet_name_rotation']='Pr=1'
-target_IDS_dispatch['ITER_15MAQ5_case4']['1']['2']['var_name_rotation']='Vt(tF/tE=2)'
-target_IDS_dispatch['ITER_15MAQ5_case4']['1']['1']={}
-target_IDS_dispatch['ITER_15MAQ5_case4']['1']['1']['shot']=131024
-target_IDS_dispatch['ITER_15MAQ5_case4']['1']['1']['run']=1
-target_IDS_dispatch['ITER_15MAQ5_case4']['1']['1']['sheet_name_kinetic_prof']='Out_iterDD.iterDDL-R'
-target_IDS_dispatch['ITER_15MAQ5_case4']['1']['1']['sheet_name_rotation']='Pr=1'
-target_IDS_dispatch['ITER_15MAQ5_case4']['1']['1']['var_name_rotation']='Vt(tF/tE=1)'
-target_IDS_dispatch['ITER_15MAQ5_case4']['1']['05']={}
-target_IDS_dispatch['ITER_15MAQ5_case4']['1']['05']['shot']=131024
-target_IDS_dispatch['ITER_15MAQ5_case4']['1']['05']['run']=2
-target_IDS_dispatch['ITER_15MAQ5_case4']['1']['05']['sheet_name_kinetic_prof']='Out_iterDD.iterDDL-R'
-target_IDS_dispatch['ITER_15MAQ5_case4']['1']['05']['sheet_name_rotation']='Pr=1'
-target_IDS_dispatch['ITER_15MAQ5_case4']['1']['05']['var_name_rotation']='Vt(tF/tE=0.5)'
-target_IDS_dispatch['ITER_15MAQ5_case4']['03']={} 
-target_IDS_dispatch['ITER_15MAQ5_case4']['03']['2']={}
-target_IDS_dispatch['ITER_15MAQ5_case4']['03']['2']['shot']=131024
-target_IDS_dispatch['ITER_15MAQ5_case4']['03']['2']['run']=3
-target_IDS_dispatch['ITER_15MAQ5_case4']['03']['2']['sheet_name_kinetic_prof']='Out_iterDD.iterDDL-R'
-target_IDS_dispatch['ITER_15MAQ5_case4']['03']['2']['sheet_name_rotation']='Pr=0.3'
-target_IDS_dispatch['ITER_15MAQ5_case4']['03']['2']['var_name_rotation']='Vt(tF/tE=2)'
-target_IDS_dispatch['ITER_15MAQ5_case4']['03']['1']={}
-target_IDS_dispatch['ITER_15MAQ5_case4']['03']['1']['shot']=131024
-target_IDS_dispatch['ITER_15MAQ5_case4']['03']['1']['run']=4
-target_IDS_dispatch['ITER_15MAQ5_case4']['03']['1']['sheet_name_kinetic_prof']='Out_iterDD.iterDDL-R'
-target_IDS_dispatch['ITER_15MAQ5_case4']['03']['1']['sheet_name_rotation']='Pr=0.3'
-target_IDS_dispatch['ITER_15MAQ5_case4']['03']['1']['var_name_rotation']='Vt(tF/tE=1)'
-target_IDS_dispatch['ITER_15MAQ5_case4']['03']['073']={}
-target_IDS_dispatch['ITER_15MAQ5_case4']['03']['073']['shot']=131024
-target_IDS_dispatch['ITER_15MAQ5_case4']['03']['073']['run']=5
-target_IDS_dispatch['ITER_15MAQ5_case4']['03']['073']['sheet_name_kinetic_prof']='Out_iterDD.iterDDL-R'
-target_IDS_dispatch['ITER_15MAQ5_case4']['03']['073']['sheet_name_rotation']='Pr=0.3'
-target_IDS_dispatch['ITER_15MAQ5_case4']['03']['073']['var_name_rotation']='Vt(tF/tE=0.73)'
-target_IDS_dispatch['ITER_15MAQ10_case5']={}
-target_IDS_dispatch['ITER_15MAQ10_case5']['1']={} 
-target_IDS_dispatch['ITER_15MAQ10_case5']['1']['2']={}
-target_IDS_dispatch['ITER_15MAQ10_case5']['1']['2']['shot']=131025
-target_IDS_dispatch['ITER_15MAQ10_case5']['1']['2']['run']=0
-target_IDS_dispatch['ITER_15MAQ10_case5']['1']['2']['sheet_name_kinetic_prof']='Flat n'
-target_IDS_dispatch['ITER_15MAQ10_case5']['1']['2']['sheet_name_rotation']='Flat n,Pr=1'
-target_IDS_dispatch['ITER_15MAQ10_case5']['1']['2']['var_name_rotation']='Vt(tF/tE=2)'
-target_IDS_dispatch['ITER_15MAQ10_case5']['1']['1']={}
-target_IDS_dispatch['ITER_15MAQ10_case5']['1']['1']['shot']=131025
-target_IDS_dispatch['ITER_15MAQ10_case5']['1']['1']['run']=1
-target_IDS_dispatch['ITER_15MAQ10_case5']['1']['1']['sheet_name_kinetic_prof']='Flat n'
-target_IDS_dispatch['ITER_15MAQ10_case5']['1']['1']['sheet_name_rotation']='Flat n,Pr=1'
-target_IDS_dispatch['ITER_15MAQ10_case5']['1']['1']['var_name_rotation']='Vt(tF/tE=1)'
-target_IDS_dispatch['ITER_15MAQ10_case5']['1']['05']={}
-target_IDS_dispatch['ITER_15MAQ10_case5']['1']['05']['shot']=131025
-target_IDS_dispatch['ITER_15MAQ10_case5']['1']['05']['run']=2
-target_IDS_dispatch['ITER_15MAQ10_case5']['1']['05']['sheet_name_kinetic_prof']='Flat n'
-target_IDS_dispatch['ITER_15MAQ10_case5']['1']['05']['sheet_name_rotation']='Flat n,Pr=1'
-target_IDS_dispatch['ITER_15MAQ10_case5']['1']['05']['var_name_rotation']='Vt(tF/tE=0.5)'
-target_IDS_dispatch['ITER_15MAQ10_case5']['03']={} 
-target_IDS_dispatch['ITER_15MAQ10_case5']['03']['2']={}
-target_IDS_dispatch['ITER_15MAQ10_case5']['03']['2']['shot']=131025
-target_IDS_dispatch['ITER_15MAQ10_case5']['03']['2']['run']=3
-target_IDS_dispatch['ITER_15MAQ10_case5']['03']['2']['sheet_name_kinetic_prof']='Flat n'
-target_IDS_dispatch['ITER_15MAQ10_case5']['03']['2']['sheet_name_rotation']='Flat n, Pr=0.3'
-target_IDS_dispatch['ITER_15MAQ10_case5']['03']['2']['var_name_rotation']='Vt(tF/tE=2)'
-target_IDS_dispatch['ITER_15MAQ10_case5']['03']['1']={}
-target_IDS_dispatch['ITER_15MAQ10_case5']['03']['1']['shot']=131025
-target_IDS_dispatch['ITER_15MAQ10_case5']['03']['1']['run']=4
-target_IDS_dispatch['ITER_15MAQ10_case5']['03']['1']['sheet_name_kinetic_prof']='Flat n'
-target_IDS_dispatch['ITER_15MAQ10_case5']['03']['1']['sheet_name_rotation']='Flat n, Pr=0.3'
-target_IDS_dispatch['ITER_15MAQ10_case5']['03']['1']['var_name_rotation']='Vt(tF/tE=1)'
-target_IDS_dispatch['ITER_15MAQ10_case5']['03']['072']={}
-target_IDS_dispatch['ITER_15MAQ10_case5']['03']['072']['shot']=131025
-target_IDS_dispatch['ITER_15MAQ10_case5']['03']['072']['run']=5
-target_IDS_dispatch['ITER_15MAQ10_case5']['03']['072']['sheet_name_kinetic_prof']='Flat n'
-target_IDS_dispatch['ITER_15MAQ10_case5']['03']['072']['sheet_name_rotation']='Flat n, Pr=0.3'
-target_IDS_dispatch['ITER_15MAQ10_case5']['03']['072']['var_name_rotation']='Vt(tF/tE=0.72)'
-target_IDS_dispatch['ITER_15MAQ10_case5'][None]={}
-target_IDS_dispatch['ITER_15MAQ10_case5'][None][None]={}
-target_IDS_dispatch['ITER_15MAQ10_case5'][None][None]['shot']=131026
-target_IDS_dispatch['ITER_15MAQ10_case5'][None][None]['run']=0
-target_IDS_dispatch['ITER_15MAQ10_case5'][None][None]['sheet_name_kinetic_prof']='Peaked n'
-target_IDS_dispatch['ITER_15MAQ10_case5'][None][None]['sheet_name_rotation']=None
-target_IDS_dispatch['ITER_15MAQ10_case5'][None][None]['var_name_rotation']=None
-
-##################################################################
-#define parameters which are fixed throughout a parameter scan - if we want to vary then add as a layer in the for loops
-
-folder_name_DataMarsf='DataMarsf' #3D field directory name however this can sometimes vary between scenarios e.g. if using vacuum field
-folder_name_DataEq='DataEq' #equilibrium 
-
-#fixed parameters needed by LOCUST_run
-LOCUST_run__environment_name='TITAN'
-LOCUST_run__repo_URL=f"'{settings.repo_URL_LOCUST}'"
-LOCUST_run__commit_hash=f"'{settings.commit_hash_default_LOCUST}'"
-
-#fixed parameters needed for NEMO_run
-NEMO_run__dir_NEMO=pathlib.Path('/home') / 'ITER' / f'{settings.username}' / 'scratch' / 'nemo'
-NEMO_run__fokker_flag=0
-
-#fixed parameters needed by MARS_read
-MARS_read__tail_U='_U_PLS'
-MARS_read__tail_M='_M_PLS'
-MARS_read__tail_L='_L_PLS'
-MARS_read__tails=[MARS_read__tail_U,MARS_read__tail_M,MARS_read__tail_L]
-MARS_read__settings={}
-MARS_read__settings['TAIL']="{}".format(MARS_read__tails)
-MARS_read__flags={}
-
-IDS__shot=1
-IDS__run=1
-IDS__username=settings.username
-IDS__imasdb=settings.imasdb
-
 ##################################################################
 #choose the scenarios we will want to examine
 
-RMP_study__name='scan_current_n3_n6'
+RMP_study__name='compare_impurities_on_off'
 parameters__databases=['ITER_15MAQ10_case5'] #these all zipped at same level in main loop because source data is not consistent enough
 parameters__sheet_names_kinetic_prof=["'Flat n'"]
 RMP_study__dir_input_database=support.dir_input_files / 'ITER_fields_yueqiang' / 'DataBase' #derive associated parameters needed by the RMP_study workflow for these scenarios
@@ -294,55 +114,20 @@ parameters__kinetic_profs_tF_tE=[2.]
 #3D field parameters which vary independently - if you want to vary these together then put them into the same loop nesting below
 #2D arrays, each element has length = number of modes
 parameters__toroidal_mode_numbers=[[-3,-6]]
-parameters__phases_upper=np.array([0.])#np.linspace(-10,140,16) #first value is for axisymmetric simulation
+parameters__phases_upper=np.array([86.])#np.linspace(-10,140,16) #first value is for axisymmetric simulation - 86,0,34 = default for maximmum stochasticity
 parameters__phases_middle=np.array([0.])#np.linspace(-10,140,16)
-parameters__phases_lower=np.array([0.])#np.linspace(-10,140,16)
+parameters__phases_lower=np.array([34.])#np.linspace(-10,140,16)
 parameters__rotations_upper=np.array([0.])
 parameters__rotations_middle=np.array([0.])
 parameters__rotations_lower=np.array([0.])
-parameters__currents_upper=np.array([20.,40.,60.,80.,100.,120.])*1000.
-parameters__currents_middle=np.array([20.,40.,60.,80.,100.,120.])*1000.
-parameters__currents_lower=np.array([20.,40.,60.,80.,100.,120.])*1000.
+parameters__currents_upper=np.array([90.])*1000.
+parameters__currents_middle=np.array([90.])*1000.
+parameters__currents_lower=np.array([90])*1000.
 
 ##################################################################
-#initialise __batch args needed for Batch class
+#define the workflow commands in order we want to execute them
 
-args_batch={}
-args_batch['parameters__sheet_name_kinetic_prof']=[]
-args_batch['parameters__sheet_name_rotation']=[]
-args_batch['parameters__var_name_rotation']=[]
-args_batch['parameters__toroidal_mode_numbers']=[]
-args_batch['LOCUST_run__dir_LOCUST']=[]
-args_batch['LOCUST_run__dir_LOCUST_source']=[]
-args_batch['LOCUST_run__dir_input']=[]
-args_batch['LOCUST_run__dir_output']=[]
-args_batch['LOCUST_run__dir_cache']=[]
-args_batch['LOCUST_run__environment_name']=[]
-args_batch['LOCUST_run__repo_URL']=[]
-args_batch['LOCUST_run__commit_hash']=[]
-args_batch['LOCUST_run__settings_prec_mod']=[]
-args_batch['LOCUST_run__flags']=[]
-args_batch['NEMO_run__dir_NEMO']=[]
-args_batch['NEMO_run__nmarker']=[]
-args_batch['NEMO_run__fokker_flag']=[]
-args_batch['MARS_read__tail_U']=[]
-args_batch['MARS_read__tail_M']=[]
-args_batch['MARS_read__tail_L']=[]
-args_batch['MARS_read__settings']=[]
-args_batch['MARS_read__flags']=[]
-args_batch['RMP_study__name']=[]
-args_batch['RMP_study__filepath_kinetic_profiles']=[]
-args_batch['RMP_study__filepath_equilibrium']=[]
-args_batch['RMP_study__filepath_additional_data']=[]
-args_batch['RMP_study__filepaths_3D_fields_U']=[]
-args_batch['RMP_study__filepaths_3D_fields_M']=[]
-args_batch['RMP_study__filepaths_3D_fields_L']=[]
-args_batch['IDS__shot']=[]
-args_batch['IDS__run']=[]
-args_batch['IDS__username']=[]
-args_batch['IDS__imasdb']=[]
-args_batch['IDS__target_IDS_shot']=[]
-args_batch['IDS__target_IDS_run']=[]
+workflow__commands="\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create','kin_extrap','run_NEMO','depo_get','run_LOCUST']\""
 
 ##################################################################
 #create every valid combination of parameter, returned in flat lists
@@ -350,6 +135,7 @@ args_batch['IDS__target_IDS_run']=[]
 #e.g. zip together parameters__kinetic_profs_tF_tE and parameters__kinetic_profs_tF_tE_string since these should iterate together
 
 run_number=0
+parameter_strings=[]
 #first level are the data which remain constant for a parameter scan
 for parameters__database,parameters__sheet_name_kinetic_prof in zip(
         parameters__databases,parameters__sheet_names_kinetic_prof): 
@@ -360,8 +146,9 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                     for parameters__rotation_upper,parameters__rotation_middle,parameters__rotation_lower in zip(parameters__rotations_upper,parameters__rotations_middle,parameters__rotations_lower): #nest at same level == rotating them together rigidly
                         for parameters__current_upper,parameters__current_middle,parameters__current_lower in zip(parameters__currents_upper,parameters__currents_middle,parameters__currents_lower):
 
-                            run_number+=1 #increment run counter                                         
-
+                            run_number+=1 #increment run counter              
+                                                       
+                            #create a string of variables identifying this run
                             parameters__kinetic_prof_tF_tE_string=parameters__kinetic_profs_tF_tE__dispatch[parameters__kinetic_prof_tF_tE] #generate some variable string equivalents for later
                             parameters__kinetic_prof_Pr_string=parameters__kinetic_profs_Pr__dispatch[parameters__kinetic_prof_Pr]
 
@@ -395,6 +182,7 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                                     parameters__current_upper,
                                     parameters__current_middle,
                                     parameters__current_lower])])
+                            parameter_strings.append(parameters__parameter_string)
 
                             #################################
                             #define corresponding workflow args passed to batch (denoted wth __batch)
@@ -425,6 +213,8 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                             LOCUST_run__flags['TIMAX']='0.5D0'
                             LOCUST_run__flags['SPLIT']=True
                             LOCUST_run__flags['SMALLEQ']=True #XXX test whether we need this when using mesh
+                            LOCUST_run__flags['CONLY']=True
+                            #XXX CURRENTLY WAITING FOR FIX LOCUST_run__flags['I3DR']=-1 
                             LOCUST_run__settings_prec_mod={}
                             LOCUST_run__settings_prec_mod['nmde']=len(parameters__toroidal_mode_number) #number of total toroidal harmonics = number of modes
                             LOCUST_run__settings_prec_mod['Ab']='AD' 
@@ -434,13 +224,18 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                             LOCUST_run__settings_prec_mod['threadsPerBlock']=64
                             LOCUST_run__settings_prec_mod['blocksPerGrid']=512
                             LOCUST_run__settings_prec_mod['root']="'/tmp/{username}/{study}/{params}'".format(username=settings.username,study=RMP_study__name,params=parameters__parameter_string)
+                            LOCUST_run__settings_prec_mod['i3dr']=-1 #XXX WHILST I3DR FLAG IS BROKE
+                            LOCUST_run__settings_prec_mod['niter']=1
                             MARS_read__flags['TOKAMAK']=1
                             MARS_read__flags['PLS']=True
                             MARS_read__flags['UPHASE']=f'{parameters__phase_upper}D0' #XXX does this account for counter-rotating harmonics?
                             MARS_read__flags['MPHASE']=f'{parameters__phase_middle}D0'
                             MARS_read__flags['LPHASE']=f'{parameters__phase_lower}D0'
                             MARS_read__settings['IKATN']=f'[{parameters__current_upper/1000.}_gpu,{parameters__current_middle/1000.}_gpu,{parameters__current_lower/1000.}_gpu]'
-                            NEMO_run__nmarker=LOCUST_run__settings_prec_mod['threadsPerBlock']*LOCUST_run__settings_prec_mod['blocksPerGrid']*8
+
+                            NEMO_run__xml_settings={}
+                            NEMO_run__xml_settings['nmarker']=LOCUST_run__settings_prec_mod['threadsPerBlock']*LOCUST_run__settings_prec_mod['blocksPerGrid']*8
+                            NEMO_run__xml_settings['fokker_flag']=0
 
                             #3D field settings
                             if run_number!=1: #make first run axisymmetric as control run
@@ -493,8 +288,7 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                             args_batch['LOCUST_run__settings_prec_mod'].append(copy.deepcopy(LOCUST_run__settings_prec_mod))
                             args_batch['LOCUST_run__flags'].append(copy.deepcopy(LOCUST_run__flags))
                             args_batch['NEMO_run__dir_NEMO'].append(copy.deepcopy(NEMO_run__dir_NEMO))
-                            args_batch['NEMO_run__nmarker'].append(copy.deepcopy(NEMO_run__nmarker))
-                            args_batch['NEMO_run__fokker_flag'].append(copy.deepcopy(NEMO_run__fokker_flag))
+                            args_batch['NEMO_run__xml_settings'].append(copy.deepcopy(NEMO_run__xml_settings))
                             args_batch['MARS_read__tail_U'].append(copy.deepcopy(MARS_read__tail_U))
                             args_batch['MARS_read__tail_M'].append(copy.deepcopy(MARS_read__tail_M))
                             args_batch['MARS_read__tail_L'].append(copy.deepcopy(MARS_read__tail_L))
@@ -526,6 +320,7 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                             args_batch['IDS__imasdb'].append(copy.deepcopy(IDS__imasdb))
                             args_batch['IDS__target_IDS_shot'].append(copy.deepcopy(target_IDS_dispatch[parameters__database][parameters__kinetic_prof_Pr_string][parameters__kinetic_prof_tF_tE_string]['shot']))
                             args_batch['IDS__target_IDS_run'].append(copy.deepcopy(target_IDS_dispatch[parameters__database][parameters__kinetic_prof_Pr_string][parameters__kinetic_prof_tF_tE_string]['run']))
+                            args_batch['workflow__commands'].append(workflow__commands)
 
 ##################################################################
 #define and launch the batch scripts
@@ -533,7 +328,11 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
 if __name__=='__main__':
     
     RMP_batch_run=Batch(**args_batch)
-    RMP_batch_run.launch(workflow_filepath='RMP_study_run.py',environment_name_batch='TITAN',environment_name_workflow='TITAN')   
+    RMP_batch_run.launch(
+        workflow_filepath='template_run.py',
+        environment_name_batch='TITAN',
+        environment_name_workflow='TITAN',   
+        interactive=False)   
 
 #################################
  
