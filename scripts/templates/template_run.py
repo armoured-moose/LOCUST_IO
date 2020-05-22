@@ -203,6 +203,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         self.commands_available['B_check_3D']=self.BCHECK_3D
         self.commands_available['plot_inputs']=self.plot_inputs
         self.commands_available['run_LOCUST']=self.run_LOCUST
+        self.commands_available['clean_input']=self.clean_input
+        self.commands_available['clean_cache']=self.clean_cache
 
         for command in self.args['workflow__commands']:
             self.add_command(command_name=command,command_function=self.commands_available[command]) #add all workflow stages
@@ -552,15 +554,9 @@ class RMP_study_run(run_scripts.workflow.Workflow):
             if species_name is 'beryllium':
                 density=copy.deepcopy(density_electrons)
                 density['n']*=fraction_beryllium #assumed 2% electron density
-                density.properties['species']=species_name #re-label species type
-                density.properties['A']=species_AZ[0] 
-                density.properties['Z']=species_AZ[1] 
             elif species_name is 'neon':
                 density=copy.deepcopy(density_electrons)
                 density['n']*=fraction_neon #assumed .2% electron density
-                density.properties['species']=species_name #re-label species type
-                density.properties['A']=species_AZ[0] 
-                density.properties['Z']=species_AZ[1] 
             else:
                 try: #just try to read all species, some (e.g. Ne and Be) of which might not be present, so until errors are properly raised then errors may be printed - please ignore
                     density=Number_Density(ID='',
@@ -572,7 +568,10 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                                             sheet_name=self.args['parameters__sheet_name_kinetic_prof'])
                 except:
                     pass
-            if density: 
+            if density is not None: 
+                density.properties['species']=species_name #re-label species type and A and Z 
+                density.properties['A']=species_AZ[0] 
+                density.properties['Z']=species_AZ[1] 
                 density.set(output_filename=self.args['LOCUST_run__dir_input'] / 'density_{}'.format(density.properties['species'])) #include filename for dumping later 
                 densities.append(density)
 
@@ -989,23 +988,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         notes:
         """
 
-        #need to make some custom edits to LOCUST_run workflow class - redefine this workflow stage here
-        class LOCUST_run_RMP(run_scripts.LOCUST_run.LOCUST_run):
-            def get_inputs(self,*args,**kwargs):
-                """
-                LOCUST_run stage for moving inputs to correct location
-
-                notes:
-                    edited for RMP workflow to move instead of copy
-                """
-
-                #copy input and cache files to correct location
-                for file in self.dir_input.glob('*'): #move all input files to correct location
-                    subprocess.run(shlex.split('mv {file} {inputdir}'.format(file=str(file),inputdir=str(self.root / settings.username / self.tokhead / settings.LOCUST_dir_inputfiles_default))),shell=False)
-                for file in self.dir_cache.glob('*'): #move all cache files to correct location
-                    subprocess.run(shlex.split('mv {file} {cachedir}'.format(file=str(file),cachedir=str(self.root / settings.username / self.tokhead / settings.LOCUST_dir_cachefiles_default))),shell=False)
-
-        LOCUST_workflow=LOCUST_run_RMP(environment_name=self.args['LOCUST_run__environment_name'],
+        LOCUST_workflow=run_scripts.LOCUST_run.LOCUST_run(environment_name=self.args['LOCUST_run__environment_name'],
             repo_URL=self.args['LOCUST_run__repo_URL'],
             commit_hash=self.args['LOCUST_run__commit_hash'],
             dir_LOCUST=self.args['LOCUST_run__dir_LOCUST'],
@@ -1015,8 +998,27 @@ class RMP_study_run(run_scripts.workflow.Workflow):
             dir_cache=self.args['LOCUST_run__dir_cache'],
             settings_prec_mod=self.args['LOCUST_run__settings_prec_mod'],
             flags=self.args['LOCUST_run__flags'])
-
         LOCUST_workflow.run()
+
+    def clean_input(self,*args,**kwargs):
+        """
+
+        notes:
+        """
+
+        #remove generated input files
+        for file in self.args['LOCUST_run__dir_input'].glob('*'): #move all input files to correct location
+            subprocess.run(shlex.split('rm {file}'.format(file=str(file))),shell=False)
+
+    def clean_cache(self,*args,**kwargs):
+        """
+
+        notes:
+        """
+
+        #remove cache files
+        for file in self.args['LOCUST_run__dir_cache'].glob('*'): #move all cache files to correct location
+            subprocess.run(shlex.split('rm {file}'.format(file=str(file))),shell=False)
 
 if __name__=='__main__':
 
