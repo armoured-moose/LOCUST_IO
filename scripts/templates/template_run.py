@@ -202,6 +202,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         self.commands_available['B_check_2D']=self.BCHECK_2D
         self.commands_available['B_check_3D']=self.BCHECK_3D
         self.commands_available['plot_inputs']=self.plot_inputs
+        self.commands_available['poincare']=self.create_Poincare
         self.commands_available['run_LOCUST']=self.run_LOCUST
         self.commands_available['clean_input']=self.clean_input
         self.commands_available['clean_cache']=self.clean_cache
@@ -711,7 +712,6 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                 kinetic_profile.plot(label=kinetic_profile.ID,colmap=colour,ax=axes[-1],fig=fig)
             axes[-1].set_title('')
             axes[-1].legend()
-
         del(axes[0])
 
         #line_label=[ax.get_legend_handles_labels() for ax in axes]
@@ -983,12 +983,33 @@ class RMP_study_run(run_scripts.workflow.Workflow):
             title_string_phases=f"phase U={self.args['MARS_read__flags']['UPHASE']} M={self.args['MARS_read__flags']['MPHASE']} L={self.args['MARS_read__flags']['LPHASE']}"
         plt.show()
 
+    def create_Poincare(self,*args,**kwargs):
+        """
+        notes:
+        """
+
+        poincare_flags=copy.deepcopy(self.args['LOCUST_run__flags'])
+        poincare_flags['POINCARE']=3
+        poincare_workflow=run_scripts .LOCUST_run.LOCUST_run(
+            environment_name=self.args['LOCUST_run__environment_name'],
+            repo_URL=self.args['LOCUST_run__repo_URL'],
+            commit_hash=self.args['LOCUST_run__commit_hash'],
+            dir_LOCUST=self.args['LOCUST_run__dir_LOCUST'],
+            dir_LOCUST_source=self.args['LOCUST_run__dir_LOCUST_source'],
+            dir_input=self.args['LOCUST_run__dir_input'],
+            dir_output=self.args['LOCUST_run__dir_output'],
+            dir_cache=self.args['LOCUST_run__dir_cache'],
+            settings_prec_mod=self.args['LOCUST_run__settings_prec_mod'],
+            flags=poincare_flags)
+        poincare_workflow.run()
+
     def run_LOCUST(self,*args,**kwargs):
         """
         notes:
         """
 
-        LOCUST_workflow=run_scripts.LOCUST_run.LOCUST_run(environment_name=self.args['LOCUST_run__environment_name'],
+        LOCUST_workflow=run_scripts.LOCUST_run.LOCUST_run(
+            environment_name=self.args['LOCUST_run__environment_name'],
             repo_URL=self.args['LOCUST_run__repo_URL'],
             commit_hash=self.args['LOCUST_run__commit_hash'],
             dir_LOCUST=self.args['LOCUST_run__dir_LOCUST'],
