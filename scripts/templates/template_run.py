@@ -197,7 +197,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         self.commands_available['kin_extrap']=self.extrapolate_kinetic_profiles
         self.commands_available['kin_plot']=self.plot_kinetic_profiles
         self.commands_available['run_NEMO']=self.run_NEMO
-        self.commands_available['depo_get']=self.get_beam_deposition
+        self.commands_available['depo_get']=self.get_beam_deposition_IDS
+        self.commands_available['depo_get_premade']=self.get_beam_deposition_file
         self.commands_available['depo_plot']=self.plot_beam_deposition
         self.commands_available['B_check_2D']=self.BCHECK_2D
         self.commands_available['B_check_3D']=self.BCHECK_3D
@@ -738,13 +739,29 @@ class RMP_study_run(run_scripts.workflow.Workflow):
 
         NEMO_workflow.call_NEMO_actor_command_line()
 
-    def get_beam_deposition(self,*args,**kwargs):
+    def get_beam_deposition_IDS(self,*args,**kwargs):
         """
         notes:
         """
 
         beam_deposition=Beam_Deposition(ID='',data_format='IDS',shot=self.args['IDS__shot'],run=self.args['IDS__run'])
         beam_deposition.dump_data(data_format='LOCUST_FO_weighted',filename=self.args['LOCUST_run__dir_input'] / 'ptcles.dat') 
+
+    def get_beam_deposition_file(self,*args,**kwargs):
+        """ 
+        fetch pre-calculated beam deposition from file
+
+        notes:
+            currently looks in run cache folder only
+            in case system does not support NEMO
+        """ 
+
+        file=str(self.args['LOCUST_run__dir_cache'] / 'ptcles.dat')
+        dir_input=str(self.args['LOCUST_run__dir_input'])
+        try:
+            subprocess.run(shlex.split('cp {file} {dir_input}'.format(file=file,dir_input=dir_input)),shell=False)
+        except:
+            print(f"ERROR: {self.workflow_name}.{self.command_running_name}() could not find beam depo {file}!")
 
     def plot_beam_deposition(self,*args,**kwargs):
         """
