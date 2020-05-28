@@ -192,6 +192,12 @@ for parameters__perturbation_resolution_R,parameters__perturbation_resolution_Z 
                                 LOCUST_run__flags['SPLIT']=True
                                 LOCUST_run__flags['SMALLEQ']=True #XXX test whether we need this when using mesh
                                 LOCUST_run__flags['CONLY']=True
+                                LOCUST_run__flags['VROT']=True
+                                LOCUST_run__flags['OMEGAT']=False
+                                LOCUST_run__flags['NOTUNE']=True
+                                LOCUST_run__flags['BP']=True
+                                LOCUST_run__flags['BILIN']=True
+                                LOCUST_run__flags['BICUB']=True
                                 #XXX CURRENTLY WAITING FOR FIX LOCUST_run__flags['I3DR']=-1 
                                 LOCUST_run__settings_prec_mod={}
                                 LOCUST_run__settings_prec_mod['nmde']=len(parameters__toroidal_mode_number) #number of total toroidal harmonics = number of modes
@@ -212,6 +218,8 @@ for parameters__perturbation_resolution_R,parameters__perturbation_resolution_Z 
                                 MARS_read__settings['IKATN']=f'[{parameters__current_upper/1000.}_gpu,{parameters__current_middle/1000.}_gpu,{parameters__current_lower/1000.}_gpu]'
                                 MARS_read__settings['dXR']=f'{parameters__perturbation_resolution_R}_gpu'
                                 MARS_read__settings['dXZ']=f'{parameters__perturbation_resolution_Z}_gpu'
+                                coil_offsets=[30.,26.7,30.]
+                                MARS_read__settings['PH0']='"{}"'.format([f'{coil_offset}'+'_gpu' for coil_offset in coil_offsets])
 
                                 NEMO_run__xml_settings={}
                                 NEMO_run__xml_settings['nmarker']=LOCUST_run__settings_prec_mod['threadsPerBlock']*LOCUST_run__settings_prec_mod['blocksPerGrid']*8
