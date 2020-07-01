@@ -337,6 +337,8 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                                     RMP_study__filepaths_3D_field_head=RMP_study__dir_input_database / parameters__database / folder_name_DataMarsf
                                     field_filepath_string='"{}"'.format([str(RMP_study__filepaths_3D_field_head/f'BPLASMA_MARSF_n{np.abs(mode)}_{coil_row}_Pr{parameters__kinetic_prof_Pr_string}_tfte{parameters__kinetic_prof_tF_tE_string}.IN') for mode in parameters__toroidal_mode_number])
 
+                                args_batch[f'RMP_study__filepaths_3D_fields_{coil_row[-1]}'].append(field_filepath_string)
+
                             args_batch['IDS__shot'].append(copy.deepcopy(IDS__shot))
                             args_batch['IDS__run'].append(copy.deepcopy(IDS__run))
                             args_batch['IDS__username'].append(copy.deepcopy(IDS__username))

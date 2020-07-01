@@ -118,9 +118,9 @@ parameters__kinetic_profs_tF_tE=[0.5,2.]
 #3D field parameters which vary independently - if you want to vary these together then put them into the same loop nesting below
 #2D arrays, each element has length = number of modes
 parameters__toroidal_mode_numbers=[[-3,-6]]
-parameters__phases_upper=np.linspace(0,110,8) #86,0,34 = default for maximmum stochasticity
+parameters__phases_upper=np.linspace(0,110,1) #86,0,34 = default for maximmum stochasticity
 parameters__phases_middle=np.array([0.])
-parameters__phases_lower=np.linspace(0,110,8)
+parameters__phases_lower=np.linspace(0,110,1)
 parameters__rotations_upper=np.array([0.])
 parameters__rotations_middle=np.array([0.])
 parameters__rotations_lower=np.array([0.])
@@ -337,7 +337,8 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(parameters__
                                         RMP_study__filepaths_3D_field_head=RMP_study__dir_input_database / parameters__database / folder_name_DataMarsf
                                         field_filepath_string='"{}"'.format([str(RMP_study__filepaths_3D_field_head/f'BPLASMA_MARSF_n{np.abs(mode)}_{coil_row}_Pr{parameters__kinetic_prof_Pr_string}_tfte{parameters__kinetic_prof_tF_tE_string}.IN') for mode in parameters__toroidal_mode_number])
 
-                                args_batch[f'RMP_study__filepaths_3D_fields_{coil_row[-1]}'].append(field_filepath_string)
+                                    args_batch[f'RMP_study__filepaths_3D_fields_{coil_row[-1]}'].append(field_filepath_string)
+                                
                                 args_batch['IDS__shot'].append(copy.deepcopy(IDS__shot))
                                 args_batch['IDS__run'].append(copy.deepcopy(IDS__run))
                                 args_batch['IDS__username'].append(copy.deepcopy(IDS__username))
@@ -349,7 +350,7 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(parameters__
 #define and launch the batch scripts
 
 if __name__=='__main__':
-    
+
     RMP_batch_run=Batch(**args_batch)
     RMP_batch_run.launch(
         workflow_filepath=path_template_run,

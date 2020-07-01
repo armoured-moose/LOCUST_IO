@@ -349,8 +349,6 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
 
                                 args_batch[f'RMP_study__filepaths_3D_fields_{coil_row[-1]}'].append(field_filepath_string)
 
-                            args_batch['RMP_study__workflow_commands'].append(RMP_study__workflow_commands)
-
                             args_batch['IDS__shot'].append(copy.deepcopy(IDS__shot))
                             args_batch['IDS__run'].append(copy.deepcopy(IDS__run))
                             args_batch['IDS__username'].append(copy.deepcopy(IDS__username))
