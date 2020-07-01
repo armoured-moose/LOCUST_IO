@@ -257,6 +257,8 @@ for collision_type in collision_types:
                                 MARS_read__settings={}
                                 MARS_read__settings['TAIL']="{}".format(MARS_read__tails)
                                 MARS_read__settings['IKATN']=f'[{parameters__current_upper/1000.}_gpu,{parameters__current_middle/1000.}_gpu,{parameters__current_lower/1000.}_gpu]'
+                                MARS_read__settings['dXR']=f'{0.010}_gpu'
+                                MARS_read__settings['dXZ']=f'{0.010}_gpu'
                                 #coil_offsets=[30.,26.7,30.]
                                 #MARS_read__settings['PH0']='"{}"'.format([f'{coil_offset}'+'_gpu' for coil_offset in coil_offsets])
 
