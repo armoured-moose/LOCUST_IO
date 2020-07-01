@@ -163,12 +163,16 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         #read args needed for workflow steps
 
         self.args={**kwargs}
-        self.args['LOCUST_run__dir_LOCUST']=pathlib.Path(self.args['LOCUST_run__dir_LOCUST']) #do some processing
+
+        #do some processing
+        
+        self.args['LOCUST_run__dir_LOCUST']=pathlib.Path(self.args['LOCUST_run__dir_LOCUST']) 
         self.args['LOCUST_run__dir_LOCUST_source']=pathlib.Path(self.args['LOCUST_run__dir_LOCUST_source'])
         self.args['LOCUST_run__dir_input']=pathlib.Path(self.args['LOCUST_run__dir_input'])
         self.args['LOCUST_run__dir_output']=pathlib.Path(self.args['LOCUST_run__dir_output'])
         self.args['LOCUST_run__dir_cache']=pathlib.Path(self.args['LOCUST_run__dir_cache'])
         self.args['NEMO_run__dir_NEMO']=pathlib.Path(self.args['NEMO_run__dir_NEMO'])
+        self.args['MARS_read__dir_MARS_builder']=pathlib.Path(self.args['MARS_read__dir_MARS_builder'])
         self.args['RMP_study__filepath_kinetic_profiles']=pathlib.Path(self.args['RMP_study__filepath_kinetic_profiles'])
         self.args['RMP_study__filepath_equilibrium']=pathlib.Path(self.args['RMP_study__filepath_equilibrium'])
         self.args['RMP_study__filepath_additional_data']=pathlib.Path(self.args['RMP_study__filepath_additional_data'])
@@ -177,17 +181,16 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         self.args['RMP_study__filepaths_3D_fields_L']=[pathlib.Path(path) for path in self.args['RMP_study__filepaths_3D_fields_L']]
 
         #################################
-        #derive some information / grab some from template_mod file
-        
-        #dispatch tables for species stored in IDSs and prec_mod
-        self.args['table_species_AZ']=table_species_AZ
-        self.args['table_species_LOCUST']=table_species_LOCUST
-        self.args['MARS_read__HEAD']=pathlib.Path((str(self.args['LOCUST_run__dir_input'] / self.args['RMP_study__filepaths_3D_fields_U'][0].parts[-1])).replace('_cU_','_')) #get 3D field filenames
+        #derive some information
+
+        #get 3D field filename heads for mars_read
+        self.args['MARS_read__HEAD']=[self.args['LOCUST_run__dir_input'] / str(filepath_3D_field.parts[-1]).replace('_cU_','_') for filepath_3D_field in self.args['RMP_study__filepaths_3D_fields_U']] 
 
         #################################
         #add workflow stages
 
         self.commands_available={}
+        self.commands_available['pass']=self.pass_command
         self.commands_available['mkdir']=self.setup_RMP_study_dirs
         self.commands_available['kin_get']=self.get_kinetic_profiles_excel
         self.commands_available['3D_get']=self.get_3D_fields
@@ -208,14 +211,33 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         self.commands_available['clean_input']=self.clean_input
         self.commands_available['clean_cache']=self.clean_cache
 
-        for command in self.args['workflow__commands']:
-            self.add_command(command_name=command,command_function=self.commands_available[command]) #add all workflow stages
+        if not list(self.args['LOCUST_run__dir_output'].glob('*.dfn')): #output directory contains no distribution functions
+
+            if list(self.args['LOCUST_run__dir_output'].glob('*')): #if some outputs at all already then clear before performing run
+                try:
+                    subprocess.run(shlex.split('rm -r {dir}'.format(dir=str(self.args['LOCUST_run__dir_output']))),shell=False) 
+                except:
+                    print(f"ERROR: {self.workflow_name} could not clear contents of output directory {str(self.args['LOCUST_run__dir_output'])}!\nreturning\n")
+                    return
+
+            for command in self.args['RMP_study__workflow_commands']:
+                self.add_command(command_name=command,command_function=self.commands_available[command]) #add all workflow stages
+
+        else: #if distribution functions in output directory then skip this simulation
+            self.add_command(command_name='pass',command_function=self.commands_available['pass'])
+            print(f"WARNING: {self.workflow_name} found files already in output folder at {self.args['LOCUST_run__dir_output']}!\npassing\n")
 
     ################################################################## helper functions
 
 
 
     ################################################################## possible commands
+
+    def pass_command(self,*args,**kwargs):
+        """
+        notes:
+        """
+        pass
 
     def setup_RMP_study_dirs(self,*args,**kwargs):
         """
@@ -260,7 +282,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
 
         species_present=[] #record which species stored in IDS
         species_densities=[]
-        for species_name,species_AZ in self.args['table_species_AZ'].items(): #loop through all non-electronic ion species and set number density
+        for species_name,species_AZ in table_species_AZ.items(): #loop through all non-electronic ion species and set number density
             try:
                 density=Number_Density(ID='',data_format='IDS',
                         species=species_name,shot=IDS__target_IDS_shot,
@@ -275,13 +297,13 @@ class RMP_study_run(run_scripts.workflow.Workflow):
             except:
                 pass
 
-        if not {'deuterium','tritium'}.difference({species for species in species_present}): #if running pure DT set DT densities to half electron density 
+        if {species for species in species_present}=={'deuterium','tritium'}: #if running pure DT set DT densities to half electron density 
             species_densities=[density_electrons['n'][0]/2.]*2
 
         #add some setting prec_mod.f90
         self.args['LOCUST_run__settings_prec_mod']['fi']='[{}]'.format(','.join([str(species_density/np.sum(species_densities))+'_gpu' for species_density in species_densities]))
-        self.args['LOCUST_run__settings_prec_mod']['Ai']='[{}]'.format(','.join([self.args['table_species_LOCUST'][species_name] for species_name in species_present])) 
-        self.args['LOCUST_run__settings_prec_mod']['Zi']='[{}]'.format(','.join([str(self.args['table_species_AZ'][species_name][1])+'_gpu' for species_name in species_present]))
+        self.args['LOCUST_run__settings_prec_mod']['Ai']='[{}]'.format(','.join([table_species_LOCUST[species_name] for species_name in species_present])) 
+        self.args['LOCUST_run__settings_prec_mod']['Zi']='[{}]'.format(','.join([str(table_species_AZ[species_name][1])+'_gpu' for species_name in species_present]))
         self.args['LOCUST_run__settings_prec_mod']['nion']=len(species_present)
 
     def get_kinetic_profiles_excel(self,*args,**kwargs):
@@ -301,7 +323,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         #now grab ion densities
         species_present=[] #record which ion species we find in excel
         species_densities=[]
-        for species_name,species_AZ in self.args['table_species_AZ'].items(): #loop through all non-electronic ion species and set number density
+        for species_name,species_AZ in table_species_AZ.items(): #loop through all non-electronic ion species and set number density
 
             if species_name is 'beryllium':
                 density=copy.deepcopy(density_electrons)
@@ -325,7 +347,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                 #species_densities.append(np.mean(density['n'])) #take average density then find Zeff/find Zeff at each point then mean = same thing
                 species_densities.append(density['n'][0]) #XXX take core value of impurity to set LOCUST density
 
-        if not {'deuterium','tritium'}.difference({species for species in species_present}): #if running pure DT set DT densities to half electron density 
+        if {species for species in species_present}=={'deuterium','tritium'}: #if running pure DT set DT densities to half electron density 
             species_densities=[density_electrons['n'][0]/2.]*2
         
         for species_name in ['electrons','ions']:
@@ -337,8 +359,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
 
         #add some setting prec_mod.f90
         self.args['LOCUST_run__settings_prec_mod']['fi']='[{}]'.format(','.join([str(species_density/np.sum(species_densities))+'_gpu' for species_density in species_densities]))
-        self.args['LOCUST_run__settings_prec_mod']['Ai']='[{}]'.format(','.join([self.args['table_species_LOCUST'][species_name] for species_name in species_present])) 
-        self.args['LOCUST_run__settings_prec_mod']['Zi']='[{}]'.format(','.join([str(self.args['table_species_AZ'][species_name][1])+'_gpu' for species_name in species_present]))
+        self.args['LOCUST_run__settings_prec_mod']['Ai']='[{}]'.format(','.join([table_species_LOCUST[species_name] for species_name in species_present])) 
+        self.args['LOCUST_run__settings_prec_mod']['Zi']='[{}]'.format(','.join([str(table_species_AZ[species_name][1])+'_gpu' for species_name in species_present]))
         self.args['LOCUST_run__settings_prec_mod']['nion']=len(species_present)
 
         #print(self.args['LOCUST_run__settings_prec_mod['fi'])
@@ -350,7 +372,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         zeff_input=run_scripts.utils.read_kinetic_profile_data_excel_1(filepath=self.args['RMP_study__filepath_kinetic_profiles'],
                                                     y='Zeff',x='Fp',sheet_name=self.args['parameters__sheet_name_kinetic_prof'])
         zeff_locust=processing.utils.Zeff_calc(density=[species_density/(np.sum(species_densities)) for species_density in species_densities],
-                                            charge=[self.args['table_species_AZ'][species_name][1] for species_name in species_present])
+                                            charge=[table_species_AZ[species_name][1] for species_name in species_present])
 
         #print(np.sum([(species_density*self.args['table_species_AZ[species_name][1])/np.mean(density_electrons['n']) for species_density,species_name in zip(species_densities,species_present)]))
         #print(np.sum([(species_density*self.args['table_species_AZ[species_name][1])/density_electrons['n'][0] for species_density,species_name in zip(species_densities,species_present)]))
@@ -387,15 +409,15 @@ class RMP_study_run(run_scripts.workflow.Workflow):
             for counter_coil_row in range(NCOILS): #now all files in place, run MARS_builder for each coil row
                 if NCOILS>1: self.args['MARS_read__flags']['COILROW']=counter_coil_row+1
                 self.args['MARS_read__flags']['NC']=np.abs(mode)
-                field_builder=MARS_builder_run(filepath_input=self.args['MARS_read__HEAD'],dir_output=self.args['LOCUST_run__dir_input'],
-                                                dir_MARS_builder=self.args['LOCUST_run__dir_cache'] / 'MARS_builder',environment_name=self.args['LOCUST_run__environment_name'],
+                field_builder=MARS_builder_run(filepath_input=self.args['MARS_read__HEAD'][counter_mode],dir_output=self.args['LOCUST_run__dir_input'],
+                                                dir_MARS_builder=self.args['MARS_read__dir_MARS_builder'],environment_name=self.args['LOCUST_run__environment_name'],
                                                 settings_mars_read=self.args['MARS_read__settings'],flags=self.args['MARS_read__flags'])
                 field_builder.run()
 
-            #for file in self.args['LOCUST_run__dir_input'].glob(str(self.args['MARS_read__HEAD'].parts[-1])+'*'): #delete old perturbation input files
+            #for file in self.args['LOCUST_run__dir_input'].glob(str(self.args['MARS_read__HEAD'][counter_mode].parts[-1])+'*'): #delete old perturbation input files
             #    subprocess.run(shlex.split('rm {file}'.format(file=str(file))),shell=False) 
             for file in self.args['LOCUST_run__dir_input'].glob('mars_read*CACHE'):
-                subprocess.run(shlex.split('rm {file}'.format(file=str(file))),shell=False) #delete cache files after all coilrows (different coilrows can re-use cache!) 
+                subprocess.run(shlex.split('rm {file}'.format(file=str(file))),shell=False) #delete cache files after all coil_rows (different coil_rows can re-use cache!) 
 
     def get_other_input_files(self,*args,**kwargs):
         """
@@ -412,8 +434,9 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         #fetch additional required data
         for file in self.args['RMP_study__filepath_additional_data'].glob('*'):
             if 'ITER_meshC.mesh.inp_ANSYS' in str(file) and not list(self.args['LOCUST_run__dir_cache'].glob('MESH_*CACHE')): #if we are dealing with the mesh, first check if cache files are present in cache dir - since mesh usually large
-                dir_input=self.args['LOCUST_run__dir_input'] / self.args['LOCUST_run__settings_prec_mod']['file_tet']
-                subprocess.run(shlex.split('cp {file} {dir_input}'.format(file=str(file),dir_input=str(dir_input))),shell=False)
+                if 'PFC_MOD' in self.args['LOCUST_run__flags'] and 'NOPFC' not in self.args['LOCUST_run__flags'] and 'PFC2D' not in self.args['LOCUST_run__flags']:
+                    dir_input=self.args['LOCUST_run__dir_input'] / self.args['LOCUST_run__settings_prec_mod']['file_tet']
+                    subprocess.run(shlex.split('cp {file} {dir_input}'.format(file=str(file),dir_input=str(dir_input))),shell=False)
             else:
                 dir_input=self.args['LOCUST_run__dir_input']
                 subprocess.run(shlex.split('cp {file} {dir_input}'.format(file=str(file),dir_input=str(dir_input))),shell=False)
@@ -430,14 +453,15 @@ class RMP_study_run(run_scripts.workflow.Workflow):
             return
 
         #open equilibrium that we will need for later
-        equilibrium=Equilibrium(ID='',
-                                data_format='IDS',
-                                shot=self.args['IDS__target_IDS_shot'],
-                                run=self.args['IDS__target_IDS_run'],
-                                username='public',
-                                imasdb='ITER',
-                                imas_version='3'
-                                ) #use equilibrium stored in IDS here to be consistent - including calculating flux_pol from psirz
+        equilibrium=Equilibrium(
+            ID='',
+            data_format='IDS',
+            shot=self.args['IDS__target_IDS_shot'],
+            run=self.args['IDS__target_IDS_run'],
+            username='public',
+            imasdb='ITER',
+            imas_version='3'
+            ) #use equilibrium stored in IDS here to be consistent - including calculating flux_pol from psirz
 
         new_IDS=imas.ids(self.args['IDS__shot'],self.args['IDS__run']) #initialise new blank IDS
         new_IDS.create_env(self.args['IDS__username'],self.args['IDS__imasdb'],settings.imas_version) 
@@ -491,8 +515,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         new_IDS.core_profiles.profiles_1d[0].grid.rho_tor=rho_tor_core_prof
         new_IDS.core_profiles.profiles_1d[0].grid.rho_tor_norm=(rho_tor_core_prof-rho_tor_core_prof[0])/(rho_tor_core_prof[-1]-rho_tor_core_prof[0]) #remove rho_tor_norm as this grid seems to be different
 
-        #if species not presnt in self.args['table_species_AZ'] - i.e. we do not want it in there - set density to very low
-        az_avail=list(self.args['table_species_AZ'].values())
+        #if species not presnt in table_species_AZ - i.e. we do not want it in there - set density to very low
+        az_avail=list(table_species_AZ.values())
         for ion_counter,ion in enumerate(new_IDS.core_profiles.profiles_1d[0].ion):
             if [ion.element[0].a,ion.element[0].z_n] not in az_avail: 
                 new_IDS.core_profiles.profiles_1d[0].ion[ion_counter].density=np.full(len(new_IDS.core_profiles.profiles_1d[0].ion[ion_counter].density),1.)
@@ -524,7 +548,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         new_IDS.close()
 
         #fill in temperatures
-        for species,species_AZ in self.args['table_species_AZ'].items(): #loop through all non-electronic ion species and set equal temperature
+        for species,species_AZ in table_species_AZ.items(): #loop through all non-electronic ion species and set equal temperature
             temperature=Temperature(ID='',data_format='EXCEL1',species='ions',filename=self.args['RMP_study__filepath_kinetic_profiles'].relative_to(support.dir_input_files),sheet_name=self.args['parameters__sheet_name_kinetic_prof'])
             temperature['flux_pol']=temperature['flux_pol_norm']*(equilibrium['sibry']-equilibrium['simag'])+equilibrium['simag']
             temperature.dump_data(data_format='IDS',shot=self.args['IDS__shot'],run=self.args['IDS__run'],species=species,A=species_AZ[0],Z=species_AZ[1])
@@ -550,7 +574,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         density_electrons.set(          output_filename=self.args['LOCUST_run__dir_input'] / 'profile_ne.dat') #include filename for dumping later
         densities.append(density_electrons)
 
-        for species_name,species_AZ in self.args['table_species_AZ'].items(): #loop through all non-electronic ion species and set number density            
+        for species_name,species_AZ in table_species_AZ.items(): #loop through all non-electronic ion species and set number density            
             density=None
             #XXX add species which are 'assumed' - these are not contained in the data anywhere right now
             if species_name is 'beryllium':
@@ -561,13 +585,14 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                 density['n']*=fraction_neon #assumed .2% electron density
             else:
                 try: #just try to read all species, some (e.g. Ne and Be) of which might not be present, so until errors are properly raised then errors may be printed - please ignore
-                    density=Number_Density(ID='',
-                                            data_format='EXCEL1',
-                                            species=species_name,
-                                            A=species_AZ[0],
-                                            Z=species_AZ[1],
-                                            filename=self.args['RMP_study__filepath_kinetic_profiles'].relative_to(support.dir_input_files),
-                                            sheet_name=self.args['parameters__sheet_name_kinetic_prof'])
+                    density=Number_Density(
+                        ID='',
+                        data_format='EXCEL1',
+                        species=species_name,
+                        A=species_AZ[0],
+                        Z=species_AZ[1],
+                        filename=self.args['RMP_study__filepath_kinetic_profiles'].relative_to(support.dir_input_files),
+                        sheet_name=self.args['parameters__sheet_name_kinetic_prof'])
                 except:
                     pass
             if density is not None: 
@@ -578,14 +603,15 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                 densities.append(density)
 
         for species_name in ['electrons','ions']:
-            temperature=Temperature(ID='',
-                                    data_format='EXCEL1',
-                                    species=species_name,
-                                    A=None,
-                                    Z=None,
-                                    filename=self.args['RMP_study__filepath_kinetic_profiles'].relative_to(support.dir_input_files),
-                                    sheet_name=self.args['parameters__sheet_name_kinetic_prof'])
-            temperature.set(        output_filename=self.args['LOCUST_run__dir_input'] / 'profile_T{}.dat'.format(temperature.properties['species'][0])) #include filename for dumping later 
+            temperature=Temperature(
+                            ID='',
+                            data_format='EXCEL1',
+                            species=species_name,
+                            A=None,
+                            Z=None,
+                            filename=self.args['RMP_study__filepath_kinetic_profiles'].relative_to(support.dir_input_files),
+                            sheet_name=self.args['parameters__sheet_name_kinetic_prof'])
+            temperature.set(output_filename=self.args['LOCUST_run__dir_input'] / 'profile_T{}.dat'.format(temperature.properties['species'][0])) #include filename for dumping later 
             temperatures.append(temperature)
 
         rotation=Rotation(ID='',
@@ -631,7 +657,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         '''#XXX REMOVED UNTIL NEMO IS READY
                 #then re-dump to IDS - making sure ion temperature is set equal across all ion species in IDS
                 if kinetic_profile.LOCUST_input_type is 'temperature' and kinetic_profile.properties['species'] is 'ions': 
-                    for species_name,species_AZ in self.args['table_species_AZ'].items():
+                    for species_name,species_AZ in table_species_AZ.items():
                         kinetic_profile.dump_data(  
                                                     data_format='IDS',
                                                     shot=self.args['IDS__shot'],
@@ -662,7 +688,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         except:
             raise ImportError("ERROR: read_beam_depo_IDS could not import IMAS module!\nreturning\n")
             return
-        az_avail=list(self.args['table_species_AZ'].values())
+        az_avail=list(table_species_AZ.values())
         IDS=imas.ids(self.args['IDS__shot'],self.args['IDS__run'])
         IDS.open_env(self.args['IDS__username'],self.args['IDS__imasdb'],settings.imas_version) 
         IDS.core_profiles.get()
@@ -683,7 +709,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         temperatures=[]
         rotations=[]
 
-        for species_name,species_AZ in self.args['table_species_AZ'].items(): #loop through all non-electronic ion species and grab number density
+        for species_name,species_AZ in table_species_AZ.items(): #loop through all non-electronic ion species and grab number density
             try:
                 for filename in list((support.dir_input_files / self.args['LOCUST_run__dir_input']).glob(f'density_{species_name}*')):
                     densities.append(Number_Density(ID=filename.parts[-1],data_format='LOCUST',species=species_name,filename=filename.relative_to(support.dir_input_files)))
@@ -836,40 +862,59 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         step for checking 3D field perturbation is correct as separate coils vs combined
 
         notes:
-            must run RMP_study_launch as if launching simulation with independent coilrows
-            XXX should fix this above so you do not have to - you can tell whether separate coil rows if NCOILS in LOCUST_run__flags
+            if running LOCUST with separate coil_rows then script will include combined field, if running LOCUST with combined field separate field is not generated here
+            (although could be in future by just evoking self.calc_3D_fields() and editing prec_mod settings)
         """
+
+        #define 1D of points to compare at
+        num_points=1000
+        R_point=6.2273
+        Z_point=0.0571
+        #R_point=6.08
+        #Z_point=-0.5
+        phi_points=np.linspace(0,2.*np.pi,num_points)
+        rad_2_deg=180./np.pi
+        time_points=np.full(num_points,0.)
 
         for counter_mode,mode in enumerate(self.args['parameters__toroidal_mode_numbers']):
 
-            #rebuild field but already combined into one
-            MARS_read__flags=copy.deepcopy(self.args['MARS_read__flags'])
-            MARS_read__flags['NC']=np.abs(mode)    
-            if 'COILROW' in MARS_read__flags: 
+            field_type=None #flag for toggling combined or separate 3D fields
+
+            #if workflow using separate coilsets then create combined 3D field
+            field_type='separate' if 'COILROW' in self.args['MARS_read__flags'] else 'combined'
+
+            if field_type is 'separate': #then create the combined field
+                MARS_read__flags=copy.deepcopy(self.args['MARS_read__flags'])
                 del(MARS_read__flags['COILROW'])
-            field_builder=MARS_builder_run(filepath_input=self.args['MARS_read__HEAD'],dir_output=self.args['LOCUST_run__dir_input'],
-                                            dir_MARS_builder=self.args['LOCUST_run__dir_cache'] / 'MARS_builder',environment_name=self.args['LOCUST_run__environment_name'],
-                                            settings_mars_read=self.args['MARS_read__settings'],flags=MARS_read__flags)
-            field_builder.run()
+                MARS_read__flags['NC']=np.abs(mode)    
+                field_builder=MARS_builder_run(filepath_input=self.args['MARS_read__HEAD'][counter_mode],dir_output=self.args['LOCUST_run__dir_input'],
+                                                dir_MARS_builder=self.args['MARS_read__dir_MARS_builder'],environment_name=self.args['LOCUST_run__environment_name'],
+                                                settings_mars_read=self.args['MARS_read__settings'],flags=MARS_read__flags)
+                field_builder.run()
 
-            #look for BPLASMA file just produced and get the R,Z grid dimensions from them
-            combined_field=Perturbation('',data_format='LOCUST',filename=list(self.args['LOCUST_run__dir_input'].glob('BPLASMA_n{}'.format(np.abs(mode))))[0].relative_to(support.dir_input_files))
-            combined_field.set(time_point_data=np.full(len(combined_field['R_1D']),0.),phi_point_data=np.full(len(combined_field['R_1D']),0.))
-            combined_field.set(R_point_data=combined_field['R_1D'],Z_point_data=combined_field['Z_1D'])
-            combined_field.dump_data(data_format='point_data',filename=self.args['LOCUST_run__dir_input'] / 'point_data.inp')
-            #also evaluate field using my own routine and check against
-            dbr,dbtor,dbz=combined_field.evaluate(R=combined_field['R_point_data'],
-                                                                phi=combined_field['phi_point_data'],
-                                                                Z=combined_field['Z_point_data'],
-                                                                mode_number=mode,i3dr=self.args['LOCUST_run__flags']['I3DR'],phase=0)
-            combined_field.set(dB_field_R=dbr,dB_field_tor=dbtor,dB_field_Z=dbz)
+            #look for combined BPLASMA file and create point_data.inp field checking file for LOCUST based on the grid dimensions
+            combined_field=Perturbation('',data_format='LOCUST',filename=(self.args['LOCUST_run__dir_input'] / f'BPLASMA_n{np.abs(mode)}').relative_to(support.dir_input_files))
+
+            combined_field.set(
+                time_point_data=time_points,
+                phi_point_data=phi_points,
+                R_point_data=np.full(num_points,R_point),
+                Z_point_data=np.full(num_points,Z_point))
             
-            LOCUST_run__flags_combined=copy.deepcopy(self.args['LOCUST_run__flags']) #alter LOCUST compile flags to control run mode
-            del(LOCUST_run__flags_combined['NCOILS'])
-            LOCUST_run__flags_combined['BCHECK']=1
-            LOCUST_run__flags_separate=copy.deepcopy(self.args['LOCUST_run__flags'])
-            LOCUST_run__flags_separate['BCHECK']=1
+            dbr,dbtor,dbz=combined_field.evaluate( #evaluate field using my own routine to check 
+                R=combined_field['R_point_data'], 
+                phi=combined_field['phi_point_data'],
+                Z=combined_field['Z_point_data'],
+                mode_number=mode,
+                i3dr=self.args['LOCUST_run__settings_prec_mod']['i3dr'], #XXX CURRENTLY WAITING FOR FIX
+                phase=0)
+            combined_field.set(dB_field_R=dbr,dB_field_tor=dbtor,dB_field_Z=dbz) 
 
+            #now time to run LOCUST BCHECK on combined field
+            combined_field.dump_data(data_format='point_data',filename=self.args['LOCUST_run__dir_input'] / 'point_data.inp')
+            LOCUST_run__flags_combined=copy.deepcopy(self.args['LOCUST_run__flags']) #alter LOCUST compile flags to control run mode
+            if 'NCOILS' in LOCUST_run__flags_combined: del(LOCUST_run__flags_combined['NCOILS'])
+            LOCUST_run__flags_combined['BCHECK']=1
             LOCUST_run__settings_prec_mod_combined=copy.deepcopy(self.args['LOCUST_run__settings_prec_mod'])
             LOCUST_run__settings_prec_mod_combined['phase']='[0.0_gpu]'
             LOCUST_run__settings_prec_mod_combined['omega']='[0.0_gpu]'
@@ -889,49 +934,122 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                 flags=LOCUST_run__flags_combined)
             LOCUST_workflow.run()
             (self.args['LOCUST_run__dir_output'] / 'field_data.out').rename(self.args['LOCUST_run__dir_output'] / 'field_data_combined.out')
+            combined_field_BCHECK=Perturbation('',data_format='LOCUST_field_data',filename=(self.args['LOCUST_run__dir_output'] / 'field_data_combined.out').relative_to(support.dir_output_files))
+            
+            #now time to run LOCUST BCHECK on separate field
+            if field_type is 'separate':
+                LOCUST_run__flags_separate=copy.deepcopy(self.args['LOCUST_run__flags'])
+                LOCUST_run__flags_separate['BCHECK']=1
+                LOCUST_run__settings_prec_mod_separate=copy.deepcopy(self.args['LOCUST_run__settings_prec_mod'])
+                LOCUST_run__settings_prec_mod_separate['phase']='[0.0_gpu,0.0_gpu,0.0_gpu]'
+                LOCUST_run__settings_prec_mod_separate['omega']='[0.0_gpu,0.0_gpu,0.0_gpu]'
+                LOCUST_run__settings_prec_mod_separate['nmde']=3
+                LOCUST_run__settings_prec_mod_separate['nnum']='[{},{},{}]'.format(mode,mode,mode)
 
-            LOCUST_run__settings_prec_mod_separate=copy.deepcopy(self.args['LOCUST_run__settings_prec_mod'])
-            LOCUST_run__settings_prec_mod_separate['phase']='[0.0_gpu,0.0_gpu,0.0_gpu]'
-            LOCUST_run__settings_prec_mod_separate['omega']='[0.0_gpu,0.0_gpu,0.0_gpu]'
-            LOCUST_run__settings_prec_mod_separate['nmde']=3
-            LOCUST_run__settings_prec_mod_separate['nnum']='[{},{},{}]'.format(mode,mode,mode)
+                LOCUST_workflow=run_scripts.LOCUST_run.LOCUST_run(
+                    environment_name=self.args['LOCUST_run__environment_name'],
+                    repo_URL=self.args['LOCUST_run__repo_URL'],
+                    commit_hash=self.args['LOCUST_run__commit_hash'],
+                    dir_LOCUST=self.args['LOCUST_run__dir_LOCUST'],
+                    dir_LOCUST_source=self.args['LOCUST_run__dir_LOCUST_source'],
+                    dir_input=self.args['LOCUST_run__dir_input'],
+                    dir_output=self.args['LOCUST_run__dir_output'],
+                    dir_cache=self.args['LOCUST_run__dir_cache'],
+                    settings_prec_mod=LOCUST_run__settings_prec_mod_separate,
+                    flags=LOCUST_run__flags_separate)
+                LOCUST_workflow.run()
+                (self.args['LOCUST_run__dir_output'] / 'field_data.out').rename(self.args['LOCUST_run__dir_output'] / 'field_data_separate.out')
+                field_separate_eval=Perturbation('',data_format='LOCUST_field_data',filename=(self.args['LOCUST_run__dir_output'] / 'field_data_separate.out').relative_to(support.dir_output_files))
 
-            LOCUST_workflow=run_scripts.LOCUST_run.LOCUST_run(
-                environment_name=self.args['LOCUST_run__environment_name'],
-                repo_URL=self.args['LOCUST_run__repo_URL'],
-                commit_hash=self.args['LOCUST_run__commit_hash'],
-                dir_LOCUST=self.args['LOCUST_run__dir_LOCUST'],
-                dir_LOCUST_source=self.args['LOCUST_run__dir_LOCUST_source'],
-                dir_input=self.args['LOCUST_run__dir_input'],
-                dir_output=self.args['LOCUST_run__dir_output'],
-                dir_cache=self.args['LOCUST_run__dir_cache'],
-                settings_prec_mod=LOCUST_run__settings_prec_mod_separate,
-                flags=LOCUST_run__flags_separate)
-            LOCUST_workflow.run()
-            (self.args['LOCUST_run__dir_output'] / 'field_data.out').rename(self.args['LOCUST_run__dir_output'] / 'field_data_separate.out')
+            combined_field.look()
+            combined_field_BCHECK.look()
 
-            field_combined_eval=Perturbation('',data_format='LOCUST_field_data',filename=(self.args['LOCUST_run__dir_output'] / 'field_data_combined.out').relative_to(support.dir_output_files))
-            field_separate_eval=Perturbation('',data_format='LOCUST_field_data',filename=(self.args['LOCUST_run__dir_output'] / 'field_data_separate.out').relative_to(support.dir_output_files))
-            field_difference=copy.deepcopy(field_separate_eval)
-
-            field_separate_eval.look()
-
+            #if separate field is present then create new field to store absolute difference
+            if field_type is 'separate':
+                field_difference=copy.deepcopy(field_separate_eval)
             import matplotlib.pyplot as plt
             fig,(ax1,ax2)=plt.subplots(2,1)
-            for quantity in ['dB_field_R','dB_field_tor','dB_field_Z']:
-                field_difference[quantity]-=field_combined_eval[quantity]
-                field_difference[quantity]/=field_combined_eval[quantity] #get fractional difference between the two fields
-                ax1.plot(field_difference[quantity],'m-')
-                ax2.plot(field_separate_eval[quantity],'g-')
-                ax2.plot(combined_field[quantity],'b-')
-                ax2.plot(field_combined_eval[quantity],'r-')
+            for quantity_MARSF in ['dB_field_R','dB_field_tor','dB_field_Z']:
+                if field_type is 'separate':
+                    field_difference[quantity_MARSF]-=combined_field_BCHECK[quantity_MARSF]
+                    field_difference[quantity_MARSF]/=combined_field_BCHECK[quantity_MARSF] #get fractional difference between the two fields
+                    ax1.plot(field_difference[quantity_MARSF],'m-')
+                    ax2.plot(field_separate_eval[quantity_MARSF],'g-')
+                ax2.plot(phi_points*rad_2_deg,combined_field[quantity_MARSF],'b',linestyle='--')
+                ax2.plot(phi_points*rad_2_deg,combined_field_BCHECK[quantity_MARSF],'b',linestyle='-')
             #plt.savefig('BCHECK_{}.png'.format(mode),bbox_inches='tight')
+            plt.show()
+
+            fig,(axes)=plt.subplots(3,1)
+
+            #read probe_g biot-savart code vacuum data
+            d={}
+            filename=pathlib.Path('..') / 'field_check' / 'probe_gb_TMB.out'
+            with open(filename) as file:
+                lines=file.readlines()
+                while 'phi_tor(deg)' not in lines[0]:
+                    del(lines[0])
+                for column_number,variable in enumerate(lines[0].replace('%','').replace('(deg)','').replace('(m)','').split()): 
+                    d[column_number]={}
+                    d[column_number]['variable_name']=variable
+                    d[column_number]['data']=[]
+                del(lines[0])
+                for line in lines:
+                    for column_number,column in enumerate(line.split()):
+                        d[column_number]['data'].append(float(column))
+
+                for column_number in list(d.keys()):
+                    #print(type(d[column_number]))
+                    #print(column_number)
+                    variable_name=d[column_number]['variable_name']
+                    d[variable_name]=d.pop(column_number)
+                    d[variable_name]=np.array(d[variable_name]['data'])
+
+            x = d['phi_tor']*np.pi/180.#np.linspace(0,2*np.pi,361)
+            y = np.array([d['B_R'],d['B_phi'],d['B_Z']]).T
+            yn3 = np.full((y.shape[1]),1,dtype=complex)
+            yn6 = np.full((y.shape[1]),1,dtype=complex)
+
+            for k in range(y.shape[1]):
+                yn3[k] = np.sum(y[:,k]*np.exp(-1j*3*x,dtype=complex),dtype=complex)
+                yn6[k] = np.sum(y[:,k]*np.exp(-1j*6*x,dtype=complex),dtype=complex)
+
+            yn3 = yn3*(x[1]-x[0])/2/np.pi*2 #XXX original - (x[1]-x[0]) factor needed due to transition from continuous to DFT
+            yn6 = yn6*(x[1]-x[0])/2/np.pi*2 #XXX original 
+
+            phi0 = 30. #origin for probe_g data
+            Cphi = np.exp((d['phi_tor'])*3*1j*np.pi/180) 
+            rBRn3 = (yn3[0]*Cphi).real
+            rBPn3 = (yn3[1]*Cphi).real
+            rBZn3 = (yn3[2]*Cphi).real
+
+            Cphi = np.exp((d['phi_tor'])*6*1j*np.pi/180) 
+            rBRn6 = (yn6[0]*Cphi).real
+            rBPn6 = (yn6[1]*Cphi).real
+            rBZn6 = (yn6[2]*Cphi).real
+
+            if np.abs(mode)==3:
+                dBR,dBphi,dBZ=rBRn3,rBPn3,rBZn3
+            elif np.abs(mode)==6:
+                dBR,dBphi,dBZ=rBRn6,rBPn6,rBZn6
+            else:
+                dBR,dBphi,dBZ=[np.full(num_points,0.)]*3
+
+            for ax,quantity_MARSF,quantity_probeG in zip(axes,['dB_field_R','dB_field_tor','dB_field_Z'],[dBR,dBphi,dBZ]):
+                ax.plot(d['phi_tor']+phi0,quantity_probeG,'g-',label=f'{quantity_MARSF} probe_g')
+                ax.plot(phi_points*rad_2_deg,combined_field[quantity_MARSF],'b',linestyle='--',label=f'{quantity_MARSF} eval') #overplot these as they SHOULD be the same
+                ax.plot(phi_points*rad_2_deg,combined_field_BCHECK[quantity_MARSF],'b',linestyle='-',label=f'{quantity_MARSF} bchck')
+                ax.legend() #XXX added
+                ax.set_ylabel('mag [T]') #XXX added
+            axes[-1].set_xlabel('$\phi$ [degrees]') #XXX added
+
             plt.show()
 
     def plot_inputs(self,*args,**kwargs):
         """
         notes:
 
+            XXX could eventually make this into a class - define an axes then attach different LOCUST_IO quantities to it and then it can plot them
         """ 
 
         axes=['phi','R']
@@ -1084,6 +1202,7 @@ if __name__=='__main__':
     parser.add_argument('--MARS_read__tail_L',type=str,action='store',dest='MARS_read__tail_L',help="",default=None)
     parser.add_argument('--MARS_read__settings',nargs='+',type=str,action='store',dest='MARS_read__settings',help="",default={})
     parser.add_argument('--MARS_read__flags',nargs='+',type=str,action='store',dest='MARS_read__flags',help="",default={})
+    parser.add_argument('--MARS_read__dir_MARS_builder',type=str,action='store',dest='MARS_read__dir_MARS_builder',help="",default=support.dir_cache_files / 'MARS_builder')
     parser.add_argument('--RMP_study__name',type=str,action='store',dest='RMP_study__name',help="",default=None)
     parser.add_argument('--RMP_study__filepath_kinetic_profiles',type=str,action='store',dest='RMP_study__filepath_kinetic_profiles',help="",default=None)
     parser.add_argument('--RMP_study__filepath_equilibrium',type=str,action='store',dest='RMP_study__filepath_equilibrium',help="",default=None)
@@ -1091,6 +1210,7 @@ if __name__=='__main__':
     parser.add_argument('--RMP_study__filepaths_3D_fields_U',type=str,action='store',dest='RMP_study__filepaths_3D_fields_U',help="",default=None)
     parser.add_argument('--RMP_study__filepaths_3D_fields_M',type=str,action='store',dest='RMP_study__filepaths_3D_fields_M',help="",default=None)
     parser.add_argument('--RMP_study__filepaths_3D_fields_L',type=str,action='store',dest='RMP_study__filepaths_3D_fields_L',help="",default=None)
+    parser.add_argument('--RMP_study__workflow_commands',type=str,action='store',dest='RMP_study__workflow_commands',help="",default="")
     parser.add_argument('--IDS__shot',type=int,action='store',dest='IDS__shot',help="",default=1)
     parser.add_argument('--IDS__run',type=int,action='store',dest='IDS__run',help="",default=1)
     parser.add_argument('--IDS__username',type=str,action='store',dest='IDS__username',help="",default=None)
@@ -1100,7 +1220,6 @@ if __name__=='__main__':
     parser.add_argument('--IDS__NBI_shot',type=int,action='store',dest='IDS__NBI_shot',help="",default=130011)
     parser.add_argument('--IDS__NBI_run',type=int,action='store',dest='IDS__NBI_run',help="",default=1)
     parser.add_argument('--IDS__NBI_imasdb',type=str,action='store',dest='IDS__NBI_imasdb',help="",default='ITER')
-    parser.add_argument('--workflow__commands',type=str,action='store',dest='workflow__commands',help="",default="")
 
     args=parser.parse_args()
 
@@ -1113,8 +1232,8 @@ if __name__=='__main__':
     args.RMP_study__filepaths_3D_fields_U=run_scripts.utils.literal_eval(args.RMP_study__filepaths_3D_fields_U)
     args.RMP_study__filepaths_3D_fields_M=run_scripts.utils.literal_eval(args.RMP_study__filepaths_3D_fields_M)
     args.RMP_study__filepaths_3D_fields_L=run_scripts.utils.literal_eval(args.RMP_study__filepaths_3D_fields_L)
+    args.RMP_study__workflow_commands=run_scripts.utils.literal_eval(args.RMP_study__workflow_commands)
     args.parameters__toroidal_mode_numbers=run_scripts.utils.literal_eval(args.parameters__toroidal_mode_numbers)
-    args.workflow__commands=run_scripts.utils.literal_eval(args.workflow__commands)
 
     RMP_workflow=RMP_study_run(**{key:arg for key,arg in args._get_kwargs()})
     RMP_workflow.run()

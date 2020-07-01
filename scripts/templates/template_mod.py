@@ -29,6 +29,11 @@ try:
 except:
     raise ImportError("ERROR: LOCUST_IO/src/settings.py could not be imported!\nreturning\n") 
     sys.exit(1)
+try:
+    import support
+except:
+    raise ImportError("ERROR: LOCUST_IO/src/support.py could not be imported!\nreturning\n") 
+    sys.exit(1)
 
 ################################################################## 
 #Main 
@@ -37,6 +42,18 @@ except:
 path_template_mod=pathlib.Path(os.path.dirname(os.path.realpath(__file__))) / 'template_mod.py'
 path_template_launch=pathlib.Path(os.path.dirname(os.path.realpath(__file__))) / 'template_launch.py'
 path_template_run=pathlib.Path(os.path.dirname(os.path.realpath(__file__))) / 'template_run.py'
+
+RMP_study__dir_input_database=support.dir_input_files / 'ITER_fields_yueqiang' / 'DataBase'
+RMP_study__filepaths_additional_data=support.dir_input_files / 'ITER_additional_data'
+
+folder_name_DataMarsf='DataMarsf' #3D field directory name however this can sometimes vary between scenarios e.g. if using vacuum field
+folder_name_DataEq='DataEq' #equilibrium 
+
+#fixed parameters needed by MARS_read
+MARS_read__tail_U='_U_PLS'
+MARS_read__tail_M='_M_PLS'
+MARS_read__tail_L='_L_PLS'
+MARS_read__tails=[MARS_read__tail_U,MARS_read__tail_M,MARS_read__tail_L]
 
 parameters__kinetic_profs_tF_tE__dispatch={}
 parameters__kinetic_profs_tF_tE__dispatch[0.5]='05'
@@ -249,60 +266,64 @@ config_beam_1='default' #assign to these variables in run scripts which type of 
 config_beam_2='default'
 
 ##################################################################
-#initialise __batch args needed for Batch class
+#initialise all the lists of arguments passed to the batch study from the launch script
 args_batch={}
-args_batch['parameters__sheet_name_kinetic_prof']=[]
-args_batch['parameters__sheet_name_rotation']=[]
-args_batch['parameters__var_name_rotation']=[]
-args_batch['parameters__toroidal_mode_numbers']=[]
-args_batch['LOCUST_run__dir_LOCUST']=[]
-args_batch['LOCUST_run__dir_LOCUST_source']=[]
-args_batch['LOCUST_run__dir_input']=[]
-args_batch['LOCUST_run__dir_output']=[]
-args_batch['LOCUST_run__dir_cache']=[]
-args_batch['LOCUST_run__environment_name']=[]
-args_batch['LOCUST_run__repo_URL']=[]
-args_batch['LOCUST_run__commit_hash']=[]
-args_batch['LOCUST_run__settings_prec_mod']=[]
-args_batch['LOCUST_run__flags']=[]
-args_batch['NEMO_run__dir_NEMO']=[]
-args_batch['NEMO_run__xml_settings']=[]
-args_batch['MARS_read__tail_U']=[]
-args_batch['MARS_read__tail_M']=[]
-args_batch['MARS_read__tail_L']=[]
-args_batch['MARS_read__settings']=[]
-args_batch['MARS_read__flags']=[]
-args_batch['RMP_study__name']=[]
-args_batch['RMP_study__filepath_kinetic_profiles']=[]
-args_batch['RMP_study__filepath_equilibrium']=[]
-args_batch['RMP_study__filepath_additional_data']=[]
-args_batch['RMP_study__filepaths_3D_fields_U']=[]
-args_batch['RMP_study__filepaths_3D_fields_M']=[]
-args_batch['RMP_study__filepaths_3D_fields_L']=[]
-args_batch['IDS__shot']=[]
-args_batch['IDS__run']=[]
-args_batch['IDS__username']=[]
-args_batch['IDS__imasdb']=[]
-args_batch['IDS__target_IDS_shot']=[]
-args_batch['IDS__target_IDS_run']=[]
-args_batch['IDS__NBI_shot']=[]
-args_batch['IDS__NBI_run']=[]
-args_batch['IDS__NBI_imasdb']=[]
-args_batch['workflow__commands']=[]
+
+args_batch_names=['parameters__sheet_name_kinetic_prof',
+                  'parameters__sheet_name_rotation',
+                  'parameters__var_name_rotation',
+                  'parameters__toroidal_mode_numbers',
+                  'LOCUST_run__dir_LOCUST',
+                  'LOCUST_run__dir_LOCUST_source',
+                  'LOCUST_run__dir_input',
+                  'LOCUST_run__dir_output',
+                  'LOCUST_run__dir_cache',
+                  'LOCUST_run__environment_name',
+                  'LOCUST_run__repo_URL',
+                  'LOCUST_run__commit_hash',
+                  'LOCUST_run__settings_prec_mod',
+                  'LOCUST_run__flags',
+                  'NEMO_run__dir_NEMO',
+                  'NEMO_run__xml_settings',
+                  'MARS_read__tail_U',
+                  'MARS_read__tail_M',
+                  'MARS_read__tail_L',
+                  'MARS_read__settings',
+                  'MARS_read__flags',
+                  'MARS_read__dir_MARS_builder',
+                  'RMP_study__name',
+                  'RMP_study__filepath_kinetic_profiles',
+                  'RMP_study__filepath_equilibrium',
+                  'RMP_study__filepath_additional_data',
+                  'RMP_study__filepaths_3D_fields_U',
+                  'RMP_study__filepaths_3D_fields_M',
+                  'RMP_study__filepaths_3D_fields_L',
+                  'RMP_study__workflow_commands',
+                  'IDS__shot',
+                  'IDS__run',
+                  'IDS__username',
+                  'IDS__imasdb',
+                  'IDS__target_IDS_shot',
+                  'IDS__target_IDS_run',
+                  'IDS__NBI_shot',
+                  'IDS__NBI_run',
+                  'IDS__NBI_imasdb']
+
+for arg_name in args_batch_names:
+    args_batch[arg_name]=[]
 
 commit_hash_dispatch={} #select LOCUST commit hash based on system
-commit_hash_dispatch['GPU6']='1c08dca5308cf868771f9deb1f5a4114a0e74378'
-commit_hash_dispatch['GPU8']='aea255bae105982a83a9cd1c3d07762284e3461a'
-commit_hash_dispatch['GPU9']='aea255bae105982a83a9cd1c3d07762284e3461a'
-commit_hash_dispatch['GPU10']='aea255bae105982a83a9cd1c3d07762284e3461a'
-commit_hash_dispatch['TITAN']='d1281155ec7e584744536fc0865ad4c2b39cb479'
-commit_hash_dispatch['VIKING']='02f4ec69692da67dc2c12bc9e2c2175e689a9a7c'
+commit_hash_dispatch['GPU6']='053aefeeccab47bedb11de691a979e769c29630f'
+commit_hash_dispatch['GPU7']='053aefeeccab47bedb11de691a979e769c29630f'
+commit_hash_dispatch['GPU8']='b304bee99a485a9b44d8350cfa141ed9c1b7d19a'
+commit_hash_dispatch['GPU9']='b304bee99a485a9b44d8350cfa141ed9c1b7d19a'
+commit_hash_dispatch['GPU10']='b304bee99a485a9b44d8350cfa141ed9c1b7d19a'
+commit_hash_dispatch['CUMULUS']='244736c951eba6f788e11f3a1a68553a4abcc2ba'
+commit_hash_dispatch['TITAN']='0c2bbb9eab574bb3b6a5d48a8a4cd8ddc6448ee4'
+commit_hash_dispatch['VIKING']='908df2997978f99a9f871acb0f4031e56f505727'
 
 ##################################################################
 #define parameters which are fixed throughout a parameter scan - if we want to vary then add as a layer in the for loops
-
-folder_name_DataMarsf='DataMarsf' #3D field directory name however this can sometimes vary between scenarios e.g. if using vacuum field
-folder_name_DataEq='DataEq' #equilibrium 
 
 #fixed parameters needed by LOCUST_run
 LOCUST_run__environment_name='TITAN'
@@ -310,17 +331,8 @@ LOCUST_run__repo_URL=f"'{settings.repo_URL_LOCUST}'"
 LOCUST_run__commit_hash="'{}'".format(commit_hash_dispatch[LOCUST_run__environment_name])
 
 #fixed parameters needed for NEMO_run
-NEMO_run__dir_NEMO=pathlib.Path('/home') / 'ITER' / f'{settings.username}' / 'scratch' / 'nemo'
+NEMO_run__dir_NEMO=support.dir_nemo
 NEMO_run__fokker_flag=0
-
-#fixed parameters needed by MARS_read
-MARS_read__tail_U='_U_PLS'
-MARS_read__tail_M='_M_PLS'
-MARS_read__tail_L='_L_PLS'
-MARS_read__tails=[MARS_read__tail_U,MARS_read__tail_M,MARS_read__tail_L]
-MARS_read__settings={}
-MARS_read__settings['TAIL']="{}".format(MARS_read__tails)
-MARS_read__flags={}
 
 #IMAS parameters to specify location of locally made input IDS
 IDS__shot=1

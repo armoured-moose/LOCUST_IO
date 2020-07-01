@@ -1,10 +1,10 @@
-#plot_difference.py
+#plot_current_scan.py
  
 """
 Samuel Ward
-24/02/20
+28/05/20
 ----
-script for plotting difference between outputs with/without impurities
+script resolution scan
 ---
  
 notes:         
@@ -20,7 +20,6 @@ try:
     import numpy as np
     import pathlib
     import copy
-    from matplotlib.animation import FuncAnimation
     import matplotlib.pyplot as plt
     import sys
 except:
@@ -70,13 +69,7 @@ except:
 ################################################################## 
 #Main 
 
-import compare_impurities_on_off_launch as batch_data
-
-axes=['E','V_pitch']
-xmin=0
-xmax=0
-ymin=0
-ymax=0
+import scan_current_n3_n6_launch as batch_data
 
 def get_output_files(output_type='dfn'):
 
@@ -91,69 +84,55 @@ def get_output_files(output_type='dfn'):
     output_classes_dispatch['fpl']=fpl
     output_classes_dispatch['rund']=rund
 
-    #in this case just grab all output files in output directory through glob
-    dir_output=pathlib.Path(batch_data.args_batch['LOCUST_run__dir_output'][0].strip("\'")).parents[0]
-    for parent_folder in dir_output.glob('*'):
-        dir_output_filepaths=list(parent_folder.glob(output_file_dispatch[output_type])) #get all filenames for runs corresponding to this choice of parameters    
+    for parameter_string,dir_output in zip(batch_data.parameter_strings,batch_data.args_batch['LOCUST_run__dir_output']): #within each GPU folder the path to each output is the same
+        dir_output=pathlib.Path(dir_output.strip("\'"))
+        dir_output_filepaths=list(dir_output.glob(output_file_dispatch[output_type])) #get all filenames for runs corresponding to this choice of parameters    
         if dir_output_filepaths:
             for dir_output_filepath in dir_output_filepaths:
-                outputs.append(output_classes_dispatch[output_type](ID=parent_folder.parts[-1],data_format='LOCUST',filename=dir_output_filepath))
+                outputs.append(output_classes_dispatch[output_type](ID=parameter_string,data_format='LOCUST',filename=dir_output_filepath))
+        else:
+            outputs.append(None)
+
     return outputs
 
-    
 outputs=get_output_files('fpl')
-fig,ax=plt.subplots(1)
-for output,colour in zip(outputs,[settings.cmap_g,settings.cmap_r]):
-    output.plot(fig=fig,ax=ax,axes=['time'],fill=False,label=output.ID,colmap=colour,number_bins=100,weight=True)
-ax.legend()
-plt.show()
-fig,ax=plt.subplots(1)
-for output,colour in zip(outputs,[settings.cmap_g,settings.cmap_r]):
-    output.plot(fig=fig,ax=ax,axes=['E'],fill=False,label=output.ID,colmap=colour,number_bins=100,weight=True)
-ax.legend()
-plt.show()
-'''
-'''
 
-#plot difference in distribution function
+fig,ax=plt.subplots(1)
+for output,col_val in zip(outputs,np.linspace(0,1,len(outputs))):
+    if output: output.plot(fig=fig,ax=ax,axes=['time'],fill=False,label=output.ID,colmap=settings.cmap_default,colmap_val=col_val,number_bins=200,weight=True)
+ax.legend()
+plt.show()
+fig,ax=plt.subplots(1)
+for output,col_val in zip(outputs,np.linspace(0,1,len(outputs))):
+    if output: output.plot(fig=fig,ax=ax,axes=['E'],fill=False,label=output.ID,colmap=settings.cmap_default,colmap_val=col_val,number_bins=200,weight=True)
+ax.legend()
+plt.show()
+
 outputs=get_output_files('dfn')
 
 fig,ax=plt.subplots(1)
-for output,colour in zip(outputs,[settings.cmap_g,settings.cmap_r]):
-    if output: output.plot(fig=fig,ax=ax,axes=['R'],label=output.ID,colmap=colour,number_bins=100)
+for output,col_val in zip(outputs,np.linspace(0,1,len(outputs))):
+    if output: output.plot(fig=fig,ax=ax,axes=['R'],label=output.ID,colmap=settings.cmap_default,colmap_val=col_val,number_bins=200)
 ax.legend()
 plt.show()
 
-#plot one of the distribution functions
-outputs[0].plot(axes=axes)
+outputs=get_output_files('rund')
 
-for counter in range(len(outputs)):
-    outputs[counter]=outputs[counter].transform(axes=axes)
-DFN_diff=copy.deepcopy(outputs[0])
-DFN_diff.ID=f'log_10 {outputs[0]} - {outputs[1]} / {outputs[0]}'
-DFN_diff['dfn']=np.nan_to_num(np.log10(np.abs((outputs[0]['dfn']-outputs[1]['dfn'])/outputs[0]['dfn'])),nan=-5.)
-DFN_diff['dfn'][DFN_diff['dfn']>1.e3]=-5.
+for counter,output in enumerate(outputs): #remove the 2D comparison case I put in there
+    if 'B3D_EX' not in batch_data.args_batch['LOCUST_run__flags'][counter]:
+        
+        rundata_2D=output  
+        del(outputs[counter])
+        batch_data.parameters__currents_upper=np.delete(batch_data.parameters__currents_upper,0)
+
+PFC_power=np.array([output['PFC_power']['total'] if output is not None else -10. for output in outputs ])
 fig,ax=plt.subplots(1)
-DFN_diff_mesh=DFN_diff.plot(fig=fig,ax=ax,axes=axes,transform=False,real_scale=True,vminmax=[-5,3],number_bins=9)
-cbar=fig.colorbar(DFN_diff_mesh,orientation='vertical')
-ax.set_xlabel('R [m]',fontsize=25)  
-ax.set_ylabel('Z [m]',fontsize=25)  
-#ax.set_title(f'$log_{10}(f_{outputs[0].ID}-f_{outputs[1].ID})\slash f_{outputs[0].ID}$',fontsize=25)
-#ax.set_xlim([np.min(equi['R_1D']),np.max(equi['R_1D'])])
-#ax.set_ylim([1.1*np.min(equi['lcfs_z']),1.1*np.max(equi['lcfs_z'])])
-ax.set_facecolor(settings.cmap_default(0.0))
-plt.show()  
-
-#plot the inputs by running just the plot input stages of the batch script 
-'''
-batch_data.args_batch['RMP_study__workflow_commands']=['plot_inputs']*len(batch_data.args_batch['RMP_study__workflow_commands'])
-RMP_batch_run=Batch(**batch_data.args_batch)
-RMP_batch_run.launch(
-    workflow_filepath='template_run.py', 
-    environment_name_batch='TITAN',
-    environment_name_workflow='TITAN',
-    interactive=True)   
-'''
+ax.plot(batch_data.parameters__currents_upper/1000.,PFC_power/np.max(PFC_power),color='b',marker='x',linestyle='-',label='3D cases')
+ax.axhline(rundata_2D['PFC_power']['total']/np.max(PFC_power),color='red',label='2D case')
+ax.set_xlabel("Coil current [kAt]")
+ax.set_ylabel("Normalised PFC power flux")
+ax.legend()
+plt.show()
 
 #################################
  

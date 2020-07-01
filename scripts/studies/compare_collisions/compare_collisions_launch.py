@@ -1,10 +1,10 @@
-#scan_upper_lower_launch.py
+#compare_collisions_launch.py
  
 """
 Samuel Ward
-14/10/19
+13/06/20
 ----
-launch script for RMP study parameter scan for upper/lower coil phase
+script for controlling and launching LOCUST parameter scans for static RMP studies
 ---
  
 notes:         
@@ -94,7 +94,7 @@ except:
 #################################
 #define study name 
 
-RMP_study__name='scan_upper_lower'
+RMP_study__name='template_launch'
 
 #################################
 #define options and dispatch tables for helping choosing settings
@@ -112,15 +112,15 @@ parameters__sheet_names_kinetic_prof=["'Flat n'"]
 #define the parameter space for a given scenario
 
 #kinetic profile parameters which vary independently
-parameters__kinetic_profs_Pr=[1.,0.3] #pick highest then lowest rotation
-parameters__kinetic_profs_tF_tE=[0.5,2.]
+parameters__kinetic_profs_Pr=[0.3]
+parameters__kinetic_profs_tF_tE=[2.]
 
 #3D field parameters which vary independently - if you want to vary these together then put them into the same loop nesting below
 #2D arrays, each element has length = number of modes
 parameters__toroidal_mode_numbers=[[-3,-6]]
-parameters__phases_upper=np.linspace(0,110,8) #86,0,34 = default for maximmum stochasticity
-parameters__phases_middle=np.array([0.])
-parameters__phases_lower=np.linspace(0,110,8)
+parameters__phases_upper=np.array([86.])#np.linspace(-10,140,16) #first value is for axisymmetric simulation - 86,0,34 = default for maximmum stochasticity
+parameters__phases_middle=np.array([0.])#np.linspace(-10,140,16)
+parameters__phases_lower=np.array([34.])#np.linspace(-10,140,16)
 parameters__rotations_upper=np.array([0.])
 parameters__rotations_middle=np.array([0.])
 parameters__rotations_lower=np.array([0.])
@@ -132,7 +132,8 @@ parameters__currents_lower=np.array([90])*1000.
 #define the workflow commands in order we want to execute them
 
 RMP_study__workflow_commands="\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create','kin_extrap','run_NEMO','depo_get','run_LOCUST','clean_input']\""
-#RMP_study__workflow_commands="\"['mkdir','kin_get','3D_get','3D_calc','input_get','depo_get_premade','run_LOCUST','clean_input']\""
+collision_types=[{'icoll':1,'iscat':1,'idiff':1},
+                 {'icoll':0,'iscat':0,'idiff':0}]
 
 ##################################################################
 #create every valid combination of parameter, returned in flat lists
@@ -141,13 +142,14 @@ RMP_study__workflow_commands="\"['mkdir','kin_get','3D_get','3D_calc','input_get
 run_number=0
 parameter_strings=[]
 #first level are the data which remain constant for a parameter scan
-for parameters__database,parameters__sheet_name_kinetic_prof in zip(parameters__databases,parameters__sheet_names_kinetic_prof): 
-    for parameters__kinetic_prof_tF_tE,parameters__kinetic_prof_Pr in zip(parameters__kinetic_profs_tF_tE,parameters__kinetic_profs_Pr):
-        for parameters__toroidal_mode_number in parameters__toroidal_mode_numbers:
-            for parameters__phase_upper in parameters__phases_upper:
-                for parameters__phase_middle in parameters__phases_middle:
-                    for parameters__phase_lower in parameters__phases_lower:
-                        for parameters__rotation_upper,parameters__rotation_middle,parameters__rotation_lower in zip(parameters__rotations_upper,parameters__rotations_middle,parameters__rotations_lower): 
+for collision_type in collision_types:
+    for parameters__database,parameters__sheet_name_kinetic_prof in zip(
+            parameters__databases,parameters__sheet_names_kinetic_prof): 
+        for parameters__kinetic_prof_tF_tE in parameters__kinetic_profs_tF_tE:
+            for parameters__kinetic_prof_Pr in parameters__kinetic_profs_Pr:
+                for parameters__toroidal_mode_number in parameters__toroidal_mode_numbers:
+                    for parameters__phase_upper,parameters__phase_middle,parameters__phase_lower in zip(parameters__phases_upper,parameters__phases_middle,parameters__phases_lower): #nest at same level == offset them together rigidly 
+                        for parameters__rotation_upper,parameters__rotation_middle,parameters__rotation_lower in zip(parameters__rotations_upper,parameters__rotations_middle,parameters__rotations_lower): #nest at same level == rotating them together rigidly
                             for parameters__current_upper,parameters__current_middle,parameters__current_lower in zip(parameters__currents_upper,parameters__currents_middle,parameters__currents_lower):
 
                                 run_number+=1 #increment run counter              
@@ -186,6 +188,10 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(parameters__
                                         parameters__current_upper,
                                         parameters__current_middle,
                                         parameters__current_lower])])
+
+                                for collision in ['icoll','iscat','idiff']: #add collision types to parameter string
+                                    parameters__parameter_string+='_'.join('{}_{}'.format(collision,collision_type[collision]))
+
                                 parameter_strings.append(parameters__parameter_string)
 
                                 #################################
@@ -215,7 +221,7 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(parameters__
                                 LOCUST_run__flags['GEQDSKFIX1']=True
                                 LOCUST_run__flags['GEQDSKFIX2']=True
                                 LOCUST_run__flags['BP']=True
-                                LOCUST_run__flags['TIMAX']='0.25D0'
+                                LOCUST_run__flags['TIMAX']='0.5D0'
                                 LOCUST_run__flags['SPLIT']=True
                                 LOCUST_run__flags['SMALLEQ']=True #XXX test whether we need this when using mesh
                                 LOCUST_run__flags['CONLY']=True
@@ -233,10 +239,14 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(parameters__
                                 LOCUST_run__settings_prec_mod['file_tet']="'locust_wall'" 
                                 LOCUST_run__settings_prec_mod['file_eqm']="'locust_eqm'" 
                                 LOCUST_run__settings_prec_mod['threadsPerBlock']=64
-                                LOCUST_run__settings_prec_mod['blocksPerGrid']=64
+                                LOCUST_run__settings_prec_mod['blocksPerGrid']=512
                                 LOCUST_run__settings_prec_mod['root']="'/tmp/{username}/{study}/{params}'".format(username=settings.username,study=RMP_study__name,params=parameters__parameter_string)
                                 LOCUST_run__settings_prec_mod['i3dr']=-1 #XXX WHILST I3DR FLAG IS BROKE
                                 LOCUST_run__settings_prec_mod['niter']=1
+                                
+                                for collision,value_on_off in collision_type.items(): #specify collision types
+                                    LOCUST_run__settings_prec_mod[collision]=value    
+
                                 MARS_read__flags={}
                                 MARS_read__flags['TOKAMAK']=1
                                 MARS_read__flags['PLS']=True
@@ -335,7 +345,6 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(parameters__
                                         RMP_study__filepaths_3D_field_head=RMP_study__dir_input_database / parameters__database / folder_name_DataMarsf
                                         field_filepath_string='"{}"'.format([str(RMP_study__filepaths_3D_field_head/f'BPLASMA_MARSF_n{np.abs(mode)}_{coil_row}_Pr{parameters__kinetic_prof_Pr_string}_tfte{parameters__kinetic_prof_tF_tE_string}.IN') for mode in parameters__toroidal_mode_number])
 
-                                args_batch[f'RMP_study__filepaths_3D_fields_{coil_row[-1]}'].append(field_filepath_string)
                                 args_batch['IDS__shot'].append(copy.deepcopy(IDS__shot))
                                 args_batch['IDS__run'].append(copy.deepcopy(IDS__run))
                                 args_batch['IDS__username'].append(copy.deepcopy(IDS__username))
