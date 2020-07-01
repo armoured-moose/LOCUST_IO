@@ -118,9 +118,9 @@ parameters__kinetic_profs_tF_tE=[0.5,2.]
 #3D field parameters which vary independently - if you want to vary these together then put them into the same loop nesting below
 #2D arrays, each element has length = number of modes
 parameters__toroidal_mode_numbers=[[-3,-6]]
-parameters__phases_upper=np.linspace(0,110,1) #86,0,34 = default for maximmum stochasticity
+parameters__phases_upper=np.linspace(0,110,8) #86,0,34 = default for maximmum stochasticity
 parameters__phases_middle=np.array([0.])
-parameters__phases_lower=np.linspace(0,110,1)
+parameters__phases_lower=np.linspace(0,110,8)
 parameters__rotations_upper=np.array([0.])
 parameters__rotations_middle=np.array([0.])
 parameters__rotations_lower=np.array([0.])
