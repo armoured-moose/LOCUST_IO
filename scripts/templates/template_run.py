@@ -14,7 +14,7 @@ notes:
     ! setting interpolation type=RBF currently breaks due to bugs in module environment
 todo:
 
-    XXX need to see why n=-6 modes do not look same for separate and combined coils
+    create helper functions e.g. for reading kinetic profiles, strategy behaviour decided by template_launch i.e. whether to read from excel or IDS 
 
     XXX logic needs testing which copies complete mesh across since it keeps being copied
     
@@ -299,6 +299,10 @@ class RMP_study_run(run_scripts.workflow.Workflow):
 
         if {species for species in species_present}=={'deuterium','tritium'}: #if running pure DT set DT densities to half electron density 
             species_densities=[density_electrons['n'][0]/2.]*2
+            density=copy.deepcopy(density_electrons)
+            density['n']*=.5 #assumed 50% electron density
+            for species in species_present: 
+                density.dump_data(data_format='LOCUST',filename=self.args['LOCUST_run__dir_input'] / f'density_{species}')
 
         #add some setting prec_mod.f90
         self.args['LOCUST_run__settings_prec_mod']['fi']='[{}]'.format(','.join([str(species_density/np.sum(species_densities))+'_gpu' for species_density in species_densities]))
@@ -335,6 +339,11 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                 density['n']*=fraction_neon #assumed .2% electron density
                 density.properties['species']=species_name #re-label species type
 
+            elif {species for species in table_species_AZ}=={'deuterium','tritium'}: #if running pure DT set DT densities to half electron density 
+                density=copy.deepcopy(density_electrons)
+                density['n']*=.5 #assumed 50% electron density
+                density.properties['species']=species_name #re-label species type
+
             else:
                 try: #just try to read all species, some (e.g. Ne and Be) of which might not be present, so until errors are properly raised then errors may be printed - please ignore
                     density=Number_Density(ID='',data_format='EXCEL1',species=species_name,filename=self.args['RMP_study__filepath_kinetic_profiles'].relative_to(support.dir_input_files),sheet_name=self.args['parameters__sheet_name_kinetic_prof'])
@@ -347,9 +356,6 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                 #species_densities.append(np.mean(density['n'])) #take average density then find Zeff/find Zeff at each point then mean = same thing
                 species_densities.append(density['n'][0]) #XXX take core value of impurity to set LOCUST density
 
-        if {species for species in species_present}=={'deuterium','tritium'}: #if running pure DT set DT densities to half electron density 
-            species_densities=[density_electrons['n'][0]/2.]*2
-        
         for species_name in ['electrons','ions']:
             temperature=Temperature(ID='',data_format='EXCEL1',species=species_name,filename=self.args['RMP_study__filepath_kinetic_profiles'].relative_to(support.dir_input_files),sheet_name=self.args['parameters__sheet_name_kinetic_prof'])
             temperature.dump_data(data_format='LOCUST',filename=self.args['LOCUST_run__dir_input'] / 'profile_T{}.dat'.format(temperature.properties['species'][0]))
@@ -515,11 +521,12 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         new_IDS.core_profiles.profiles_1d[0].grid.rho_tor=rho_tor_core_prof
         new_IDS.core_profiles.profiles_1d[0].grid.rho_tor_norm=(rho_tor_core_prof-rho_tor_core_prof[0])/(rho_tor_core_prof[-1]-rho_tor_core_prof[0]) #remove rho_tor_norm as this grid seems to be different
 
-        #if species not presnt in table_species_AZ - i.e. we do not want it in there - set density to very low
+        #if species not present in table_species_AZ - i.e. we do not want it in there - set density to very low
         az_avail=list(table_species_AZ.values())
         for ion_counter,ion in enumerate(new_IDS.core_profiles.profiles_1d[0].ion):
             if [ion.element[0].a,ion.element[0].z_n] not in az_avail: 
                 new_IDS.core_profiles.profiles_1d[0].ion[ion_counter].density=np.full(len(new_IDS.core_profiles.profiles_1d[0].ion[ion_counter].density),1.)
+                new_IDS.core_profiles.profiles_1d[0].ion[ion_counter].density_thermal=np.full(len(new_IDS.core_profiles.profiles_1d[0].ion[ion_counter].density),1.)
 
         #set time data
         new_IDS.nbi.ids_properties.homogeneous_time = 1
@@ -547,11 +554,49 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         IDS_source.close()
         new_IDS.close()
 
-        #fill in temperatures
-        for species,species_AZ in table_species_AZ.items(): #loop through all non-electronic ion species and set equal temperature
+        #fill in temperatures, density and rotations for ALL species we want
+
+        density_electrons=Number_Density(ID='',data_format='EXCEL1',species='electrons',filename=self.args['RMP_study__filepath_kinetic_profiles'].relative_to(support.dir_input_files),sheet_name=self.args['parameters__sheet_name_kinetic_prof'])
+        density_electrons['flux_pol']=density_electrons['flux_pol_norm']*(equilibrium['sibry']-equilibrium['simag'])+equilibrium['simag']
+        density_electrons.dump_data(data_format='IDS',shot=self.args['IDS__shot'],run=self.args['IDS__run'],species='electrons')
+
+        for species_name,species_AZ in table_species_AZ.items(): #loop through all non-electronic ion species and set equal temperature
+
             temperature=Temperature(ID='',data_format='EXCEL1',species='ions',filename=self.args['RMP_study__filepath_kinetic_profiles'].relative_to(support.dir_input_files),sheet_name=self.args['parameters__sheet_name_kinetic_prof'])
-            temperature['flux_pol']=temperature['flux_pol_norm']*(equilibrium['sibry']-equilibrium['simag'])+equilibrium['simag']
-            temperature.dump_data(data_format='IDS',shot=self.args['IDS__shot'],run=self.args['IDS__run'],species=species,A=species_AZ[0],Z=species_AZ[1])
+            rotation=Rotation(ID='',data_format='EXCEL1',filename=self.args['RMP_study__filepath_kinetic_profiles'].relative_to(support.dir_input_files),sheet_name=self.args['parameters__sheet_name_kinetic_prof'],rotation_name=self.args['parameters__var_name_rotation'],sheet_name_rotation=self.args['parameters__sheet_name_rotation'])
+
+            if species_name is 'beryllium':
+                density=copy.deepcopy(density_electrons)
+                density['n']*=fraction_beryllium #assumed 2% electron density
+                density.properties['species']=species_name #re-label species type
+
+            elif species_name is 'neon':
+                density=copy.deepcopy(density_electrons)
+                density['n']*=fraction_neon #assumed .2% electron density
+                density.properties['species']=species_name #re-label species type
+
+            elif {species for species in table_species_AZ}=={'deuterium','tritium'}: #if running pure DT set DT densities to half electron density 
+                density=copy.deepcopy(density_electrons)
+                density['n']*=.5 #assumed 50% electron density
+                density.properties['species']=species_name #re-label species type
+        
+            else:
+                try: #just try to read all species, some (e.g. Ne and Be) of which might not be present, so until errors are properly raised then errors may be printed - please ignore
+                    density=Number_Density(ID='',data_format='EXCEL1',species=species_name,filename=self.args['RMP_study__filepath_kinetic_profiles'].relative_to(support.dir_input_files),sheet_name=self.args['parameters__sheet_name_kinetic_prof'])
+                except:
+                    density=None
+
+            for inpt in [temperature,rotation,density]:
+                if inpt is not None:
+                    inpt['flux_pol']=inpt['flux_pol_norm']*(equilibrium['sibry']-equilibrium['simag'])+equilibrium['simag']
+                    inpt.dump_data(data_format='IDS',shot=self.args['IDS__shot'],run=self.args['IDS__run'],species=species_name,A=species_AZ[0],Z=species_AZ[1])
+
+        #add wall
+        '''
+        '''
+
+        wall=Wall(ID='',data_format='GEQDSK',filename=self.args['RMP_study__filepath_equilibrium'])
+        wall.dump_data(data_format='IDS_2D',shot=self.args['IDS__shot'],run=self.args['IDS__run'])
 
     def extrapolate_kinetic_profiles(self,*args,**kwargs):
         """
