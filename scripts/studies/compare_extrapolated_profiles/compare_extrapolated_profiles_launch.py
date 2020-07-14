@@ -132,12 +132,12 @@ parameters__currents_lower=np.array([90.])*1000.
 #define the workflow commands in order we want to execute them
 
 extrapolation=['on','off']
-args_batch['RMP_study__workflow_commands']=["\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create','kin_extrap','run_NEMO','depo_get','run_LOCUST','clean_input']\"",
-                                  "\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create','run_NEMO','depo_get','run_LOCUST','clean_input']\""]
+args_batch['RMP_study__workflow_commands']=["\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create','kin_extrap','run_BBNBI','depo_get','run_LOCUST','clean_input']\"",
+                                  "\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create','run_BBNBI','depo_get','run_LOCUST','clean_input']\""]
 
 
-#args_batch['RMP_study__workflow_commands']=["\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create','run_NEMO','depo_get','depo_plot']\""] #XXX DEBUG
-#args_batch['RMP_study__workflow_commands']=["\"['IDS_create','run_NEMO','depo_get','depo_plot']\""] #XXX DEBUG
+#args_batch['RMP_study__workflow_commands']=["\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create','run_BBNBI','depo_get','depo_plot']\""] #XXX DEBUG
+#args_batch['RMP_study__workflow_commands']=["\"['IDS_create','run_BBNBI','depo_get','depo_plot']\""] #XXX DEBUG
 
 ##################################################################
 #create every valid combination of parameter, returned in flat lists
@@ -231,6 +231,10 @@ for extrap in extrapolation:
                                 NEMO_run__xml_settings['nmarker']=LOCUST_run__settings_prec_mod['threadsPerBlock']*LOCUST_run__settings_prec_mod['blocksPerGrid']*8
                                 NEMO_run__xml_settings['fokker_flag']=0
 
+                                BBNBI_run__xml_settings={}
+                                BBNBI_run__number_particles=LOCUST_run__settings_prec_mod['threadsPerBlock']*LOCUST_run__settings_prec_mod['blocksPerGrid']*8
+                                BBNBI_run__dir_BBNBI=support.dir_bbnbi
+
                                 #3D field settings                            
                                 LOCUST_run__flags['B3D']=True
                                 LOCUST_run__flags['B3D_EX']=True
@@ -280,8 +284,11 @@ for extrap in extrapolation:
                                 args_batch['LOCUST_run__commit_hash'].append(copy.deepcopy(LOCUST_run__commit_hash))
                                 args_batch['LOCUST_run__settings_prec_mod'].append(copy.deepcopy(LOCUST_run__settings_prec_mod))
                                 args_batch['LOCUST_run__flags'].append(copy.deepcopy(LOCUST_run__flags))
-                                args_batch['NEMO_run__dir_NEMO'].append(copy.deepcopy(NEMO_run__dir_NEMO))
+                                args_batch['NEMO_run__dir_NEMO'].append(copy.deepcopy(support.dir_nemo))
                                 args_batch['NEMO_run__xml_settings'].append(copy.deepcopy(NEMO_run__xml_settings))
+                                args_batch['BBNBI_run__dir_BBNBI'].append(copy.deepcopy(BBNBI_run__dir_BBNBI))
+                                args_batch['BBNBI_run__xml_settings'].append(copy.deepcopy(BBNBI_run__xml_settings))
+                                args_batch['BBNBI_run__number_particles'].append(copy.deepcopy(BBNBI_run__number_particles))
                                 args_batch['MARS_read__tail_U'].append(copy.deepcopy(MARS_read__tail_U))
                                 args_batch['MARS_read__tail_M'].append(copy.deepcopy(MARS_read__tail_M))
                                 args_batch['MARS_read__tail_L'].append(copy.deepcopy(MARS_read__tail_L))

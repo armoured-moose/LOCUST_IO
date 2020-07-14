@@ -172,6 +172,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         self.args['LOCUST_run__dir_output']=pathlib.Path(self.args['LOCUST_run__dir_output'])
         self.args['LOCUST_run__dir_cache']=pathlib.Path(self.args['LOCUST_run__dir_cache'])
         self.args['NEMO_run__dir_NEMO']=pathlib.Path(self.args['NEMO_run__dir_NEMO'])
+        self.args['BBNBI_run__dir_BBNBI']=pathlib.Path(self.args['BBNBI_run__dir_BBNBI'])
         self.args['MARS_read__dir_MARS_builder']=pathlib.Path(self.args['MARS_read__dir_MARS_builder'])
         self.args['RMP_study__filepath_kinetic_profiles']=pathlib.Path(self.args['RMP_study__filepath_kinetic_profiles'])
         self.args['RMP_study__filepath_equilibrium']=pathlib.Path(self.args['RMP_study__filepath_equilibrium'])
@@ -200,6 +201,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         self.commands_available['kin_extrap']=self.extrapolate_kinetic_profiles
         self.commands_available['kin_plot']=self.plot_kinetic_profiles
         self.commands_available['run_NEMO']=self.run_NEMO
+        self.commands_available['run_BBNBI']=self.run_BBNBI
         self.commands_available['depo_get']=self.get_beam_deposition_IDS
         self.commands_available['depo_get_premade']=self.get_beam_deposition_file
         self.commands_available['depo_plot']=self.plot_beam_deposition
@@ -592,9 +594,6 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                     inpt.dump_data(data_format='IDS',shot=self.args['IDS__shot'],run=self.args['IDS__run'],species=species_name,A=species_AZ[0],Z=species_AZ[1])
 
         #add wall
-        '''
-        '''
-
         wall=Wall(ID='',data_format='GEQDSK',filename=self.args['RMP_study__filepath_equilibrium'])
         wall.dump_data(data_format='IDS_2D',shot=self.args['IDS__shot'],run=self.args['IDS__run'])
 
@@ -699,9 +698,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
             for kinetic_profile in kinetic_profile_group:
                 kinetic_profile.dump_data(data_format='LOCUST',filename=str(kinetic_profile['output_filename']))#first dump to LOCUST format
                 
-        '''#XXX REMOVED UNTIL NEMO IS READY
-                #then re-dump to IDS - making sure ion temperature is set equal across all ion species in IDS
-                if kinetic_profile.LOCUST_input_type is 'temperature' and kinetic_profile.properties['species'] is 'ions': 
+                #then re-dump to IDS - making sure ion temperature/rotation is set equal across all ion species in IDS
+                if (kinetic_profile.LOCUST_input_type is 'temperature' or kinetic_profile.LOCUST_input_type is 'rotation') and kinetic_profile.properties['species'] is 'ions': 
                     for species_name,species_AZ in table_species_AZ.items():
                         kinetic_profile.dump_data(  
                                                     data_format='IDS',
@@ -727,7 +725,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                                                 imas_version=settings.imas_version
                                                 )
 
-        #since no delete API at the moment in IMAS we need to overwrite profiles of unwanted species since axes will have changed  
+        #since no delete API in IMAS at the moment we need to re-overwrite profiles of unwanted species since axes will have changed  
         try:
             import imas 
         except:
@@ -739,11 +737,13 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         IDS.core_profiles.get()
         for ion_counter,ion in enumerate(IDS.core_profiles.profiles_1d[0].ion):
             if [ion.element[0].a,ion.element[0].z_n] not in az_avail: 
-                IDS.core_profiles.profiles_1d[0].ion[ion_counter].density=np.full(len(IDS.core_profiles.profiles_1d[0].grid.psi),1.)
+                IDS.core_profiles.profiles_1d[0].ion[ion_counter].density=np.full(len(IDS.core_profiles.profiles_1d[0].grid.psi),1.) #make sure all data used by NBI component is overwritten here
+                IDS.core_profiles.profiles_1d[0].ion[ion_counter].density_thermal=np.full(len(IDS.core_profiles.profiles_1d[0].grid.psi),1.)
                 IDS.core_profiles.profiles_1d[0].ion[ion_counter].temperature=np.full(len(IDS.core_profiles.profiles_1d[0].grid.psi),1.)
+                IDS.core_profiles.profiles_1d[0].ion[ion_counter].rotation_frequency_tor=np.full(len(IDS.core_profiles.profiles_1d[0].grid.psi),1.)
+                IDS.core_profiles.profiles_1d[0].ion[ion_counter].velocity.toroidal=np.full(len(IDS.core_profiles.profiles_1d[0].grid.psi),1.)
         IDS.core_profiles.put()
         IDS.close()
-        ''' #XXX REMOVED UNTIL NEMO IS READY
 
     def plot_kinetic_profiles(self,*args,**kwargs):
         """
@@ -809,6 +809,27 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         xml_settings=self.args['NEMO_run__xml_settings'])
 
         NEMO_workflow.call_NEMO_actor_command_line()
+
+    def run_BBNBI(self,*args,**kwargs):
+        """
+        notes:
+        """
+
+        BBNBI_workflow=run_scripts.BBNBI_run.BBNBI_run(
+                dir_BBNBI=self.args['BBNBI_run__dir_BBNBI'],
+                shot_in=self.args['IDS__shot'],
+                shot_out=self.args['IDS__shot'],
+                run_in=self.args['IDS__run'],
+                run_out=self.args['IDS__run'],
+                username=settings.username,
+                imasdb=settings.imasdb,
+                imas_version=settings.imas_version,
+                xml_settings=self.args['BBNBI_run__xml_settings'],
+                number_particles=self.args['BBNBI_run__number_particles'],
+                number_processors=1
+            )
+        
+        BBNBI_workflow.call_NEMO_actor_command_line()
 
     def get_beam_deposition_IDS(self,*args,**kwargs):
         """
@@ -1242,6 +1263,9 @@ if __name__=='__main__':
     parser.add_argument('--LOCUST_run__flags',nargs='+',type=str,action='store',dest='LOCUST_run__flags',help="",default={})
     parser.add_argument('--NEMO_run__dir_NEMO',type=str,action='store',dest='NEMO_run__dir_NEMO',help="",default=support.dir_nemo)
     parser.add_argument('--NEMO_run__xml_settings',nargs='+',type=str,action='store',dest='NEMO_run__xml_settings',help="",default={})
+    parser.add_argument('--BBNBI_run__dir_BBNBI',type=str,action='store',dest='BBNBI_run__dir_BBNBI',help="",default=support.dir_bbnbi)
+    parser.add_argument('--BBNBI_run__xml_settings',nargs='+',type=str,action='store',dest='BBNBI_run__xml_settings',help="",default={})
+    parser.add_argument('--BBNBI_run__number_particles',type=int,action='store',dest='BBNBI_run__number_particles',help="",default=10000)
     parser.add_argument('--MARS_read__tail_U',type=str,action='store',dest='MARS_read__tail_U',help="",default=None)
     parser.add_argument('--MARS_read__tail_M',type=str,action='store',dest='MARS_read__tail_M',help="",default=None)
     parser.add_argument('--MARS_read__tail_L',type=str,action='store',dest='MARS_read__tail_L',help="",default=None)
@@ -1274,6 +1298,7 @@ if __name__=='__main__':
     args.MARS_read__settings=run_scripts.utils.command_line_arg_parse_dict(args.MARS_read__settings)
     args.MARS_read__flags=run_scripts.utils.command_line_arg_parse_dict(args.MARS_read__flags)
     args.NEMO_run__xml_settings=run_scripts.utils.command_line_arg_parse_dict(args.NEMO_run__xml_settings)
+    args.BBNBI_run__xml_settings=run_scripts.utils.command_line_arg_parse_dict(args.BBNBI_run__xml_settings)
     args.RMP_study__filepaths_3D_fields_U=run_scripts.utils.literal_eval(args.RMP_study__filepaths_3D_fields_U)
     args.RMP_study__filepaths_3D_fields_M=run_scripts.utils.literal_eval(args.RMP_study__filepaths_3D_fields_M)
     args.RMP_study__filepaths_3D_fields_L=run_scripts.utils.literal_eval(args.RMP_study__filepaths_3D_fields_L)

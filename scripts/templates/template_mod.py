@@ -285,6 +285,9 @@ args_batch_names=['parameters__sheet_name_kinetic_prof',
                   'LOCUST_run__flags',
                   'NEMO_run__dir_NEMO',
                   'NEMO_run__xml_settings',
+                  'BBNBI_run__dir_BBNBI',
+                  'BBNBI_run__xml_settings',
+                  'BBNBI_run__number_particles',
                   'MARS_read__tail_U',
                   'MARS_read__tail_M',
                   'MARS_read__tail_L',
@@ -329,10 +332,6 @@ commit_hash_dispatch['VIKING']='908df2997978f99a9f871acb0f4031e56f505727'
 LOCUST_run__environment_name='TITAN'
 LOCUST_run__repo_URL=f"'{settings.repo_URL_LOCUST}'"
 LOCUST_run__commit_hash="'{}'".format(commit_hash_dispatch[LOCUST_run__environment_name])
-
-#fixed parameters needed for NEMO_run
-NEMO_run__dir_NEMO=support.dir_nemo
-NEMO_run__fokker_flag=0
 
 #IMAS parameters to specify location of locally made input IDS
 IDS__shot=1
