@@ -113,8 +113,8 @@ for plasma_state_counter,(Pr,tftE) in enumerate(zip(batch_data.parameters__kinet
     ax.set_yticks(batch_data.parameters__phases_upper)
     ax.set_xlim([np.min(batch_data.parameters__phases_lower),np.max(batch_data.parameters__phases_lower)])
     ax.set_ylim([np.max(batch_data.parameters__phases_upper),np.min(batch_data.parameters__phases_upper)])
-    ax.set_xlabel('Lower $d\Phi$')
-    ax.set_ylabel('Upper $d\Phi$')
+    ax.set_xlabel('Lower $\mathrm{d}\Phi$')
+    ax.set_ylabel('Upper $mathrm{d}\Phi$')
     fig.colorbar(mesh,ax=ax,orientation='horizontal')
     plt.show()
 
