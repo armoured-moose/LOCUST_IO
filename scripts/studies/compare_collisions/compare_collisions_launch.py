@@ -344,7 +344,7 @@ for collision_type in collision_types:
 
                                     if RMP_study__field_type is 'vacuum':
                                         RMP_study__filepaths_3D_field_head=RMP_study__dir_input_database / 'ITER_15MAQ10_case5'/ 'DataVac' / 'PureVac'
-                                        field_filepath_string='"{}"'.format([str(RMP_study__filepaths_3D_field_head/f'BPLASMA_MARSF_n{np.abs(mode)}_{coil_row}.IN') for mode in parameters__toroidal_mode_number])
+                                        field_filepath_string='"{}"'.format([str(RMP_study__filepaths_3D_field_head/f'BPLASMA_MARSF_n{np.abs(mode)}_{coil_row}_V') for mode in parameters__toroidal_mode_number])
 
                                     elif RMP_study__field_type is 'vacuum_resistive_wall':
                                         RMP_study__filepaths_3D_field_head=RMP_study__dir_input_database / 'ITER_15MAQ10_case5'/ 'DataVac' / 'WithRW'

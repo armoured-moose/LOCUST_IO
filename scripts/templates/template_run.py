@@ -1159,10 +1159,11 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         plot_dispatch['beam_deposition']['plot_options']={}
         plot_dispatch['beam_deposition']['plot_options']['axes']=[axes]*number_files
         plot_dispatch['beam_deposition']['plot_options']['fill']=[False]*number_files
+        plot_dispatch['beam_deposition']['plot_options']['style']=['scatter']*number_files
         plot_dispatch['beam_deposition']['plot_options']['colmap']=[settings.cmap_g]*number_files
         plot_dispatch['beam_deposition']['plot_options']['number_bins']=[5]*number_files
 
-        for input_type in plot_dispatch.keys(): #now for plotting - loop through dispatch table
+        for input_type in ['perturbation','beam_deposition']: #now for plotting - loop through which inputs we want to plot in order
             for file_number in range(len(plot_dispatch[input_type]['read_options']['ID'])): #for each input type, loop through all files
                     
                 plot_dispatch_=copy.deepcopy(plot_dispatch) 
