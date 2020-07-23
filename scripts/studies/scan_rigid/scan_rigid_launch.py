@@ -121,8 +121,8 @@ parameters__sheet_names_kinetic_prof=["'Flat n'"]
 #define the parameter space for a given scenario
 
 #kinetic profile parameters which vary independently
-parameters__kinetic_profs_Pr=[0.3]
-parameters__kinetic_profs_tF_tE=[2.]
+parameters__kinetic_profs_Pr=[1.] #highest rotation
+parameters__kinetic_profs_tF_tE=[0.5]
 
 #3D field parameters which vary independently - if you want to vary these together then put them into the same loop nesting below
 #2D arrays, each element has length = number of modes
