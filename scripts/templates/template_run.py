@@ -69,6 +69,11 @@ except:
     raise ImportError("ERROR: LOCUST_IO/src/run_scripts/NEMO_run.py could not be imported!\nreturning\n")
     sys.exit(1)
 try:
+    import run_scripts.BBNBI_run
+except:
+    raise ImportError("ERROR: LOCUST_IO/src/run_scripts/BBNBI_run.py could not be imported!\nreturning\n")
+    sys.exit(1)
+try:
     from run_scripts.MARS_builder_run import MARS_builder_run
 except:
     raise ImportError("ERROR: LOCUST_IO/src/run_scripts/MARS_builder_run.py could not be imported!\nreturning\n")
@@ -212,8 +217,11 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         self.commands_available['run_LOCUST']=self.run_LOCUST
         self.commands_available['clean_input']=self.clean_input
         self.commands_available['clean_cache']=self.clean_cache
+        self.commands_available['grab_batch_script']=self.grab_batch
 
-        if not list(self.args['LOCUST_run__dir_output'].glob('*.dfn')): #output directory contains no distribution functions
+
+
+        if not list(self.args['LOCUST_run__dir_output'].glob('*.dfn')) or ('POINCARE' in self.args['LOCUST_run__flags'].keys()): #output directory contains no distribution functions or we are just wanting poincare map
 
             if list(self.args['LOCUST_run__dir_output'].glob('*')): #if some outputs at all already then clear before performing run
                 try:
@@ -224,6 +232,9 @@ class RMP_study_run(run_scripts.workflow.Workflow):
 
             for command in self.args['RMP_study__workflow_commands']:
                 self.add_command(command_name=command,command_function=self.commands_available[command]) #add all workflow stages
+
+            if 'grab_batch_script' not in self.args['RMP_study__workflow_commands']: 
+                self.add_command(command_name='grab_batch_script',command_function=self.commands_available[command]) #grab batch script as default
 
         else: #if distribution functions in output directory then skip this simulation
             self.add_command(command_name='pass',command_function=self.commands_available['pass'])
@@ -829,7 +840,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                 number_processors=1
             )
         
-        BBNBI_workflow.call_NEMO_actor_command_line()
+        BBNBI_workflow.call_BBNBI_actor_command_line()
 
     def get_beam_deposition_IDS(self,*args,**kwargs):
         """
@@ -1231,6 +1242,9 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         #remove generated input files
         for file in self.args['LOCUST_run__dir_input'].glob('*'): #move all input files to correct location
             subprocess.run(shlex.split('rm {file}'.format(file=str(file))),shell=False)
+
+        #remove root IFF empty
+        pathlib.Path(self.args['LOCUST_run__settings_prec_mod']['root']).rmdir()
 
     def clean_cache(self,*args,**kwargs):
         """

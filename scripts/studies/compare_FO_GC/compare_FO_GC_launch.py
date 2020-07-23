@@ -299,7 +299,7 @@ for orbit_setting in orbit_settings:
                                 args_batch['MARS_read__tail_L'].append(copy.deepcopy(MARS_read__tail_L))
                                 args_batch['MARS_read__settings'].append(copy.deepcopy(MARS_read__settings))
                                 args_batch['MARS_read__flags'].append(copy.deepcopy(MARS_read__flags))
-                                args_batch['MARS_read__dir_MARS_builder'].append(copy.deepcopy("'{}'".format(str(support.dir_cache_files / parameters__database / RMP_study__name / parameters__parameter_string / 'MARS_builder'))))
+                                args_batch['MARS_read__dir_MARS_builder'].append(copy.deepcopy("'{}'".format(str(support.dir_cache_files / parameters__database / RMP_study__name / (parameters__parameter_string + '_MARS_builder') ))))
                                 args_batch['RMP_study__name'].append(copy.deepcopy(RMP_study__name))
                                 args_batch['RMP_study__filepath_kinetic_profiles'].append(copy.deepcopy(list((RMP_study__dir_input_database / parameters__database / folder_name_DataEq).glob('*.xlsx'))[0])) #determine path to current kinetic profiles
                                 args_batch['RMP_study__filepath_equilibrium'].append(copy.deepcopy(list((RMP_study__dir_input_database / parameters__database / folder_name_DataEq).glob('*eqdsk*'))[0])) #determine path to current equilibrium

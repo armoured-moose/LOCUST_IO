@@ -108,13 +108,13 @@ for plasma_state_counter,(Pr,tftE) in enumerate(zip(batch_data.parameters__kinet
 
     fig,ax=plt.subplots(1)
     ax.set_facecolor(settings.cmap_default(np.min(PFC_power)))
-    mesh=ax.pcolormesh(LPHASE-dLPHASE/2.,UPHASE-dUPHASE/2.,np.log10(PFC_power),cmap=settings.cmap_default,edgecolor='none',linewidth=settings.plot_linewidth,antialiased=True)
+    mesh=ax.pcolormesh(LPHASE-dLPHASE/2.,UPHASE-dUPHASE/2.,np.log10(PFC_power),cmap=settings.cmap_default,edgecolor='none',antialiased=True)
     ax.set_xticks(batch_data.parameters__phases_lower)
     ax.set_yticks(batch_data.parameters__phases_upper)
     ax.set_xlim([np.min(batch_data.parameters__phases_lower),np.max(batch_data.parameters__phases_lower)])
     ax.set_ylim([np.max(batch_data.parameters__phases_upper),np.min(batch_data.parameters__phases_upper)])
     ax.set_xlabel('Lower $\mathrm{d}\Phi$')
-    ax.set_ylabel('Upper $mathrm{d}\Phi$')
+    ax.set_ylabel('Upper $\mathrm{d}\Phi$')
     fig.colorbar(mesh,ax=ax,orientation='horizontal')
     plt.show()
 
