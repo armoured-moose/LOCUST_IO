@@ -89,9 +89,9 @@ except:
     sys.exit(1)
 
 try:
-    #cwd=pathlib.Path(os.path.dirname(os.path.realpath(__file__)))
-    #sys.path.append(str(cwd.parents[1]))
-    #from templates.template_mod import *
+    cwd=pathlib.Path(os.path.dirname(os.path.realpath(__file__)))
+    sys.path.append(str(cwd.parents[1]))
+    from templates.template_mod import *
     from template_mod import *
 except:
     raise ImportError("ERROR: templates/template_mod.py could not be imported!\nreturning\n") 
@@ -136,7 +136,7 @@ parameters__rotations_middle=np.array([0.])
 parameters__rotations_lower=np.array([0.])
 parameters__currents_upper=np.array([90.])*1000.
 parameters__currents_middle=np.array([90.])*1000.
-parameters__currents_lower=np.array([90])*1000.
+parameters__currents_lower=np.array([90.])*1000.
 
 ##################################################################
 #define the workflow commands in order we want to execute them

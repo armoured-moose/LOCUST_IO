@@ -26,12 +26,21 @@ notes:
                         RMP_study
                             parameter_folder_name - stores all the outputs permanently
                 cache_files
-                    database_folder_name
-                        RMP_study
+                    database_folder_name - store parameter-agnostic cache here
+                        parameter_folder_name - store parameter-specific cache here
+
         /tmp/<uname>/ (LOCUST root dir)
             InputFiles
             OutputFiles
             CacheFiles
+
+    assumes PureVac fields are renamed to:
+        mv BPLASMA_MARSF_n3_LV BPLASMA_MARSF_n3_cL_V  
+        mv BPLASMA_MARSF_n3_UV BPLASMA_MARSF_n3_cU_V  
+        mv BPLASMA_MARSF_n6_MV BPLASMA_MARSF_n6_cM_V
+        mv BPLASMA_MARSF_n3_MV BPLASMA_MARSF_n3_cM_V  
+        mv BPLASMA_MARSF_n6_LV BPLASMA_MARSF_n6_cL_V
+        mv BPLASMA_MARSF_n6_UV BPLASMA_MARSF_n6_cU_V
 ---
 """
 
@@ -94,6 +103,7 @@ except:
 #################################
 #define study name 
 
+RMP_study__name='scan_rigid'
 
 #################################
 #define options and dispatch tables for helping choosing settings
@@ -106,7 +116,6 @@ parameters__toroidal_mode_numbers__options['n=3']=[-3,-6]
 
 parameters__databases=['ITER_15MAQ10_case5'] #these all zipped at same level in main loop because source data is not consistent enough
 parameters__sheet_names_kinetic_prof=["'Flat n'"]
-
 
 ##################################################################
 #define the parameter space for a given scenario
@@ -138,6 +147,7 @@ RMP_study__workflow_commands="\"['mkdir','kin_get','3D_get','3D_calc','input_get
 #use zip and nest levels to define specific combinations which cannot be varied
 
 run_number=0
+parameter_strings=[]
 #first level are the data which remain constant for a parameter scan
 for parameters__database,parameters__sheet_name_kinetic_prof in zip(
         parameters__databases,parameters__sheet_names_kinetic_prof): 
@@ -148,8 +158,8 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                     for parameters__rotation_upper,parameters__rotation_middle,parameters__rotation_lower in zip(parameters__rotations_upper,parameters__rotations_middle,parameters__rotations_lower): #nest at same level == rotating them together rigidly
                         for parameters__current_upper,parameters__current_middle,parameters__current_lower in zip(parameters__currents_upper,parameters__currents_middle,parameters__currents_lower):
 
-                            run_number+=1 #increment run counter                                         
-
+                            run_number+=1 #increment run counter              
+                                                       
                             #create a string of variables identifying this run
                             parameters__kinetic_prof_tF_tE_string=parameters__kinetic_profs_tF_tE__dispatch[parameters__kinetic_prof_tF_tE] #generate some variable string equivalents for later
                             parameters__kinetic_prof_Pr_string=parameters__kinetic_profs_Pr__dispatch[parameters__kinetic_prof_Pr]
@@ -184,8 +194,7 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                                     parameters__current_upper,
                                     parameters__current_middle,
                                     parameters__current_lower])])
-
-                            RMP_study__name='scan_rigid'+''.join([f'_n{mode_number}' for mode_number in parameters__toroidal_mode_number]) 
+                            parameter_strings.append(parameters__parameter_string)
 
                             #################################
                             #define corresponding workflow args passed to batch (denoted wth __batch)
@@ -238,11 +247,11 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                             LOCUST_run__settings_prec_mod['niter']=1
                             MARS_read__flags={}
                             MARS_read__flags['TOKAMAK']=1
+                            MARS_read__flags['N0']=parameters__toroidal_mode_number[0]
                             MARS_read__flags['PLS']=True
                             MARS_read__flags['UPHASE']=f'{parameters__phase_upper}D0' #XXX does this account for counter-rotating harmonics?
                             MARS_read__flags['MPHASE']=f'{parameters__phase_middle}D0'
                             MARS_read__flags['LPHASE']=f'{parameters__phase_lower}D0'
-                            MARS_read__flags['N0']=parameters__toroidal_mode_number[0]
                             MARS_read__settings={}
                             MARS_read__settings['TAIL']="{}".format(MARS_read__tails)
                             MARS_read__settings['IKATN']=f'[{parameters__current_upper/1000.}_gpu,{parameters__current_middle/1000.}_gpu,{parameters__current_lower/1000.}_gpu]'
@@ -352,6 +361,7 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                             args_batch['IDS__imasdb'].append(copy.deepcopy(IDS__imasdb))
                             args_batch['IDS__target_IDS_shot'].append(copy.deepcopy(target_IDS_dispatch[parameters__database][parameters__kinetic_prof_Pr_string][parameters__kinetic_prof_tF_tE_string]['shot']))
                             args_batch['IDS__target_IDS_run'].append(copy.deepcopy(target_IDS_dispatch[parameters__database][parameters__kinetic_prof_Pr_string][parameters__kinetic_prof_tF_tE_string]['run']))
+
 
 ##################################################################
 #define and launch the batch scripts
