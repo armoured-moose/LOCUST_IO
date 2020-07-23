@@ -217,9 +217,6 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         self.commands_available['run_LOCUST']=self.run_LOCUST
         self.commands_available['clean_input']=self.clean_input
         self.commands_available['clean_cache']=self.clean_cache
-        self.commands_available['grab_batch_script']=self.grab_batch
-
-
 
         if not list(self.args['LOCUST_run__dir_output'].glob('*.dfn')) or ('POINCARE' in self.args['LOCUST_run__flags'].keys()): #output directory contains no distribution functions or we are just wanting poincare map
 
@@ -232,9 +229,6 @@ class RMP_study_run(run_scripts.workflow.Workflow):
 
             for command in self.args['RMP_study__workflow_commands']:
                 self.add_command(command_name=command,command_function=self.commands_available[command]) #add all workflow stages
-
-            if 'grab_batch_script' not in self.args['RMP_study__workflow_commands']: 
-                self.add_command(command_name='grab_batch_script',command_function=self.commands_available[command]) #grab batch script as default
 
         else: #if distribution functions in output directory then skip this simulation
             self.add_command(command_name='pass',command_function=self.commands_available['pass'])
@@ -1233,6 +1227,9 @@ class RMP_study_run(run_scripts.workflow.Workflow):
             flags=self.args['LOCUST_run__flags'])
         LOCUST_workflow.run()
 
+        #remove root IFF empty
+        pathlib.Path(self.args['LOCUST_run__settings_prec_mod']['root']).rmdir()
+
     def clean_input(self,*args,**kwargs):
         """
 
@@ -1240,11 +1237,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         """
 
         #remove generated input files
-        for file in self.args['LOCUST_run__dir_input'].glob('*'): #move all input files to correct location
+        for file in self.args['LOCUST_run__dir_input'].glob('*'): 
             subprocess.run(shlex.split('rm {file}'.format(file=str(file))),shell=False)
-
-        #remove root IFF empty
-        pathlib.Path(self.args['LOCUST_run__settings_prec_mod']['root']).rmdir()
 
     def clean_cache(self,*args,**kwargs):
         """
@@ -1252,8 +1246,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         notes:
         """
 
-        #remove cache files
-        for file in self.args['LOCUST_run__dir_cache'].glob('*'): #move all cache files to correct location
+        #remove generated cache files
+        for file in self.args['LOCUST_run__dir_cache'].glob('*'): 
             subprocess.run(shlex.split('rm {file}'.format(file=str(file))),shell=False)
 
 if __name__=='__main__':
