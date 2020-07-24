@@ -94,7 +94,7 @@ except:
 #################################
 #define study name 
 
-RMP_study__name='template_launch'
+RMP_study__name='compare_collisions'
 
 #################################
 #define options and dispatch tables for helping choosing settings
@@ -118,9 +118,9 @@ parameters__kinetic_profs_tF_tE=[2.]
 #3D field parameters which vary independently - if you want to vary these together then put them into the same loop nesting below
 #2D arrays, each element has length = number of modes
 parameters__toroidal_mode_numbers=[[-3,-6]]
-parameters__phases_upper=np.array([86.])#np.linspace(-10,140,16) #first value is for axisymmetric simulation - 86,0,34 = default for maximmum stochasticity
+parameters__phases_upper=np.array([0.])#np.linspace(-10,140,16) #first value is for axisymmetric simulation - 86,0,34 = default for maximmum stochasticity
 parameters__phases_middle=np.array([0.])#np.linspace(-10,140,16)
-parameters__phases_lower=np.array([34.])#np.linspace(-10,140,16)
+parameters__phases_lower=np.array([0.])#np.linspace(-10,140,16)
 parameters__rotations_upper=np.array([0.])
 parameters__rotations_middle=np.array([0.])
 parameters__rotations_lower=np.array([0.])
@@ -245,7 +245,7 @@ for collision_type in collision_types:
                                 LOCUST_run__settings_prec_mod['niter']=1
                                 
                                 for collision,value_on_off in collision_type.items(): #specify collision types
-                                    LOCUST_run__settings_prec_mod[collision]=value    
+                                    LOCUST_run__settings_prec_mod[collision]=value_on_off    
 
                                 MARS_read__flags={}
                                 MARS_read__flags['TOKAMAK']=1

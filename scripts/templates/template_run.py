@@ -1146,7 +1146,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         plot_dispatch['perturbation']['plot_options']={}
         plot_dispatch['perturbation']['plot_options']['i3dr']=[-1]*number_files#[self.args['LOCUST_run__flags']['I3DR']]*number_files
         plot_dispatch['perturbation']['plot_options']['axes']=[axes]*number_files
-        plot_dispatch['perturbation']['plot_options']['key']=['dB_field_tor']*number_files
+        plot_dispatch['perturbation']['plot_options']['key']=['dB_field_mag']*number_files
         plot_dispatch['perturbation']['plot_options']['number_bins']=[100]*number_files
         number_files=1
         plot_dispatch['beam_deposition']={}

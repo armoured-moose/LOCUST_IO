@@ -127,9 +127,9 @@ parameters__kinetic_profs_tF_tE=[0.5]
 #3D field parameters which vary independently - if you want to vary these together then put them into the same loop nesting below
 #2D arrays, each element has length = number of modes
 parameters__toroidal_mode_numbers=[[-3,-6]]
-parameters__phases_upper=np.linspace(-10,120,7) #first value is for axisymmetric simulation
-parameters__phases_middle=np.linspace(-10,120,7)
-parameters__phases_lower=np.linspace(-10,120,7)
+parameters__phases_upper=np.array([-10,0,20,40,60,80,100]) #first value is for axisymmetric simulation
+parameters__phases_middle=np.array([-10,0,20,40,60,80,100])
+parameters__phases_lower=np.array([-10,0,20,40,60,80,100])
 parameters__rotations_upper=np.array([0.])
 parameters__rotations_middle=np.array([0.])
 parameters__rotations_lower=np.array([0.])
