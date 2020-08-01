@@ -202,6 +202,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         self.commands_available['3D_get']=self.get_3D_fields
         self.commands_available['3D_calc']=self.calc_3D_fields
         self.commands_available['input_get']=self.get_other_input_files
+        self.commands_available['IDS_create_DNB']=self.create_IDS_DNB
         self.commands_available['IDS_create']=self.create_IDS
         self.commands_available['kin_extrap']=self.extrapolate_kinetic_profiles
         self.commands_available['kin_plot']=self.plot_kinetic_profiles
@@ -454,6 +455,22 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                 dir_input=self.args['LOCUST_run__dir_input']
                 subprocess.run(shlex.split('cp {file} {dir_input}'.format(file=str(file),dir_input=str(dir_input))),shell=False)
 
+    def create_IDS_DNB(self,*args,**kwargs):
+        """
+        notes:
+        """
+    
+        run_scripts.utils.create_IDS_NBI(
+        shot=self.args['IDS__NBI_shot'],
+        run=self.args['IDS__NBI_run'],
+        username=self.args['IDS__NBI_user'],
+        imasdb=self.args['IDS__NBI_imasdb'],
+        imas_version='3',
+        machine='ITER',
+        beam_name='diagnostic',
+        axis='on', #XXX hard-code on-axis DNB for now
+        )
+
     def create_IDS(self,*args,**kwargs):
         """
         notes:
@@ -487,7 +504,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
 
         #retrieve ITER NBI geometry/settings
         IDS_nbi=imas.ids(self.args['IDS__NBI_shot'],self.args['IDS__NBI_run']) #take NBI geometry from sample public IDS
-        IDS_nbi.open_env('public',self.args['IDS__NBI_imasdb'],'3')
+        IDS_nbi.open_env(self.args['IDS__NBI_user'],self.args['IDS__NBI_imasdb'],'3')
 
         IDS_nbi.nbi.get()
         new_IDS.nbi=copy.deepcopy(IDS_nbi.nbi) #grab the part of the IDS we want
@@ -1298,6 +1315,7 @@ if __name__=='__main__':
     parser.add_argument('--IDS__NBI_shot',type=int,action='store',dest='IDS__NBI_shot',help="",default=130011)
     parser.add_argument('--IDS__NBI_run',type=int,action='store',dest='IDS__NBI_run',help="",default=1)
     parser.add_argument('--IDS__NBI_imasdb',type=str,action='store',dest='IDS__NBI_imasdb',help="",default='ITER')
+    parser.add_argument('--IDS__NBI_user',type=str,action='store',dest='IDS__NBI_user',help="",default='public')
 
     args=parser.parse_args()
 

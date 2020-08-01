@@ -38,6 +38,20 @@ except:
 ################################################################## 
 #Main 
 
+##################################################################
+#define parameters which are fixed throughout a parameter scan - if we want to vary then add as a layer in the for loops
+
+#fixed parameters needed by LOCUST_run
+LOCUST_run__environment_name='TITAN'
+LOCUST_run__repo_URL=f"'{settings.repo_URL_LOCUST}'"
+LOCUST_run__commit_hash="'{}'".format(commit_hash_dispatch[LOCUST_run__environment_name])
+
+#IMAS parameters to specify location of locally made input IDS
+IDS__shot=1
+IDS__run=1
+IDS__username=settings.username
+IDS__imasdb=settings.imasdb
+
 #file structure things
 path_template_mod=pathlib.Path(os.path.dirname(os.path.realpath(__file__))) / 'template_mod.py'
 path_template_launch=pathlib.Path(os.path.dirname(os.path.realpath(__file__))) / 'template_launch.py'
@@ -248,20 +262,35 @@ config_beam_dispatch['on']['on']={}
 config_beam_dispatch['on']['on']['shot']=44
 config_beam_dispatch['on']['on']['run']=55
 config_beam_dispatch['on']['on']['imasdb']='ITER_MD'
+config_beam_dispatch['on']['on']['user']='public'
 config_beam_dispatch['off']={}
 config_beam_dispatch['off']['off']={}
 config_beam_dispatch['off']['off']['shot']=44
 config_beam_dispatch['off']['off']['run']=22
 config_beam_dispatch['off']['off']['imasdb']='ITER_MD'
+config_beam_dispatch['off']['off']['user']='public'
 config_beam_dispatch['off']['on']={}
 config_beam_dispatch['off']['on']['shot']=44
 config_beam_dispatch['off']['on']['run']=33
 config_beam_dispatch['off']['on']['imasdb']='ITER_MD'
+config_beam_dispatch['off']['on']['user']='public'
+config_beam_dispatch['off']['diagnostic']={}
+config_beam_dispatch['off']['diagnostic']['shot']=IDS__shot
+config_beam_dispatch['off']['diagnostic']['run']=IDS__run+1 #just fill the adjacent run when generating our own NBI
+config_beam_dispatch['off']['diagnostic']['imasdb']=IDS__imasdb
+config_beam_dispatch['off']['diagnostic']['user']=IDS__username
+config_beam_dispatch['on']['diagnostic']={}
+config_beam_dispatch['on']['diagnostic']['shot']=IDS__shot
+config_beam_dispatch['on']['diagnostic']['run']=IDS__run+1 #just fill the adjacent run when generating our own NBI
+config_beam_dispatch['on']['diagnostic']['imasdb']=IDS__imasdb
+config_beam_dispatch['on']['diagnostic']['user']=IDS__username
 config_beam_dispatch['default']={}
 config_beam_dispatch['default']['default']={}
 config_beam_dispatch['default']['default']['shot']=130011
 config_beam_dispatch['default']['default']['run']=1
 config_beam_dispatch['default']['default']['imasdb']='ITER'
+config_beam_dispatch['default']['default']['user']='public'
+
 config_beam_1='default' #assign to these variables in run scripts which type of beam configs we want
 config_beam_2='default'
 
@@ -310,7 +339,8 @@ args_batch_names=['parameters__sheet_name_kinetic_prof',
                   'IDS__target_IDS_run',
                   'IDS__NBI_shot',
                   'IDS__NBI_run',
-                  'IDS__NBI_imasdb']
+                  'IDS__NBI_imasdb',
+                  'IDS__NBI_user']
 
 for arg_name in args_batch_names:
     args_batch[arg_name]=[]
@@ -324,20 +354,6 @@ commit_hash_dispatch['GPU10']='b304bee99a485a9b44d8350cfa141ed9c1b7d19a'
 commit_hash_dispatch['CUMULUS']='244736c951eba6f788e11f3a1a68553a4abcc2ba'
 commit_hash_dispatch['TITAN']='0c2bbb9eab574bb3b6a5d48a8a4cd8ddc6448ee4'
 commit_hash_dispatch['VIKING']='908df2997978f99a9f871acb0f4031e56f505727'
-
-##################################################################
-#define parameters which are fixed throughout a parameter scan - if we want to vary then add as a layer in the for loops
-
-#fixed parameters needed by LOCUST_run
-LOCUST_run__environment_name='TITAN'
-LOCUST_run__repo_URL=f"'{settings.repo_URL_LOCUST}'"
-LOCUST_run__commit_hash="'{}'".format(commit_hash_dispatch[LOCUST_run__environment_name])
-
-#IMAS parameters to specify location of locally made input IDS
-IDS__shot=1
-IDS__run=1
-IDS__username=settings.username
-IDS__imasdb=settings.imasdb
 
 #################################
  
