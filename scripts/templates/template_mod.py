@@ -41,6 +41,16 @@ except:
 ##################################################################
 #define parameters which are fixed throughout a parameter scan - if we want to vary then add as a layer in the for loops
 
+commit_hash_dispatch={} #select LOCUST commit hash based on system
+commit_hash_dispatch['GPU6']='053aefeeccab47bedb11de691a979e769c29630f'
+commit_hash_dispatch['GPU7']='053aefeeccab47bedb11de691a979e769c29630f'
+commit_hash_dispatch['GPU8']='b304bee99a485a9b44d8350cfa141ed9c1b7d19a'
+commit_hash_dispatch['GPU9']='b304bee99a485a9b44d8350cfa141ed9c1b7d19a'
+commit_hash_dispatch['GPU10']='b304bee99a485a9b44d8350cfa141ed9c1b7d19a'
+commit_hash_dispatch['CUMULUS']='244736c951eba6f788e11f3a1a68553a4abcc2ba'
+commit_hash_dispatch['TITAN']='0c2bbb9eab574bb3b6a5d48a8a4cd8ddc6448ee4'
+commit_hash_dispatch['VIKING']='908df2997978f99a9f871acb0f4031e56f505727'
+
 #fixed parameters needed by LOCUST_run
 LOCUST_run__environment_name='TITAN'
 LOCUST_run__repo_URL=f"'{settings.repo_URL_LOCUST}'"
@@ -340,20 +350,10 @@ args_batch_names=['parameters__sheet_name_kinetic_prof',
                   'IDS__NBI_shot',
                   'IDS__NBI_run',
                   'IDS__NBI_imasdb',
-                  'IDS__NBI_user']
+                  'IDS__NBI_username']
 
 for arg_name in args_batch_names:
     args_batch[arg_name]=[]
-
-commit_hash_dispatch={} #select LOCUST commit hash based on system
-commit_hash_dispatch['GPU6']='053aefeeccab47bedb11de691a979e769c29630f'
-commit_hash_dispatch['GPU7']='053aefeeccab47bedb11de691a979e769c29630f'
-commit_hash_dispatch['GPU8']='b304bee99a485a9b44d8350cfa141ed9c1b7d19a'
-commit_hash_dispatch['GPU9']='b304bee99a485a9b44d8350cfa141ed9c1b7d19a'
-commit_hash_dispatch['GPU10']='b304bee99a485a9b44d8350cfa141ed9c1b7d19a'
-commit_hash_dispatch['CUMULUS']='244736c951eba6f788e11f3a1a68553a4abcc2ba'
-commit_hash_dispatch['TITAN']='0c2bbb9eab574bb3b6a5d48a8a4cd8ddc6448ee4'
-commit_hash_dispatch['VIKING']='908df2997978f99a9f871acb0f4031e56f505727'
 
 #################################
  

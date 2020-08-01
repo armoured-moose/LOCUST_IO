@@ -464,7 +464,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         run_scripts.utils.create_IDS_NBI(
         shot=self.args['IDS__NBI_shot'],
         run=self.args['IDS__NBI_run'],
-        username=self.args['IDS__NBI_user'],
+        username=self.args['IDS__NBI_username'],
         imasdb=self.args['IDS__NBI_imasdb'],
         imas_version='3',
         machine='ITER',
@@ -505,7 +505,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
 
         #retrieve ITER NBI geometry/settings
         IDS_nbi=imas.ids(self.args['IDS__NBI_shot'],self.args['IDS__NBI_run']) #take NBI geometry from sample public IDS
-        IDS_nbi.open_env(self.args['IDS__NBI_user'],self.args['IDS__NBI_imasdb'],'3')
+        IDS_nbi.open_env(self.args['IDS__NBI_username'],self.args['IDS__NBI_imasdb'],'3')
 
         IDS_nbi.nbi.get()
         new_IDS.nbi=copy.deepcopy(IDS_nbi.nbi) #grab the part of the IDS we want
@@ -1318,7 +1318,7 @@ if __name__=='__main__':
     parser.add_argument('--IDS__NBI_shot',type=int,action='store',dest='IDS__NBI_shot',help="",default=130011)
     parser.add_argument('--IDS__NBI_run',type=int,action='store',dest='IDS__NBI_run',help="",default=1)
     parser.add_argument('--IDS__NBI_imasdb',type=str,action='store',dest='IDS__NBI_imasdb',help="",default='ITER')
-    parser.add_argument('--IDS__NBI_user',type=str,action='store',dest='IDS__NBI_user',help="",default='public')
+    parser.add_argument('--IDS__NBI_username',type=str,action='store',dest='IDS__NBI_username',help="",default='public')
 
     args=parser.parse_args()
 

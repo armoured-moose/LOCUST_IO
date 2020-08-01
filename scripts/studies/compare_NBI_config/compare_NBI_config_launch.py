@@ -90,10 +90,9 @@ except:
 
 try:
     #uncomment for other projects not in templates folder
-    #cwd=pathlib.Path(os.path.dirname(os.path.realpath(__file__)))
-    #sys.path.append(str(cwd.parents[1]))
-    #from templates.template_mod import *
-    from template_mod import *
+    cwd=pathlib.Path(os.path.dirname(os.path.realpath(__file__)))
+    sys.path.append(str(cwd.parents[1]))
+    from templates.template_mod import *
 except:
     raise ImportError("ERROR: templates/template_mod.py could not be imported!\nreturning\n") 
     sys.exit(1)
@@ -168,6 +167,7 @@ for config in configs:
                                                            
                                 #create a string of variables identifying this run
                                 parameters__kinetic_prof_tF_tE_string=parameters__kinetic_profs_tF_tE__dispatch[parameters__kinetic_prof_tF_tE] #generate some variable string equivalents for later
+                                parameters__kinetic_prof_Pr_string=parameters__kinetic_profs_Pr__dispatch[parameters__kinetic_prof_Pr]
 
                                 parameters__parameter_string=''
                                 parameters__parameter_string+='_'.join(['{}_{}'.format(parameter,str(value)) for parameter,value in zip([
@@ -200,7 +200,7 @@ for config in configs:
                                         parameters__current_middle,
                                         parameters__current_lower])])
 
-                                parameters__parameter_string+==''.join(['_',config[0],'_',config[1]])
+                                parameters__parameter_string+=''.join(['_',config[0],'_',config[1]])
 
                                 #################################
                                 #define corresponding workflow args passed to batch (denoted wth __batch)
@@ -368,12 +368,12 @@ for config in configs:
                                 args_batch['IDS__target_IDS_shot'].append(copy.deepcopy(target_IDS_dispatch[parameters__database][parameters__kinetic_prof_Pr_string][parameters__kinetic_prof_tF_tE_string]['shot']))
                                 args_batch['IDS__target_IDS_run'].append(copy.deepcopy(target_IDS_dispatch[parameters__database][parameters__kinetic_prof_Pr_string][parameters__kinetic_prof_tF_tE_string]['run']))
 
-                                config_beam_1=configs[0]
-                                config_beam_2=configs[1]
+                                config_beam_1=config[0]
+                                config_beam_2=config[1]
                                 args_batch['IDS__NBI_shot'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['shot']))
                                 args_batch['IDS__NBI_run'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['run']))
                                 args_batch['IDS__NBI_imasdb'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['imasdb']))
-                                args_batch['IDS__NBI_user'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['user']))
+                                args_batch['IDS__NBI_username'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['user']))
 
 ##################################################################
 #define and launch the batch scripts
@@ -385,7 +385,7 @@ if __name__=='__main__':
         workflow_filepath=path_template_run,
         environment_name_batch=LOCUST_run__environment_name,
         environment_name_workflow=LOCUST_run__environment_name,   
-        interactive=False)   
+        interactive=True)   
 
 #################################
  

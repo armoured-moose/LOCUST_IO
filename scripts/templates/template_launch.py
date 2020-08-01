@@ -370,7 +370,7 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                             args_batch['IDS__NBI_shot'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['shot']))
                             args_batch['IDS__NBI_run'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['run']))
                             args_batch['IDS__NBI_imasdb'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['imasdb']))
-                            args_batch['IDS__NBI_user'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['user']))
+                            args_batch['IDS__NBI_username'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['user']))
 
 ##################################################################
 #define and launch the batch scripts
