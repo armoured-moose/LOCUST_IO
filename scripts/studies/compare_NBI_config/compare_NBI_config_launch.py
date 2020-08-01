@@ -1,8 +1,8 @@
-#compare_collisions_launch.py
+#compare_NBI_config_launch.py
  
 """
 Samuel Ward
-13/06/20
+14/10/19
 ----
 script for controlling and launching LOCUST parameter scans for static RMP studies
 ---
@@ -26,12 +26,21 @@ notes:
                         RMP_study
                             parameter_folder_name - stores all the outputs permanently
                 cache_files
-                    database_folder_name
-                        RMP_study
+                    database_folder_name - store parameter-agnostic cache here
+                        parameter_folder_name - store parameter-specific cache here
+
         /tmp/<uname>/ (LOCUST root dir)
             InputFiles
             OutputFiles
             CacheFiles
+
+    assumes PureVac fields are renamed to:
+        mv BPLASMA_MARSF_n3_LV BPLASMA_MARSF_n3_cL_V  
+        mv BPLASMA_MARSF_n3_UV BPLASMA_MARSF_n3_cU_V  
+        mv BPLASMA_MARSF_n6_MV BPLASMA_MARSF_n6_cM_V
+        mv BPLASMA_MARSF_n3_MV BPLASMA_MARSF_n3_cM_V  
+        mv BPLASMA_MARSF_n6_LV BPLASMA_MARSF_n6_cL_V
+        mv BPLASMA_MARSF_n6_UV BPLASMA_MARSF_n6_cU_V
 ---
 """
 
@@ -80,9 +89,11 @@ except:
     sys.exit(1)
 
 try:
-    cwd=pathlib.Path(os.path.dirname(os.path.realpath(__file__)))
-    sys.path.append(str(cwd.parents[1]))
-    from templates.template_mod import *
+    #uncomment for other projects not in templates folder
+    #cwd=pathlib.Path(os.path.dirname(os.path.realpath(__file__)))
+    #sys.path.append(str(cwd.parents[1]))
+    #from templates.template_mod import *
+    from template_mod import *
 except:
     raise ImportError("ERROR: templates/template_mod.py could not be imported!\nreturning\n") 
     sys.exit(1)
@@ -94,7 +105,7 @@ except:
 #################################
 #define study name 
 
-RMP_study__name='compare_collisions'
+RMP_study__name='compare_NBI_config'
 
 #################################
 #define options and dispatch tables for helping choosing settings
@@ -126,23 +137,24 @@ parameters__rotations_middle=np.array([0.])
 parameters__rotations_lower=np.array([0.])
 parameters__currents_upper=np.array([90.])*1000.
 parameters__currents_middle=np.array([90.])*1000.
-parameters__currents_lower=np.array([90])*1000.
+parameters__currents_lower=np.array([90.])*1000.
 
 ##################################################################
 #define the workflow commands in order we want to execute them
 
-RMP_study__workflow_commands="\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create','kin_extrap','run_BBNBI','depo_get','run_LOCUST','clean_input']\""
-collision_types=[{'icoll':1,'iscat':1,'idiff':1},
-                 {'icoll':0,'iscat':0,'idiff':0}]
+RMP_study__workflow_commands="\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create_DNB','IDS_create','run_BBNBI','depo_plot']\""#,'depo_get','run_LOCUST','clean_input']\""
 
 ##################################################################
 #create every valid combination of parameter, returned in flat lists
 #use zip and nest levels to define specific combinations which cannot be varied
 
+configs=[['on','diagnostic'],['on','on']]
+
 run_number=0
 parameter_strings=[]
+
 #first level are the data which remain constant for a parameter scan
-for collision_type in collision_types:
+for config in configs:
     for parameters__database,parameters__sheet_name_kinetic_prof in zip(
             parameters__databases,parameters__sheet_names_kinetic_prof): 
         for parameters__kinetic_prof_tF_tE in parameters__kinetic_profs_tF_tE:
@@ -156,7 +168,6 @@ for collision_type in collision_types:
                                                            
                                 #create a string of variables identifying this run
                                 parameters__kinetic_prof_tF_tE_string=parameters__kinetic_profs_tF_tE__dispatch[parameters__kinetic_prof_tF_tE] #generate some variable string equivalents for later
-                                parameters__kinetic_prof_Pr_string=parameters__kinetic_profs_Pr__dispatch[parameters__kinetic_prof_Pr]
 
                                 parameters__parameter_string=''
                                 parameters__parameter_string+='_'.join(['{}_{}'.format(parameter,str(value)) for parameter,value in zip([
@@ -189,10 +200,7 @@ for collision_type in collision_types:
                                         parameters__current_middle,
                                         parameters__current_lower])])
 
-                                for collision in ['icoll','iscat','idiff']: #add collision types to parameter string
-                                    parameters__parameter_string+=''.join('{}_{}_'.format(collision,collision_type[collision]))
-
-                                parameter_strings.append(parameters__parameter_string)
+                                parameters__parameter_string+==''.join(['_',config[0],'_',config[1]])
 
                                 #################################
                                 #define corresponding workflow args passed to batch (denoted wth __batch)
@@ -239,21 +247,17 @@ for collision_type in collision_types:
                                 LOCUST_run__settings_prec_mod['file_tet']="'locust_wall'" 
                                 LOCUST_run__settings_prec_mod['file_eqm']="'locust_eqm'" 
                                 LOCUST_run__settings_prec_mod['threadsPerBlock']=64
-                                LOCUST_run__settings_prec_mod['blocksPerGrid']=512
+                                LOCUST_run__settings_prec_mod['blocksPerGrid']=256
                                 LOCUST_run__settings_prec_mod['root']="'/tmp/{username}/{study}/{params}'".format(username=settings.username,study=RMP_study__name,params=parameters__parameter_string)
                                 LOCUST_run__settings_prec_mod['i3dr']=-1 #XXX WHILST I3DR FLAG IS BROKE
                                 LOCUST_run__settings_prec_mod['niter']=1
-                                
-                                for collision,value_on_off in collision_type.items(): #specify collision types
-                                    LOCUST_run__settings_prec_mod[collision]=value_on_off    
-
                                 MARS_read__flags={}
                                 MARS_read__flags['TOKAMAK']=1
+                                MARS_read__flags['N0']=parameters__toroidal_mode_number[0]
                                 MARS_read__flags['PLS']=True
                                 MARS_read__flags['UPHASE']=f'{parameters__phase_upper}D0' #XXX does this account for counter-rotating harmonics?
                                 MARS_read__flags['MPHASE']=f'{parameters__phase_middle}D0'
                                 MARS_read__flags['LPHASE']=f'{parameters__phase_lower}D0'
-                                MARS_read__flags['N0']=parameters__toroidal_mode_number[0]
                                 MARS_read__settings={}
                                 MARS_read__settings['TAIL']="{}".format(MARS_read__tails)
                                 MARS_read__settings['IKATN']=f'[{parameters__current_upper/1000.}_gpu,{parameters__current_middle/1000.}_gpu,{parameters__current_lower/1000.}_gpu]'
@@ -269,10 +273,11 @@ for collision_type in collision_types:
                                 BBNBI_run__xml_settings={}
                                 BBNBI_run__number_particles=LOCUST_run__settings_prec_mod['threadsPerBlock']*LOCUST_run__settings_prec_mod['blocksPerGrid']*8
                                 BBNBI_run__dir_BBNBI=support.dir_bbnbi
-
+                                
                                 #3D field settings
-                                LOCUST_run__flags['B3D']=True
-                                LOCUST_run__flags['B3D_EX']=True
+                                if run_number!=1: #make first run axisymmetric as control run
+                                    LOCUST_run__flags['B3D']=True
+                                    LOCUST_run__flags['B3D_EX']=True
                                 #if all coilsets do not rotate together we must split them up individually!
                                 if all(rotation==parameters__rotation_upper for rotation in [parameters__rotation_upper,parameters__rotation_middle,parameters__rotation_lower]): 
                                     #if coils rotate together but we still want one row offset with others then define relative phase for mars_read
@@ -338,7 +343,7 @@ for collision_type in collision_types:
                                 
                                 #find paths to 3D fields corresponding to desired parameters depending on requested field type
 
-                                RMP_study__field_type='plasma_response' #response or vacuum
+                                RMP_study__field_type='vacuum' #response or vacuum
 
                                 for coil_row in ['cU','cM','cL']:
 
@@ -362,6 +367,13 @@ for collision_type in collision_types:
                                 args_batch['IDS__imasdb'].append(copy.deepcopy(IDS__imasdb))
                                 args_batch['IDS__target_IDS_shot'].append(copy.deepcopy(target_IDS_dispatch[parameters__database][parameters__kinetic_prof_Pr_string][parameters__kinetic_prof_tF_tE_string]['shot']))
                                 args_batch['IDS__target_IDS_run'].append(copy.deepcopy(target_IDS_dispatch[parameters__database][parameters__kinetic_prof_Pr_string][parameters__kinetic_prof_tF_tE_string]['run']))
+
+                                config_beam_1=configs[0]
+                                config_beam_2=configs[1]
+                                args_batch['IDS__NBI_shot'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['shot']))
+                                args_batch['IDS__NBI_run'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['run']))
+                                args_batch['IDS__NBI_imasdb'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['imasdb']))
+                                args_batch['IDS__NBI_user'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['user']))
 
 ##################################################################
 #define and launch the batch scripts

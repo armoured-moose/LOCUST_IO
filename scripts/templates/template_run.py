@@ -4,11 +4,10 @@
 Samuel Ward
 14/10/2019
 ----
-workflow designed for RMP studies (with static RMP field)
+workflow designed for RMP studies
 ---
 notes: 
-    most of the runtime settings for this file are controlled by the launch file, so this file can remain unchanged
-    since RMP field is static, total field is combined before LOCUST simulation
+    file is designed to not assume anything about the study being performed, so is almost entirely controlled by the launch file
     all filepaths are absolute at the beginning
     LOCUST_run__settings_prec_mod['file_tet'] and LOCUST_run__settings_prec_mod['file_eqm'] must be set
     ! setting interpolation type=RBF currently breaks due to bugs in module environment
@@ -457,6 +456,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
 
     def create_IDS_DNB(self,*args,**kwargs):
         """
+        create NBI IDS to be copied into IDS created in create_IDS
+
         notes:
         """
     
@@ -879,6 +880,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
 
     def plot_beam_deposition(self,*args,**kwargs):
         """
+        plots the beam deposition stored in target IDS
+
         notes:
         """
 
