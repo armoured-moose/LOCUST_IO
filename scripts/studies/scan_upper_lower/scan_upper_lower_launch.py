@@ -218,7 +218,7 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(parameters__
                                 LOCUST_run__flags['TIMAX']='0.25D0'
                                 LOCUST_run__flags['SPLIT']=True
                                 LOCUST_run__flags['SMALLEQ']=True #XXX test whether we need this when using mesh
-                                LOCUST_run__flags['CONLY']=True
+                                #LOCUST_run__flags['CONLY']=True
                                 LOCUST_run__flags['VROT']=True
                                 #LOCUST_run__flags['OMEGAT']=True
                                 LOCUST_run__flags['NOTUNE']=True

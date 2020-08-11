@@ -720,7 +720,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
             kinetic_profile_group=processing.utils.extrapolate_kinetic_profiles_ITER(equilibrium,*kinetic_profile_group,**extrapolate_settings)
             for kinetic_profile in kinetic_profile_group:
                 kinetic_profile.dump_data(data_format='LOCUST',filename=str(kinetic_profile['output_filename']))#first dump to LOCUST format
-                
+
+        '''                
                 #then re-dump to IDS - making sure ion temperature/rotation is set equal across all ion species in IDS
                 if (kinetic_profile.LOCUST_input_type is 'temperature' or kinetic_profile.LOCUST_input_type is 'rotation') and kinetic_profile.properties['species'] is 'ions': 
                     for species_name,species_AZ in table_species_AZ.items():
@@ -767,6 +768,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                 IDS.core_profiles.profiles_1d[0].ion[ion_counter].velocity.toroidal=np.full(len(IDS.core_profiles.profiles_1d[0].grid.psi),1.)
         IDS.core_profiles.put()
         IDS.close()
+        '''                
 
     def plot_kinetic_profiles(self,*args,**kwargs):
         """
@@ -895,6 +897,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
             raise ImportError("ERROR: read_beam_depo_IDS could not import IMAS module!\nreturning\n")
             return
 
+        '''
         #read in deposition one beamlet at a time - code taken from Beam_Deposition.read_beam_depo_IDS
         new_IDS=imas.ids(self.args['IDS__shot'],self.args['IDS__run']) #read from our newly created IDS
         new_IDS.open_env(self.args['IDS__username'],self.args['IDS__imasdb'],settings.imas_version)
@@ -929,14 +932,18 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         
         new_IDS.close()
 
+        '''
         #plot what we have
+        axes=['R','Z']
+        equilibrium=Equilibrium(ID='',data_format='GEQDSK',filename=self.args['RMP_study__filepath_equilibrium'],GEQDSKFIX1=True,GEQDSKFIX2=True)
+        '''
         import matplotlib.pyplot as plt
         fig,(ax1,ax2)=plt.subplots(2,1)
-        axes=['R','Z']
         for beamlet in beam_deposition_beamlets:
             beamlet.plot(ax=ax1,fig=fig,axes=axes,style='scatter',real_scale=True,quivers=True)
-        beam_deposition_full.plot(ax=ax2,fig=fig,axes=axes,number_bins=500,real_scale=True)
         plt.show() 
+        '''
+        beam_deposition_full.plot(axes=axes,number_bins=500,real_scale=True,LCFS=equilibrium,limiters=equilibrium,style='scatter')
 
     def BCHECK_2D(self,*args,**kwargs):
         """
@@ -1249,7 +1256,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         LOCUST_workflow.run()
 
         #remove root IFF empty
-        pathlib.Path(self.args['LOCUST_run__settings_prec_mod']['root']).rmdir()
+        pathlib.Path(self.args['LOCUST_run__settings_prec_mod']['root']).strip('\'').rmdir()
 
     def clean_input(self,*args,**kwargs):
         """

@@ -174,6 +174,7 @@ for orbit_setting in orbit_settings:
                                 elif orbit_setting is 'guiding_centre':
                                     LOCUST_run__flags['LEIID']=7
                                     LOCUST_run__flags['UNBOR']=10
+                                    LOCUST_run__flags['GCCOL']=True
                                 else:
                                     print(f"ERROR: orbit_setting={orbit_setting} - valid options = 'full_orbit' or 'guiding_centre'!\nreturning\n")
                                     sys.exit(1)
@@ -199,7 +200,7 @@ for orbit_setting in orbit_settings:
                                 LOCUST_run__flags['TIMAX']='0.5D0'
                                 LOCUST_run__flags['SPLIT']=True
                                 LOCUST_run__flags['SMALLEQ']=True #XXX test whether we need this when using mesh
-                                LOCUST_run__flags['CONLY']=True
+                                #LOCUST_run__flags['CONLY']=True
                                 LOCUST_run__flags['VROT']=True
                                 #LOCUST_run__flags['OMEGAT']=True
                                 LOCUST_run__flags['NOTUNE']=True

@@ -141,7 +141,16 @@ parameters__currents_lower=np.array([90.])*1000.
 ##################################################################
 #define the workflow commands in order we want to execute them
 
-RMP_study__workflow_commands="\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create_DNB','IDS_create','run_BBNBI','depo_plot']\""#,'depo_get','run_LOCUST','clean_input']\""
+RMP_study__workflow_commands="\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create_DNB','IDS_create','run_BBNBI','depo_get','run_LOCUST','clean_input']\""
+
+RMP_study__workflow_commands="\"['mkdir','IDS_create_DNB','IDS_create','run_BBNBI','depo_get','depo_plot']\""#XXX
+
+RMP_study__workflow_commands=["\"['mkdir','IDS_create_DNB','IDS_create','run_BBNBI','depo_get','depo_plot']\"", #need to make sure to create diagnostic NBI IDS only in diagnostic NBI steps
+                                  "\"['mkdir','IDS_create','run_BBNBI','depo_get','depo_plot']\""]
+
+RMP_study__workflow_commands=["\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create_DNB','IDS_create','run_BBNBI','depo_get','run_LOCUST','clean_input']\"", #need to make sure to create diagnostic NBI IDS only in diagnostic NBI steps
+                                  "\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create','run_BBNBI','depo_get','run_LOCUST','clean_input']\""]
+
 
 ##################################################################
 #create every valid combination of parameter, returned in flat lists
@@ -153,7 +162,7 @@ run_number=0
 parameter_strings=[]
 
 #first level are the data which remain constant for a parameter scan
-for config in configs:
+for config,workflow_commands in zip(configs,RMP_study__workflow_commands):
     for parameters__database,parameters__sheet_name_kinetic_prof in zip(
             parameters__databases,parameters__sheet_names_kinetic_prof): 
         for parameters__kinetic_prof_tF_tE in parameters__kinetic_profs_tF_tE:
@@ -232,7 +241,7 @@ for config in configs:
                                 LOCUST_run__flags['TIMAX']='0.5D0'
                                 LOCUST_run__flags['SPLIT']=True
                                 LOCUST_run__flags['SMALLEQ']=True #XXX test whether we need this when using mesh
-                                LOCUST_run__flags['CONLY']=True
+                                #LOCUST_run__flags['CONLY']=True
                                 LOCUST_run__flags['VROT']=True
                                 #LOCUST_run__flags['OMEGAT']=True
                                 LOCUST_run__flags['NOTUNE']=True
@@ -275,9 +284,8 @@ for config in configs:
                                 BBNBI_run__dir_BBNBI=support.dir_bbnbi
                                 
                                 #3D field settings
-                                if run_number!=1: #make first run axisymmetric as control run
-                                    LOCUST_run__flags['B3D']=True
-                                    LOCUST_run__flags['B3D_EX']=True
+                                LOCUST_run__flags['B3D']=True
+                                LOCUST_run__flags['B3D_EX']=True
                                 #if all coilsets do not rotate together we must split them up individually!
                                 if all(rotation==parameters__rotation_upper for rotation in [parameters__rotation_upper,parameters__rotation_middle,parameters__rotation_lower]): 
                                     #if coils rotate together but we still want one row offset with others then define relative phase for mars_read
@@ -339,11 +347,11 @@ for config in configs:
                                 args_batch['RMP_study__filepath_kinetic_profiles'].append(copy.deepcopy(list((RMP_study__dir_input_database / parameters__database / folder_name_DataEq).glob('*.xlsx'))[0])) #determine path to current kinetic profiles
                                 args_batch['RMP_study__filepath_equilibrium'].append(copy.deepcopy(list((RMP_study__dir_input_database / parameters__database / folder_name_DataEq).glob('*eqdsk*'))[0])) #determine path to current equilibrium
                                 args_batch['RMP_study__filepath_additional_data'].append(copy.deepcopy(RMP_study__filepaths_additional_data))
-                                args_batch['RMP_study__workflow_commands'].append(RMP_study__workflow_commands)
+                                args_batch['RMP_study__workflow_commands'].append(workflow_commands)
                                 
                                 #find paths to 3D fields corresponding to desired parameters depending on requested field type
 
-                                RMP_study__field_type='vacuum' #response or vacuum
+                                RMP_study__field_type='plasma_response' #response or vacuum
 
                                 for coil_row in ['cU','cM','cL']:
 
@@ -385,7 +393,7 @@ if __name__=='__main__':
         workflow_filepath=path_template_run,
         environment_name_batch=LOCUST_run__environment_name,
         environment_name_workflow=LOCUST_run__environment_name,   
-        interactive=True)   
+        interactive=False)   
 
 #################################
  

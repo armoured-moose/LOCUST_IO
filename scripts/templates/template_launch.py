@@ -228,7 +228,7 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                             LOCUST_run__flags['TIMAX']='0.5D0'
                             LOCUST_run__flags['SPLIT']=True
                             LOCUST_run__flags['SMALLEQ']=True #XXX test whether we need this when using mesh
-                            LOCUST_run__flags['CONLY']=True
+                            #LOCUST_run__flags['CONLY']=True
                             LOCUST_run__flags['VROT']=True
                             #LOCUST_run__flags['OMEGAT']=True
                             LOCUST_run__flags['NOTUNE']=True
@@ -339,7 +339,7 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                             
                             #find paths to 3D fields corresponding to desired parameters depending on requested field type
 
-                            RMP_study__field_type='vacuum' #response or vacuum
+                            RMP_study__field_type='plasma_response' #response or vacuum
 
                             for coil_row in ['cU','cM','cL']:
 
