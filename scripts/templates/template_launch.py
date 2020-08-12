@@ -129,9 +129,9 @@ parameters__kinetic_profs_tF_tE=[2.]
 #3D field parameters which vary independently - if you want to vary these together then put them into the same loop nesting below
 #2D arrays, each element has length = number of modes
 parameters__toroidal_mode_numbers=[[-3,-6]]
-parameters__phases_upper=np.array([86.])#np.linspace(-10,140,16) #first value is for axisymmetric simulation - 86,0,34 = default for maximmum stochasticity
-parameters__phases_middle=np.array([0.])#np.linspace(-10,140,16)
-parameters__phases_lower=np.array([34.])#np.linspace(-10,140,16)
+parameters__phases_upper=np.array([86.])+30#np.linspace(-10,140,16) #first value is for axisymmetric simulation - 86,0,34 = default for maximmum stochasticity (measured from first coil)
+parameters__phases_middle=np.array([0.])+26.7#np.linspace(-10,140,16)
+parameters__phases_lower=np.array([34.])+30#np.linspace(-10,140,16)
 parameters__rotations_upper=np.array([0.])
 parameters__rotations_middle=np.array([0.])
 parameters__rotations_lower=np.array([0.])
@@ -204,37 +204,7 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                             #run-specific settings
 
                             #these may vary in future - in which case add a new nesting to the parameter loop below
-                            LOCUST_run__flags={}
-                            LOCUST_run__flags['TOKAMAK']=1
-                            LOCUST_run__flags['LEIID']=6
-                            LOCUST_run__flags['WLIST']=True
-                            LOCUST_run__flags['WREAL']=True
-                            LOCUST_run__flags['BRELAX']=True
-                            LOCUST_run__flags['UNBOR']=100
-                            LOCUST_run__flags['OPENMESH']=True
-                            LOCUST_run__flags['OPENTRACK']=True
-                            LOCUST_run__flags['PFCMOD']=True
-                            #LOCUST_run__flags['NOPFC']=True
-                            LOCUST_run__flags['TOKHEAD']=True
-                            LOCUST_run__flags['JXB2']=True
-                            LOCUST_run__flags['PROV']=True
-                            LOCUST_run__flags['PITCHCUR']=True
-                            LOCUST_run__flags['EBASE']=True
-                            LOCUST_run__flags['UHST']=True
-                            LOCUST_run__flags['LNLBT']=True
-                            LOCUST_run__flags['GEQDSKFIX1']=True
-                            LOCUST_run__flags['GEQDSKFIX2']=True
-                            LOCUST_run__flags['BP']=True
-                            LOCUST_run__flags['TIMAX']='0.5D0'
-                            LOCUST_run__flags['SPLIT']=True
-                            LOCUST_run__flags['SMALLEQ']=True #XXX test whether we need this when using mesh
-                            #LOCUST_run__flags['CONLY']=True
-                            LOCUST_run__flags['VROT']=True
-                            #LOCUST_run__flags['OMEGAT']=True
-                            LOCUST_run__flags['NOTUNE']=True
-                            LOCUST_run__flags['BP']=True
-                            LOCUST_run__flags['BILIN']=True
-                            LOCUST_run__flags['BICUB']=True
+                            LOCUST_run__flags=LOCUST_run__flags_default
                             #XXX CURRENTLY WAITING FOR FIX LOCUST_run__flags['I3DR']=-1 
                             LOCUST_run__settings_prec_mod={}
                             LOCUST_run__settings_prec_mod['nmde']=len(parameters__toroidal_mode_number) #number of total toroidal harmonics = number of modes

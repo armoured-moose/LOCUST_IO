@@ -284,25 +284,22 @@ config_beam_dispatch['off']['on']['shot']=44
 config_beam_dispatch['off']['on']['run']=33
 config_beam_dispatch['off']['on']['imasdb']='ITER_MD'
 config_beam_dispatch['off']['on']['user']='public'
-config_beam_dispatch['off']['diagnostic']={}
-config_beam_dispatch['off']['diagnostic']['shot']=IDS__shot
-config_beam_dispatch['off']['diagnostic']['run']=IDS__run+1 #just fill the adjacent run when generating our own NBI
-config_beam_dispatch['off']['diagnostic']['imasdb']=IDS__imasdb
-config_beam_dispatch['off']['diagnostic']['user']=IDS__username
-config_beam_dispatch['on']['diagnostic']={}
-config_beam_dispatch['on']['diagnostic']['shot']=IDS__shot
-config_beam_dispatch['on']['diagnostic']['run']=IDS__run+1 #just fill the adjacent run when generating our own NBI
-config_beam_dispatch['on']['diagnostic']['imasdb']=IDS__imasdb
-config_beam_dispatch['on']['diagnostic']['user']=IDS__username
-config_beam_dispatch['default']={}
-config_beam_dispatch['default']['default']={}
-config_beam_dispatch['default']['default']['shot']=130011
-config_beam_dispatch['default']['default']['run']=1
-config_beam_dispatch['default']['default']['imasdb']='ITER'
-config_beam_dispatch['default']['default']['user']='public'
+config_beam_dispatch['diagnostic'][None]={}
+config_beam_dispatch['diagnostic'][None]['shot']=IDS__shot
+config_beam_dispatch['diagnostic'][None]['run']=IDS__run+1 #just fill the adjacent run when generating our own NBI
+config_beam_dispatch['diagnostic'][None]['imasdb']=IDS__imasdb
+config_beam_dispatch['diagnostic'][None]['user']=IDS__username
+config_beam_dispatch['test']={}
+config_beam_dispatch['test']['test']={}
+config_beam_dispatch['test']['test']['shot']=130011
+config_beam_dispatch['test']['test']['run']=1
+config_beam_dispatch['test']['test']['imasdb']='ITER'
+config_beam_dispatch['test']['test']['user']='public'
 
-config_beam_1='default' #assign to these variables in run scripts which type of beam configs we want
-config_beam_2='default'
+config_beam_1_default='on'
+config_beam_2_default='on'
+config_beam_1=config_beam_1_default #can override this in run_scripts
+config_beam_2=config_beam_2_default
 
 ##################################################################
 #initialise all the lists of arguments passed to the batch study from the launch script
@@ -321,7 +318,7 @@ args_batch_names=['parameters__sheet_name_kinetic_prof',
                   'LOCUST_run__repo_URL',
                   'LOCUST_run__commit_hash',
                   'LOCUST_run__settings_prec_mod',
-                  'LOCUST_run__flags',
+                  'LOCUST_run__flags_default',
                   'NEMO_run__dir_NEMO',
                   'NEMO_run__xml_settings',
                   'BBNBI_run__dir_BBNBI',
@@ -354,6 +351,43 @@ args_batch_names=['parameters__sheet_name_kinetic_prof',
 
 for arg_name in args_batch_names:
     args_batch[arg_name]=[]
+
+##################################################################
+# default LOCUST run flags
+
+LOCUST_run__flags_default={}
+LOCUST_run__flags_default['TOKAMAK']=1
+LOCUST_run__flags_default['LEIID']=6
+LOCUST_run__flags_default['WLIST']=True
+LOCUST_run__flags_default['WREAL']=True
+LOCUST_run__flags_default['BRELAX']=True
+LOCUST_run__flags_default['UNBOR']=100
+LOCUST_run__flags_default['OPENMESH']=True
+LOCUST_run__flags_default['OPENTRACK']=True
+LOCUST_run__flags_default['PFCMOD']=True
+#LOCUST_run__flags_default['NOPFC']=True
+LOCUST_run__flags_default['TOKHEAD']=True
+LOCUST_run__flags_default['JXB2']=True
+LOCUST_run__flags_default['PROV']=True
+LOCUST_run__flags_default['PITCHCUR']=True
+LOCUST_run__flags_default['EBASE']=True
+LOCUST_run__flags_default['UHST']=True
+LOCUST_run__flags_default['LNLBT']=True
+LOCUST_run__flags_default['GEQDSKFIX1']=True
+LOCUST_run__flags_default['GEQDSKFIX2']=True
+LOCUST_run__flags_default['BP']=True
+LOCUST_run__flags_default['TIMAX']='0.5D0'
+LOCUST_run__flags_default['SPLIT']=True
+LOCUST_run__flags_default['SMALLEQ']=True #XXX test whether we need this when using mesh
+#LOCUST_run__flags_default['CONLY']=True
+LOCUST_run__flags_default['VROT']=True
+LOCUST_run__flags_default['NOTUNE']=True
+LOCUST_run__flags_default['BP']=True
+LOCUST_run__flags_default['BILIN']=True
+LOCUST_run__flags_default['BICUB']=True
+LOCUST_run__flags_default['B3D']=True
+LOCUST_run__flags_default['B3D_EX']=True
+#LOCUST_run__flags_default['OMEGAT']=True
 
 #################################
  
