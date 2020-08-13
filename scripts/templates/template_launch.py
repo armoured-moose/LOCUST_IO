@@ -203,7 +203,7 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
 
                             #run-specific settings
 
-                            #these may vary in future - in which case add a new nesting to the parameter loop below
+                            
                             LOCUST_run__flags=LOCUST_run__flags_default
                             #XXX CURRENTLY WAITING FOR FIX LOCUST_run__flags['I3DR']=-1 
                             LOCUST_run__settings_prec_mod={}
@@ -229,8 +229,8 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                             MARS_read__settings['IKATN']=f'[{parameters__current_upper/1000.}_gpu,{parameters__current_middle/1000.}_gpu,{parameters__current_lower/1000.}_gpu]'
                             MARS_read__settings['dXR']=f'{0.010}_gpu'
                             MARS_read__settings['dXZ']=f'{0.010}_gpu'
-                            #coil_offsets=[30.,26.7,30.]
-                            #MARS_read__settings['PH0']='"{}"'.format([f'{coil_offset}'+'_gpu' for coil_offset in coil_offsets])
+                            
+                            
 
                             NEMO_run__xml_settings={}
                             NEMO_run__xml_settings['nmarker']=LOCUST_run__settings_prec_mod['threadsPerBlock']*LOCUST_run__settings_prec_mod['blocksPerGrid']*8
@@ -241,9 +241,9 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                             BBNBI_run__dir_BBNBI=support.dir_bbnbi
                             
                             #3D field settings
-                            if run_number!=1: #make first run axisymmetric as control run
-                                LOCUST_run__flags['B3D']=True
-                                LOCUST_run__flags['B3D_EX']=True
+                            if run_number==1: #make first run axisymmetric as control run
+                                del(LOCUST_run__flags['B3D'])
+                                del(LOCUST_run__flags['B3D_EX'])
                             #if all coilsets do not rotate together we must split them up individually!
                             if all(rotation==parameters__rotation_upper for rotation in [parameters__rotation_upper,parameters__rotation_middle,parameters__rotation_lower]): 
                                 #if coils rotate together but we still want one row offset with others then define relative phase for mars_read
@@ -334,9 +334,9 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                             args_batch['IDS__target_IDS_shot'].append(copy.deepcopy(target_IDS_dispatch[parameters__database][parameters__kinetic_prof_Pr_string][parameters__kinetic_prof_tF_tE_string]['shot']))
                             args_batch['IDS__target_IDS_run'].append(copy.deepcopy(target_IDS_dispatch[parameters__database][parameters__kinetic_prof_Pr_string][parameters__kinetic_prof_tF_tE_string]['run']))
 
-                            #this next block is optional
-                            config_beam_1='diagnostic'
-                            config_beam_2=None
+                            
+                            config_beam_1='on'
+                            config_beam_2='on'
                             args_batch['IDS__NBI_shot'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['shot']))
                             args_batch['IDS__NBI_run'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['run']))
                             args_batch['IDS__NBI_imasdb'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['imasdb']))

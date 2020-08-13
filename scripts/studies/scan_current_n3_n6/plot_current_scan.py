@@ -70,9 +70,17 @@ fig2,ax2=plt.subplots(1)
 for output,col_val in zip(outputs,np.linspace(0,1,len(batch_data.args_batch['LOCUST_run__dir_output']))):
     if output: 
         output.plot(fig=fig1,ax=ax1,axes=['time'],fill=False,label=output.ID,colmap=settings.cmap_default,colmap_val=col_val,number_bins=200,weight=True)
+        output['E']/=1000. #convert to keV
         output.plot(fig=fig2,ax=ax2,axes=['E'],fill=False,label=output.ID,colmap=settings.cmap_default,colmap_val=col_val,number_bins=200,weight=True)
 ax1.legend()
 ax2.legend()
+ax1.set_xlabel('time [s]')
+ax2.set_xlabel('energy [keV]')
+ax1.set_ylabel('losses')
+ax2.set_ylabel('losses')
+ax1.set_title('')
+ax1.set_title('')
+ax2.set_title('')
 plt.show()
 
 outputs=templates.plot_mod.get_output_files(batch_data,'dfn')

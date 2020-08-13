@@ -1,10 +1,10 @@
-#compare_NBI_config_launch.py
+#scan_marker_number_launch.py
  
 """
 Samuel Ward
-14/10/19
+12/08/20
 ----
-script for controlling and launching LOCUST parameter scans for static RMP studies
+check convergence of total losses vs marker number
 ---
  
 notes:         
@@ -26,21 +26,12 @@ notes:
                         RMP_study
                             parameter_folder_name - stores all the outputs permanently
                 cache_files
-                    database_folder_name - store parameter-agnostic cache here
-                        parameter_folder_name - store parameter-specific cache here
-
+                    database_folder_name
+                        RMP_study
         /tmp/<uname>/ (LOCUST root dir)
             InputFiles
             OutputFiles
             CacheFiles
-
-    assumes PureVac fields are renamed to:
-        mv BPLASMA_MARSF_n3_LV BPLASMA_MARSF_n3_cL_V  
-        mv BPLASMA_MARSF_n3_UV BPLASMA_MARSF_n3_cU_V  
-        mv BPLASMA_MARSF_n6_MV BPLASMA_MARSF_n6_cM_V
-        mv BPLASMA_MARSF_n3_MV BPLASMA_MARSF_n3_cM_V  
-        mv BPLASMA_MARSF_n6_LV BPLASMA_MARSF_n6_cL_V
-        mv BPLASMA_MARSF_n6_UV BPLASMA_MARSF_n6_cU_V
 ---
 """
 
@@ -89,7 +80,6 @@ except:
     sys.exit(1)
 
 try:
-    #uncomment for other projects not in templates folder
     cwd=pathlib.Path(os.path.dirname(os.path.realpath(__file__)))
     sys.path.append(str(cwd.parents[1]))
     from templates.template_mod import *
@@ -104,7 +94,7 @@ except:
 #################################
 #define study name 
 
-RMP_study__name='compare_NBI_config'
+RMP_study__name='scan_marker_number'
 
 #################################
 #define options and dispatch tables for helping choosing settings
@@ -128,9 +118,9 @@ parameters__kinetic_profs_tF_tE=[2.]
 #3D field parameters which vary independently - if you want to vary these together then put them into the same loop nesting below
 #2D arrays, each element has length = number of modes
 parameters__toroidal_mode_numbers=[[-3,-6]]
-parameters__phases_upper=np.array([0.])#np.linspace(-10,140,16) #first value is for axisymmetric simulation - 86,0,34 = default for maximmum stochasticity
-parameters__phases_middle=np.array([0.])#np.linspace(-10,140,16)
-parameters__phases_lower=np.array([0.])#np.linspace(-10,140,16)
+parameters__phases_upper=np.array([86.])+30.#86,0,34 = default for maximmum stochasticity
+parameters__phases_middle=np.array([0.])+26.7
+parameters__phases_lower=np.array([34.])+30.
 parameters__rotations_upper=np.array([0.])
 parameters__rotations_middle=np.array([0.])
 parameters__rotations_lower=np.array([0.])
@@ -141,28 +131,22 @@ parameters__currents_lower=np.array([90.])*1000.
 ##################################################################
 #define the workflow commands in order we want to execute them
 
-RMP_study__workflow_commands="\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create_DNB','IDS_create','run_BBNBI','depo_get','run_LOCUST','clean_input']\""
+RMP_study__workflow_commands="\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create','run_BBNBI','depo_get','run_LOCUST','clean_input']\""
 
-RMP_study__workflow_commands="\"['mkdir','IDS_create_DNB','IDS_create','run_BBNBI','depo_get','depo_plot']\""#XXX
+##################################################################
+#define marker population size settings
 
-RMP_study__workflow_commands=["\"['mkdir','IDS_create_DNB','IDS_create','run_BBNBI','depo_get','depo_plot']\"", #need to make sure to create diagnostic NBI IDS only in diagnostic NBI steps
-                                  "\"['mkdir','IDS_create','run_BBNBI','depo_get','depo_plot']\""]
-
-RMP_study__workflow_commands=["\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create_DNB','IDS_create','run_BBNBI','depo_get','run_LOCUST','clean_input']\"", #need to make sure to create diagnostic NBI IDS only in diagnostic NBI steps
-                                  "\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create','run_BBNBI','depo_get','run_LOCUST','clean_input']\""]
-
+parameters__number_blocks=np.array([8,16,32,64,128,256,512,1024])
+parameters__number_threads=np.full(len(parameters__number_blocks),32) 
 
 ##################################################################
 #create every valid combination of parameter, returned in flat lists
 #use zip and nest levels to define specific combinations which cannot be varied
 
-configs=[['on','diagnostic'],['on','on']]
-
 run_number=0
 parameter_strings=[]
-
 #first level are the data which remain constant for a parameter scan
-for config,workflow_commands in zip(configs,RMP_study__workflow_commands):
+for parameters__number_block,parameters__number_thread in zip(parameters__number_blocks,parameters__number_threads):
     for parameters__database,parameters__sheet_name_kinetic_prof in zip(
             parameters__databases,parameters__sheet_names_kinetic_prof): 
         for parameters__kinetic_prof_tF_tE in parameters__kinetic_profs_tF_tE:
@@ -172,52 +156,21 @@ for config,workflow_commands in zip(configs,RMP_study__workflow_commands):
                         for parameters__rotation_upper,parameters__rotation_middle,parameters__rotation_lower in zip(parameters__rotations_upper,parameters__rotations_middle,parameters__rotations_lower): #nest at same level == rotating them together rigidly
                             for parameters__current_upper,parameters__current_middle,parameters__current_lower in zip(parameters__currents_upper,parameters__currents_middle,parameters__currents_lower):
 
-                                run_number+=1 #increment run counter              
-                                                           
+                                run_number+=1 #increment run counter                                         
+
                                 #create a string of variables identifying this run
                                 parameters__kinetic_prof_tF_tE_string=parameters__kinetic_profs_tF_tE__dispatch[parameters__kinetic_prof_tF_tE] #generate some variable string equivalents for later
                                 parameters__kinetic_prof_Pr_string=parameters__kinetic_profs_Pr__dispatch[parameters__kinetic_prof_Pr]
-
-                                parameters__parameter_string=''
-                                parameters__parameter_string+='_'.join(['{}_{}'.format(parameter,str(value)) for parameter,value in zip([
-                                                'tFtE',
-                                                'Pr'
-                                                ],[
-                                                parameters__kinetic_prof_tF_tE,
-                                                parameters__kinetic_prof_Pr])])
-
-                                parameters__parameter_string+='_ntor_'
-                                for mode in parameters__toroidal_mode_number:
-                                    parameters__parameter_string+='{}_'.format(str(mode)) #add toroidal mode information    
-                                parameters__parameter_string+='_'.join(['{}_{}'.format(parameter,str(value)) for parameter,value in zip([
-                                        'phaseu',
-                                        'phasem',
-                                        'phasel',
-                                        'rotu',
-                                        'rotm',
-                                        'rotl',
-                                        'ikatu',
-                                        'ikatm',
-                                        'ikatl'],[
-                                        parameters__phase_upper,
-                                        parameters__phase_middle,
-                                        parameters__phase_lower,
-                                        parameters__rotation_upper,
-                                        parameters__rotation_middle,
-                                        parameters__rotation_lower,
-                                        parameters__current_upper,
-                                        parameters__current_middle,
-                                        parameters__current_lower])])
-
-                                parameters__parameter_string+=''.join(['_',config[0],'_',config[1]])
+                                parameters__parameter_string=f'{parameters__number_block*parameters__number_thread*8}'
+                                parameter_strings.append(parameters__parameter_string)
 
                                 #################################
                                 #define corresponding workflow args passed to batch (denoted wth __batch)
 
                                 #run-specific settings
 
-                                
                                 LOCUST_run__flags=LOCUST_run__flags_default
+                                LOCUST_run__flags['TIMAX']='2.0D0' #override end time since we want convergence
                                 #XXX CURRENTLY WAITING FOR FIX LOCUST_run__flags['I3DR']=-1 
                                 LOCUST_run__settings_prec_mod={}
                                 LOCUST_run__settings_prec_mod['nmde']=len(parameters__toroidal_mode_number) #number of total toroidal harmonics = number of modes
@@ -225,18 +178,18 @@ for config,workflow_commands in zip(configs,RMP_study__workflow_commands):
                                 LOCUST_run__settings_prec_mod['Zb']='+1.0_gpu' 
                                 LOCUST_run__settings_prec_mod['file_tet']="'locust_wall'" 
                                 LOCUST_run__settings_prec_mod['file_eqm']="'locust_eqm'" 
-                                LOCUST_run__settings_prec_mod['threadsPerBlock']=64
-                                LOCUST_run__settings_prec_mod['blocksPerGrid']=256
+                                LOCUST_run__settings_prec_mod['threadsPerBlock']=parameters__number_thread
+                                LOCUST_run__settings_prec_mod['blocksPerGrid']=parameters__number_block
                                 LOCUST_run__settings_prec_mod['root']="'/tmp/{username}/{study}/{params}'".format(username=settings.username,study=RMP_study__name,params=parameters__parameter_string)
                                 LOCUST_run__settings_prec_mod['i3dr']=-1 #XXX WHILST I3DR FLAG IS BROKE
                                 LOCUST_run__settings_prec_mod['niter']=1
                                 MARS_read__flags={}
                                 MARS_read__flags['TOKAMAK']=1
-                                MARS_read__flags['N0']=parameters__toroidal_mode_number[0]
                                 MARS_read__flags['PLS']=True
                                 MARS_read__flags['UPHASE']=f'{parameters__phase_upper}D0' #XXX does this account for counter-rotating harmonics?
                                 MARS_read__flags['MPHASE']=f'{parameters__phase_middle}D0'
                                 MARS_read__flags['LPHASE']=f'{parameters__phase_lower}D0'
+                                MARS_read__flags['N0']=parameters__toroidal_mode_number[0]
                                 MARS_read__settings={}
                                 MARS_read__settings['TAIL']="{}".format(MARS_read__tails)
                                 MARS_read__settings['IKATN']=f'[{parameters__current_upper/1000.}_gpu,{parameters__current_middle/1000.}_gpu,{parameters__current_lower/1000.}_gpu]'
@@ -252,7 +205,7 @@ for config,workflow_commands in zip(configs,RMP_study__workflow_commands):
                                 BBNBI_run__xml_settings={}
                                 BBNBI_run__number_particles=LOCUST_run__settings_prec_mod['threadsPerBlock']*LOCUST_run__settings_prec_mod['blocksPerGrid']*8
                                 BBNBI_run__dir_BBNBI=support.dir_bbnbi
-                                
+
                                 #if all coilsets do not rotate together we must split them up individually!
                                 if all(rotation==parameters__rotation_upper for rotation in [parameters__rotation_upper,parameters__rotation_middle,parameters__rotation_lower]): 
                                     #if coils rotate together but we still want one row offset with others then define relative phase for mars_read
@@ -314,7 +267,7 @@ for config,workflow_commands in zip(configs,RMP_study__workflow_commands):
                                 args_batch['RMP_study__filepath_kinetic_profiles'].append(copy.deepcopy(list((RMP_study__dir_input_database / parameters__database / folder_name_DataEq).glob('*.xlsx'))[0])) #determine path to current kinetic profiles
                                 args_batch['RMP_study__filepath_equilibrium'].append(copy.deepcopy(list((RMP_study__dir_input_database / parameters__database / folder_name_DataEq).glob('*eqdsk*'))[0])) #determine path to current equilibrium
                                 args_batch['RMP_study__filepath_additional_data'].append(copy.deepcopy(RMP_study__filepaths_additional_data))
-                                args_batch['RMP_study__workflow_commands'].append(workflow_commands)
+                                args_batch['RMP_study__workflow_commands'].append(RMP_study__workflow_commands)
                                 
                                 #find paths to 3D fields corresponding to desired parameters depending on requested field type
 
@@ -324,7 +277,7 @@ for config,workflow_commands in zip(configs,RMP_study__workflow_commands):
 
                                     if RMP_study__field_type is 'vacuum':
                                         RMP_study__filepaths_3D_field_head=RMP_study__dir_input_database / 'ITER_15MAQ10_case5'/ 'DataVac' / 'PureVac'
-                                        field_filepath_string='"{}"'.format([str(RMP_study__filepaths_3D_field_head/f'BPLASMA_MARSF_n{np.abs(mode)}_{coil_row}_V') for mode in parameters__toroidal_mode_number])
+                                        field_filepath_string='"{}"'.format([str(RMP_study__filepaths_3D_field_head/f'BPLASMA_MARSF_n{np.abs(mode)}_{coil_row}.IN') for mode in parameters__toroidal_mode_number])
 
                                     elif RMP_study__field_type is 'vacuum_resistive_wall':
                                         RMP_study__filepaths_3D_field_head=RMP_study__dir_input_database / 'ITER_15MAQ10_case5'/ 'DataVac' / 'WithRW'
@@ -343,8 +296,9 @@ for config,workflow_commands in zip(configs,RMP_study__workflow_commands):
                                 args_batch['IDS__target_IDS_shot'].append(copy.deepcopy(target_IDS_dispatch[parameters__database][parameters__kinetic_prof_Pr_string][parameters__kinetic_prof_tF_tE_string]['shot']))
                                 args_batch['IDS__target_IDS_run'].append(copy.deepcopy(target_IDS_dispatch[parameters__database][parameters__kinetic_prof_Pr_string][parameters__kinetic_prof_tF_tE_string]['run']))
 
-                                config_beam_1=config[0]
-                                config_beam_2=config[1]
+                                
+                                config_beam_1='off' #get a varied sample
+                                config_beam_2='on'
                                 args_batch['IDS__NBI_shot'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['shot']))
                                 args_batch['IDS__NBI_run'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['run']))
                                 args_batch['IDS__NBI_imasdb'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['imasdb']))

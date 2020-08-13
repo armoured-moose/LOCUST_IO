@@ -199,38 +199,8 @@ for collision_type in collision_types:
 
                                 #run-specific settings
 
-                                #these may vary in future - in which case add a new nesting to the parameter loop below
-                                LOCUST_run__flags={}
-                                LOCUST_run__flags['TOKAMAK']=1
-                                LOCUST_run__flags['LEIID']=6
-                                LOCUST_run__flags['WLIST']=True
-                                LOCUST_run__flags['WREAL']=True
-                                LOCUST_run__flags['BRELAX']=True
-                                LOCUST_run__flags['UNBOR']=100
-                                LOCUST_run__flags['OPENMESH']=True
-                                LOCUST_run__flags['OPENTRACK']=True
-                                LOCUST_run__flags['PFCMOD']=True
-                                #LOCUST_run__flags['NOPFC']=True
-                                LOCUST_run__flags['TOKHEAD']=True
-                                LOCUST_run__flags['JXB2']=True
-                                LOCUST_run__flags['PROV']=True
-                                LOCUST_run__flags['PITCHCUR']=True
-                                LOCUST_run__flags['EBASE']=True
-                                LOCUST_run__flags['UHST']=True
-                                LOCUST_run__flags['LNLBT']=True
-                                LOCUST_run__flags['GEQDSKFIX1']=True
-                                LOCUST_run__flags['GEQDSKFIX2']=True
-                                LOCUST_run__flags['BP']=True
-                                LOCUST_run__flags['TIMAX']='0.5D0'
-                                LOCUST_run__flags['SPLIT']=True
-                                LOCUST_run__flags['SMALLEQ']=True #XXX test whether we need this when using mesh
-                                #LOCUST_run__flags['CONLY']=True
-                                LOCUST_run__flags['VROT']=True
-                                #LOCUST_run__flags['OMEGAT']=True
-                                LOCUST_run__flags['NOTUNE']=True
-                                LOCUST_run__flags['BP']=True
-                                LOCUST_run__flags['BILIN']=True
-                                LOCUST_run__flags['BICUB']=True
+                                
+                                LOCUST_run__flags=LOCUST_run__flags_default
                                 #XXX CURRENTLY WAITING FOR FIX LOCUST_run__flags['I3DR']=-1 
                                 LOCUST_run__settings_prec_mod={}
                                 LOCUST_run__settings_prec_mod['nmde']=len(parameters__toroidal_mode_number) #number of total toroidal harmonics = number of modes
@@ -259,8 +229,8 @@ for collision_type in collision_types:
                                 MARS_read__settings['IKATN']=f'[{parameters__current_upper/1000.}_gpu,{parameters__current_middle/1000.}_gpu,{parameters__current_lower/1000.}_gpu]'
                                 MARS_read__settings['dXR']=f'{0.010}_gpu'
                                 MARS_read__settings['dXZ']=f'{0.010}_gpu'
-                                #coil_offsets=[30.,26.7,30.]
-                                #MARS_read__settings['PH0']='"{}"'.format([f'{coil_offset}'+'_gpu' for coil_offset in coil_offsets])
+                                
+                                
 
                                 NEMO_run__xml_settings={}
                                 NEMO_run__xml_settings['nmarker']=LOCUST_run__settings_prec_mod['threadsPerBlock']*LOCUST_run__settings_prec_mod['blocksPerGrid']*8
@@ -270,9 +240,6 @@ for collision_type in collision_types:
                                 BBNBI_run__number_particles=LOCUST_run__settings_prec_mod['threadsPerBlock']*LOCUST_run__settings_prec_mod['blocksPerGrid']*8
                                 BBNBI_run__dir_BBNBI=support.dir_bbnbi
 
-                                #3D field settings
-                                LOCUST_run__flags['B3D']=True
-                                LOCUST_run__flags['B3D_EX']=True
                                 #if all coilsets do not rotate together we must split them up individually!
                                 if all(rotation==parameters__rotation_upper for rotation in [parameters__rotation_upper,parameters__rotation_middle,parameters__rotation_lower]): 
                                     #if coils rotate together but we still want one row offset with others then define relative phase for mars_read
