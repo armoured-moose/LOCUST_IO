@@ -171,6 +171,10 @@ for parameters__perturbation_resolution_R,parameters__perturbation_resolution_Z 
 
                                 
                                 LOCUST_run__flags=LOCUST_run__flags_default
+                                #3D field settings
+                                if run_number==1: #make first run axisymmetric as control run
+                                    del(LOCUST_run__flags['B3D'])
+                                    del(LOCUST_run__flags['B3D_EX'])
                                 #XXX CURRENTLY WAITING FOR FIX LOCUST_run__flags['I3DR']=-1 
                                 LOCUST_run__settings_prec_mod={}
                                 LOCUST_run__settings_prec_mod['nmde']=len(parameters__toroidal_mode_number) #number of total toroidal harmonics = number of modes
@@ -295,6 +299,13 @@ for parameters__perturbation_resolution_R,parameters__perturbation_resolution_Z 
                                 args_batch['IDS__imasdb'].append(copy.deepcopy(IDS__imasdb))
                                 args_batch['IDS__target_IDS_shot'].append(copy.deepcopy(target_IDS_dispatch[parameters__database][parameters__kinetic_prof_Pr_string][parameters__kinetic_prof_tF_tE_string]['shot']))
                                 args_batch['IDS__target_IDS_run'].append(copy.deepcopy(target_IDS_dispatch[parameters__database][parameters__kinetic_prof_Pr_string][parameters__kinetic_prof_tF_tE_string]['run']))
+
+                                config_beam_1='off'
+                                config_beam_2='on'
+                                args_batch['IDS__NBI_shot'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['shot']))
+                                args_batch['IDS__NBI_run'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['run']))
+                                args_batch['IDS__NBI_imasdb'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['imasdb']))
+                                args_batch['IDS__NBI_username'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['user']))
 
 ##################################################################
 #define and launch the batch scripts

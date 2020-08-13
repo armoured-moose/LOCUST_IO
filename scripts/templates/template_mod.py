@@ -284,6 +284,7 @@ config_beam_dispatch['off']['on']['shot']=44
 config_beam_dispatch['off']['on']['run']=33
 config_beam_dispatch['off']['on']['imasdb']='ITER_MD'
 config_beam_dispatch['off']['on']['user']='public'
+config_beam_dispatch['diagnostic']={}
 config_beam_dispatch['diagnostic'][None]={}
 config_beam_dispatch['diagnostic'][None]['shot']=IDS__shot
 config_beam_dispatch['diagnostic'][None]['run']=IDS__run+1 #just fill the adjacent run when generating our own NBI
@@ -318,7 +319,7 @@ args_batch_names=['parameters__sheet_name_kinetic_prof',
                   'LOCUST_run__repo_URL',
                   'LOCUST_run__commit_hash',
                   'LOCUST_run__settings_prec_mod',
-                  'LOCUST_run__flags_default',
+                  'LOCUST_run__flags',
                   'NEMO_run__dir_NEMO',
                   'NEMO_run__xml_settings',
                   'BBNBI_run__dir_BBNBI',
