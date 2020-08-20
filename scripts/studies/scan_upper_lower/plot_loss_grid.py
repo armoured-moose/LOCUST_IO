@@ -7,7 +7,8 @@ Samuel Ward
 script for plotting 2D leak rate grid
 ---
  
-notes:         
+notes:
+    phase shift origin moved to centre of coils as per Todd Evans convention         
 ---
 """
 
@@ -65,22 +66,23 @@ import scan_upper_lower_launch as batch_data
 
 outputs=templates.plot_mod.get_output_files(batch_data,'rund')
 
+PFC_power=np.array([output['PFC_power']['total'] if (output is not None and output['run_status']=='completed') else -10. for output in outputs]).reshape(len(batch_data.parameters__kinetic_profs_Pr),len(batch_data.parameters__phases_upper),len(batch_data.parameters__phases_lower))
+
 for plasma_state_counter,(Pr,tftE) in enumerate(zip(batch_data.parameters__kinetic_profs_Pr,batch_data.parameters__kinetic_profs_tF_tE)):
 
     loss_grid_size=len(batch_data.parameters__phases_upper)*len(batch_data.parameters__phases_lower)
     plasma_state_slice=slice(plasma_state_counter*loss_grid_size,(plasma_state_counter+1)*loss_grid_size)
-    PFC_power=np.array([output['PFC_power']['total'] if (output is not None and output['run_status']=='completed') else -10. for output in outputs[plasma_state_slice]]).reshape(len(batch_data.parameters__phases_upper),len(batch_data.parameters__phases_lower))
 
     dLPHASE,dUPHASE=batch_data.parameters__phases_lower[1]-batch_data.parameters__phases_lower[0],batch_data.parameters__phases_upper[1]-batch_data.parameters__phases_upper[0]
     LPHASE,UPHASE=np.append(batch_data.parameters__phases_lower,batch_data.parameters__phases_lower[-1]+dLPHASE),np.append(batch_data.parameters__phases_upper,batch_data.parameters__phases_upper[-1]+dUPHASE)
 
     fig,ax=plt.subplots(1)
-    ax.set_facecolor(settings.cmap_default(np.min(PFC_power)))
-    mesh=ax.pcolormesh(LPHASE-dLPHASE/2.,UPHASE-dUPHASE/2.,np.log10(PFC_power),cmap=settings.cmap_default,edgecolor='none',antialiased=True)
-    ax.set_xticks(batch_data.parameters__phases_lower)
-    ax.set_yticks(batch_data.parameters__phases_upper)
-    ax.set_xlim([np.min(batch_data.parameters__phases_lower),np.max(batch_data.parameters__phases_lower)])
-    ax.set_ylim([np.max(batch_data.parameters__phases_upper),np.min(batch_data.parameters__phases_upper)])
+    ax.set_facecolor(settings.cmap_default(np.min(PFC_power[plasma_state_counter])))
+    mesh=ax.pcolormesh(LPHASE-dLPHASE/2.-30.,UPHASE-dUPHASE/2.-30.,np.log10(PFC_power[plasma_state_counter]),cmap=settings.cmap_default,edgecolor='none',antialiased=True)
+    ax.set_xticks(batch_data.parameters__phases_lower-30.)
+    ax.set_yticks(batch_data.parameters__phases_upper-30.)
+    ax.set_xlim([np.min(batch_data.parameters__phases_lower)-30.,np.max(batch_data.parameters__phases_lower)-30.])
+    ax.set_ylim([np.max(batch_data.parameters__phases_upper)-30.,np.min(batch_data.parameters__phases_upper)-30.])
     ax.set_xlabel('Lower $\mathrm{d}\Phi$')
     ax.set_ylabel('Upper $\mathrm{d}\Phi$')
     fig.colorbar(mesh,ax=ax,orientation='horizontal')

@@ -118,22 +118,21 @@ parameters__kinetic_profs_tF_tE=[2.]
 #3D field parameters which vary independently - if you want to vary these together then put them into the same loop nesting below
 #2D arrays, each element has length = number of modes
 parameters__toroidal_mode_numbers=[[-3,-6]]
-parameters__phases_upper=np.array([0.])#np.linspace(-10,140,16) #first value is for axisymmetric simulation - 86,0,34 = default for maximmum stochasticity
-parameters__phases_middle=np.array([0.])#np.linspace(-10,140,16)
-parameters__phases_lower=np.array([0.])#np.linspace(-10,140,16)
+parameters__phases_upper=np.array([0.])+30.#86,0,34 = default for maximmum stochasticity in coil coordinate system
+parameters__phases_middle=np.array([0.])+26.7
+parameters__phases_lower=np.array([0.])+30.
 parameters__rotations_upper=np.array([0.])
 parameters__rotations_middle=np.array([0.])
 parameters__rotations_lower=np.array([0.])
-parameters__currents_upper=np.array([90.])*1000.
-parameters__currents_middle=np.array([90.])*1000.
-parameters__currents_lower=np.array([90])*1000.
+parameters__currents_upper=np.array([20.,40.,60.,80.,90.])*1000.
+parameters__currents_middle=np.array([20.,40.,60.,80.,90.])*1000.
+parameters__currents_lower=np.array([20.,40.,60.,80.,90.])*1000.
 
 ##################################################################
 #define the workflow commands in order we want to execute them
 
 RMP_study__workflow_commands="\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create','kin_extrap','run_BBNBI','depo_get','run_LOCUST','clean_input']\""
-collision_types=[{'icoll':1,'iscat':1,'idiff':1},
-                 {'icoll':0,'iscat':0,'idiff':0}]
+collision_types=[{'icoll':0,'iscat':0,'idiff':0},{'icoll':1,'iscat':1,'idiff':1}]
 
 ##################################################################
 #create every valid combination of parameter, returned in flat lists

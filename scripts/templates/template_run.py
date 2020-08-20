@@ -1256,7 +1256,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         LOCUST_workflow.run()
 
         #remove root IFF empty
-        pathlib.Path(self.args['LOCUST_run__settings_prec_mod']['root']).strip('\'').rmdir()
+        pathlib.Path(self.args['LOCUST_run__settings_prec_mod']['root'].strip('\'')).rmdir()
 
     def clean_input(self,*args,**kwargs):
         """

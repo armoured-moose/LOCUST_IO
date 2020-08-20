@@ -118,9 +118,9 @@ parameters__kinetic_profs_tF_tE=[2.]
 #3D field parameters which vary independently - if you want to vary these together then put them into the same loop nesting below
 #2D arrays, each element has length = number of modes
 parameters__toroidal_mode_numbers=[[-3,-6]]
-parameters__phases_upper=np.array([0.])#np.linspace(-10,140,16) #86,0,34 = default for maximmum stochasticity
-parameters__phases_middle=np.array([0.])#np.linspace(-10,140,16)
-parameters__phases_lower=np.array([0.])#np.linspace(-10,140,16)
+parameters__phases_upper=np.array([0.]) #86,0,34 = default for maximmum stochasticity in coil coordinate system
+parameters__phases_middle=np.array([0.])
+parameters__phases_lower=np.array([0.])
 parameters__rotations_upper=np.array([0.])
 parameters__rotations_middle=np.array([0.])
 parameters__rotations_lower=np.array([0.])
@@ -173,7 +173,7 @@ for orbit_setting in orbit_settings:
                                     LOCUST_run__flags['UNBOR']=100
                                 elif orbit_setting is 'guiding_centre':
                                     LOCUST_run__flags['LEIID']=7
-                                    LOCUST_run__flags['UNBOR']=10
+                                    LOCUST_run__flags['UNBOR']=100
                                     LOCUST_run__flags['GCCOL']=True
                                 else:
                                     print(f"ERROR: orbit_setting={orbit_setting} - valid options = 'full_orbit' or 'guiding_centre'!\nreturning\n")
@@ -187,7 +187,7 @@ for orbit_setting in orbit_settings:
                                 LOCUST_run__settings_prec_mod['file_tet']="'locust_wall'" 
                                 LOCUST_run__settings_prec_mod['file_eqm']="'locust_eqm'" 
                                 LOCUST_run__settings_prec_mod['threadsPerBlock']=64
-                                LOCUST_run__settings_prec_mod['blocksPerGrid']=128
+                                LOCUST_run__settings_prec_mod['blocksPerGrid']=64
                                 LOCUST_run__settings_prec_mod['root']="'/tmp/{username}/{study}/{params}'".format(username=settings.username,study=RMP_study__name,params=parameters__parameter_string)
                                 LOCUST_run__settings_prec_mod['i3dr']=-1 #XXX WHILST I3DR FLAG IS BROKE
                                 LOCUST_run__settings_prec_mod['niter']=1

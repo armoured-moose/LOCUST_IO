@@ -156,7 +156,7 @@ RMP_study__workflow_commands=["\"['mkdir','kin_get','3D_get','3D_calc','input_ge
 #create every valid combination of parameter, returned in flat lists
 #use zip and nest levels to define specific combinations which cannot be varied
 
-configs=[['on','diagnostic'],['on','on']]
+configs=[['diagnostic',None],['on','on']]
 
 run_number=0
 parameter_strings=[]
@@ -230,6 +230,11 @@ for config,workflow_commands in zip(configs,RMP_study__workflow_commands):
                                 LOCUST_run__settings_prec_mod['root']="'/tmp/{username}/{study}/{params}'".format(username=settings.username,study=RMP_study__name,params=parameters__parameter_string)
                                 LOCUST_run__settings_prec_mod['i3dr']=-1 #XXX WHILST I3DR FLAG IS BROKE
                                 LOCUST_run__settings_prec_mod['niter']=1
+
+                                #if using diagnostic beam then lower the beam average power
+                                if config[0] is 'diagnostic': 
+                                    LOCUST_run__settings_prec_mod['Pdep']=f'{0.13*1.e6}_gpu'
+
                                 MARS_read__flags={}
                                 MARS_read__flags['TOKAMAK']=1
                                 MARS_read__flags['N0']=parameters__toroidal_mode_number[0]

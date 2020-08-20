@@ -47,7 +47,7 @@ commit_hash_dispatch['GPU7']='053aefeeccab47bedb11de691a979e769c29630f'
 commit_hash_dispatch['GPU8']='b304bee99a485a9b44d8350cfa141ed9c1b7d19a'
 commit_hash_dispatch['GPU9']='b304bee99a485a9b44d8350cfa141ed9c1b7d19a'
 commit_hash_dispatch['GPU10']='b304bee99a485a9b44d8350cfa141ed9c1b7d19a'
-commit_hash_dispatch['CUMULUS']='244736c951eba6f788e11f3a1a68553a4abcc2ba'
+commit_hash_dispatch['CUMULUS']='d9b084fb119ffa6c06a1a0f473f683a378646b3f'
 commit_hash_dispatch['TITAN']='0c2bbb9eab574bb3b6a5d48a8a4cd8ddc6448ee4'
 commit_hash_dispatch['VIKING']='908df2997978f99a9f871acb0f4031e56f505727'
 
@@ -86,6 +86,7 @@ parameters__kinetic_profs_tF_tE__dispatch[0.65]='065'
 parameters__kinetic_profs_tF_tE__dispatch[0.72]='072'
 parameters__kinetic_profs_tF_tE__dispatch[0.73]='073'
 parameters__kinetic_profs_tF_tE__dispatch[1.]='1'
+parameters__kinetic_profs_tF_tE__dispatch[1.2]='1p2'
 parameters__kinetic_profs_tF_tE__dispatch[2.]='2'
 parameters__kinetic_profs_Pr__dispatch={} #prandl number
 parameters__kinetic_profs_Pr__dispatch[0.3]='03'
@@ -240,6 +241,20 @@ target_IDS_dispatch['ITER_15MAQ10_case5'][None][None]['run']=0
 target_IDS_dispatch['ITER_15MAQ10_case5'][None][None]['sheet_name_kinetic_prof']='Peaked n'
 target_IDS_dispatch['ITER_15MAQ10_case5'][None][None]['sheet_name_rotation']=None
 target_IDS_dispatch['ITER_15MAQ10_case5'][None][None]['var_name_rotation']=None
+target_IDS_dispatch['ITER_10MA_case6']={}
+target_IDS_dispatch['ITER_10MA_case6']['03']={} 
+target_IDS_dispatch['ITER_10MA_case6']['03']['1p2']={}
+target_IDS_dispatch['ITER_10MA_case6']['03']['1p2']['shot']=131036
+target_IDS_dispatch['ITER_10MA_case6']['03']['1p2']['run']=0
+target_IDS_dispatch['ITER_10MA_case6']['03']['1p2']['sheet_name_kinetic_prof']='10MA80MWEC035N'
+target_IDS_dispatch['ITER_10MA_case6']['03']['1p2']['sheet_name_rotation']='Vtor,Pr=0.3'
+target_IDS_dispatch['ITER_10MA_case6']['03']['1p2']['var_name_rotation']='Vtor,tF/tE=1.2'
+target_IDS_dispatch['ITER_10MA_case6']['03']['2']={}
+target_IDS_dispatch['ITER_10MA_case6']['03']['2']['shot']=131036
+target_IDS_dispatch['ITER_10MA_case6']['03']['2']['run']=1
+target_IDS_dispatch['ITER_10MA_case6']['03']['2']['sheet_name_kinetic_prof']='10MA80MWEC035N'
+target_IDS_dispatch['ITER_10MA_case6']['03']['2']['sheet_name_rotation']='Vtor,Pr=0.3'
+target_IDS_dispatch['ITER_10MA_case6']['03']['2']['var_name_rotation']='Vtor,tF/tE=2'
 
 #dispatch tables for species stored in IDSs and prec_mod
 table_species_AZ={} #A,Z

@@ -118,15 +118,17 @@ parameters__kinetic_profs_tF_tE=[2.]
 #3D field parameters which vary independently - if you want to vary these together then put them into the same loop nesting below
 #2D arrays, each element has length = number of modes
 parameters__toroidal_mode_numbers=[[-3,-6]]
-parameters__phases_upper=np.array([0.])#np.linspace(-10,140,16) #86,0,34 = default for maximmum stochasticity
-parameters__phases_middle=np.array([0.])#np.linspace(-10,140,16)
-parameters__phases_lower=np.array([0.])#np.linspace(-10,140,16)
+parameters__phases_upper=np.array([0.]) #86,0,34 = default for maximmum stochasticity in coil coordinate system
+parameters__phases_middle=np.array([0.])
+parameters__phases_lower=np.array([0.])
 parameters__rotations_upper=np.array([0.])
 parameters__rotations_middle=np.array([0.])
 parameters__rotations_lower=np.array([0.])
-parameters__currents_upper=np.array([0.,20.,40.,60.,80.,90.])*1000. #first value is for axisymmetric case
-parameters__currents_middle=np.array([0.,20.,40.,60.,80.,90.])*1000.
-parameters__currents_lower=np.array([0.,20.,40.,60.,80.,90.])*1000.
+
+
+parameters__currents_upper=np.array([0.,1.,2.,3.,4.,5.,20.,35.,40.,45.,50.,55.,60.,62.,64.,66.,68.,80.,90.])*1000. #first value is for axisymmetric case
+parameters__currents_middle=copy.deepycopy(parameters__currents_upper)#np.array([0.,20.,40.,60.,80.,90.])*1000.
+parameters__currents_lower=copy.deepycopy(parameters__currents_upper)#np.array([0.,20.,40.,60.,80.,90.])*1000.
 
 ##################################################################
 #define the workflow commands in order we want to execute them
@@ -232,6 +234,9 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                             if run_number==1: #make first run axisymmetric as control run
                                 del(LOCUST_run__flags['B3D'])
                                 del(LOCUST_run__flags['B3D_EX'])
+                            else:
+                                LOCUST_run__flags['B3D']=True
+                                LOCUST_run__flags['B3D_EX']=True
                             #if all coilsets do not rotate together we must split them up individually!
                             if all(rotation==parameters__rotation_upper for rotation in [parameters__rotation_upper,parameters__rotation_middle,parameters__rotation_lower]): 
                                 #if coils rotate together but we still want one row offset with others then define relative phase for mars_read

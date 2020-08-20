@@ -1,10 +1,10 @@
-#plot_current_scan.py
+#plot_marker_number_scan.py
  
 """
 Samuel Ward
-28/05/20
+17/08/20
 ----
-script resolution scan
+look at effects of changing number of markers
 ---
  
 notes:         
@@ -61,49 +61,27 @@ except:
 ################################################################## 
 #Main 
 
-import scan_current_n3_n6_launch as batch_data
+import scan_marker_number_launch as batch_data
 
 outputs=templates.plot_mod.get_output_files(batch_data,'fpl')
 
 fig1,ax1=plt.subplots(1)
 fig2,ax2=plt.subplots(1)
-for output,current,col_val in zip(outputs,batch_data.parameters__currents_upper,np.linspace(0,1,len(batch_data.args_batch['LOCUST_run__dir_output']))):
+for counter,(output,col_val) in enumerate(zip(outputs,np.linspace(0,1,len(batch_data.args_batch['LOCUST_run__dir_output'])))):
     if output: 
-        output.plot(fig=fig1,ax=ax1,axes=['time'],fill=False,label=str(current/1000.),colmap=settings.cmap_default,colmap_val=col_val,number_bins=200,weight=False)
+        number_markers=batch_data.parameters__number_blocks[counter]*batch_data.parameters__number_threads[counter]*8
+        output['weight']/=len(output['weight']) #normalise weights according to number markers
+        output.plot(fig=fig1,ax=ax1,axes=['time'],fill=False,label=number_markers,colmap=settings.cmap_default,colmap_val=col_val,number_bins=200,weight=True)
         output['E']/=1000. #convert to keV
-        output.plot(fig=fig2,ax=ax2,axes=['E'],fill=False,label=str(current/1000.),colmap=settings.cmap_default,colmap_val=col_val,number_bins=200,weight=False)
+        #output.plot(fig=fig2,ax=ax2,axes=['E'],fill=False,label=output.ID,colmap=settings.cmap_default,colmap_val=col_val,number_bins=200,weight=True)
 ax1.legend()
-ax2.legend()
+#ax2.legend()
 ax1.set_xlabel('time [s]')
-ax2.set_xlabel('energy [keV]')
+#ax2.set_xlabel('energy [keV]')
 ax1.set_ylabel('losses')
-ax2.set_ylabel('losses')
+#ax2.set_ylabel('losses')
 ax1.set_title('')
-ax2.set_title('')
-plt.show()
-
-outputs=templates.plot_mod.get_output_files(batch_data,'dfn')
-
-fig,ax=plt.subplots(1)
-for output,current,col_val in zip(outputs,batch_data.parameters__currents_upper,np.linspace(0,1,len(batch_data.args_batch['LOCUST_run__dir_output']))):
-    if output: output.plot(fig=fig,ax=ax,axes=['R'],label=current,colmap=settings.cmap_default,colmap_val=col_val,number_bins=200)
-ax.legend()
-plt.show()
-
-outputs=templates.plot_mod.get_output_files(batch_data,'rund')
-
-fig,ax=plt.subplots(1)
-for run_number,output in enumerate(outputs):
-    if 'B3D_EX' not in batch_data.args_batch['LOCUST_run__flags'][run_number]: #this is the 2D case
-        ax.axhline(np.log10(output['PFC_power']['total']),color='red',label='2D case')
-        print(batch_data.parameters__currents_upper[run_number])
-    elif output is not None:
-        ax.scatter(batch_data.parameters__currents_upper[run_number],output['PFC_power']['total'],color='b',marker='x',linestyle='-',label='3D cases')
-
-ax.set_xlabel("Coil current [kAt]")
-ax.set_ylabel("Normalised PFC power flux")
-ax.set_title('')
-ax.legend()
+#ax2.set_title('')
 plt.show()
 
 #################################

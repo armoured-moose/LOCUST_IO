@@ -71,7 +71,10 @@ def get_output_files(batch_data,output_type='dfn'):
         dir_output_filepaths=list(dir_output.glob(output_file_dispatch[output_type])) #get all filenames for runs corresponding to this choice of parameters    
         if dir_output_filepaths:
             for dir_output_filepath in dir_output_filepaths:
-                yield output_classes_dispatch[output_type](ID=parameter_string,data_format='LOCUST',filename=dir_output_filepath)
+                try:
+                    yield output_classes_dispatch[output_type](ID=parameter_string,data_format='LOCUST',filename=dir_output_filepath)
+                except:
+                    yield None
         else:
             yield None
 

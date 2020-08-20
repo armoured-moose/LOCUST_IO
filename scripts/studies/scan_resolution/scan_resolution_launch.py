@@ -118,9 +118,9 @@ parameters__kinetic_profs_tF_tE=[2.]
 #3D field parameters which vary independently - if you want to vary these together then put them into the same loop nesting below
 #2D arrays, each element has length = number of modes
 parameters__toroidal_mode_numbers=[[-3,-6]]
-parameters__phases_upper=np.array([0.])#np.linspace(-10,140,16) #86,0,34 = default for maximmum stochasticity
-parameters__phases_middle=np.array([0.])#np.linspace(-10,140,16)
-parameters__phases_lower=np.array([0.])#np.linspace(-10,140,16)
+parameters__phases_upper=np.array([0.]) #86,0,34 = default for maximmum stochasticity in coil coordinate system
+parameters__phases_middle=np.array([0.])
+parameters__phases_lower=np.array([0.])
 parameters__rotations_upper=np.array([0.])
 parameters__rotations_middle=np.array([0.])
 parameters__rotations_lower=np.array([0.])
@@ -175,6 +175,9 @@ for parameters__perturbation_resolution_R,parameters__perturbation_resolution_Z 
                                 if run_number==1: #make first run axisymmetric as control run
                                     del(LOCUST_run__flags['B3D'])
                                     del(LOCUST_run__flags['B3D_EX'])
+                                else:
+                                    LOCUST_run__flags['B3D']=True
+                                    LOCUST_run__flags['B3D_EX']=True
                                 #XXX CURRENTLY WAITING FOR FIX LOCUST_run__flags['I3DR']=-1 
                                 LOCUST_run__settings_prec_mod={}
                                 LOCUST_run__settings_prec_mod['nmde']=len(parameters__toroidal_mode_number) #number of total toroidal harmonics = number of modes
