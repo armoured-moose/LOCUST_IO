@@ -112,28 +112,28 @@ parameters__sheet_names_kinetic_prof=["'Flat n'"]
 #define the parameter space for a given scenario
 
 #kinetic profile parameters which vary independently
-parameters__kinetic_profs_Pr=[0.3]
-parameters__kinetic_profs_tF_tE=[2.]
+parameters__kinetic_profs_Pr=[1.] #lowest rotation
+parameters__kinetic_profs_tF_tE=[0.5]
 
 #3D field parameters which vary independently - if you want to vary these together then put them into the same loop nesting below
 #2D arrays, each element has length = number of modes
 parameters__toroidal_mode_numbers=[[-3,-6]]
-parameters__phases_upper=np.array([0.]) #86,0,34 = default for maximmum stochasticity in coil coordinate system
-parameters__phases_middle=np.array([0.])
-parameters__phases_lower=np.array([0.])
+parameters__phases_upper=np.array([86.])+30. #86,0,34 = default for maximmum stochasticity in coil coordinate system
+parameters__phases_middle=np.array([0.])+26.7
+parameters__phases_lower=np.array([34.])+30.
 parameters__rotations_upper=np.array([0.])
 parameters__rotations_middle=np.array([0.])
 parameters__rotations_lower=np.array([0.])
 
-
-parameters__currents_upper=np.array([0.,1.,2.,3.,4.,5.,20.,25.,30.,35.,40.,45.,50.,55.,60.,62.,64.,66.,68.,80.,90.])*1000. #first value is for axisymmetric case
+parameters__currents_upper=np.array([0.,20.,25.,30.,35.,40.,45.,50.,55.,60.,80.,90.])*1000. #first value is for axisymmetric case
 parameters__currents_middle=copy.deepcopy(parameters__currents_upper)#np.array([0.,20.,40.,60.,80.,90.])*1000.
 parameters__currents_lower=copy.deepcopy(parameters__currents_upper)#np.array([0.,20.,40.,60.,80.,90.])*1000.
 
 ##################################################################
 #define the workflow commands in order we want to execute them
 
-RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','IDS_create','run_BBNBI','depo_get','run_LOCUST','clean_input']\""
+RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','IDS_create','run_BBNBI','depo_get','calc_divB','calc_orb','calc_poinc','run_LOCUST','clean_input']\""
+RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','depo_get_premade','calc_divB','calc_orb','calc_poinc','run_LOCUST','clean_input']\""
 
 ##################################################################
 #create every valid combination of parameter, returned in flat lists
@@ -170,14 +170,11 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                                 parameters__parameter_string+='{}_'.format(str(mode)) #add toroidal mode information    
                             parameters__parameter_string+='_'.join(['{}_{}'.format(parameter,str(value)) for parameter,value in zip([
                                     'phaseu',
-                                    'phasem',
-                                    'phasel',
-                                    'rotu',
-                                    'rotm',
-                                    'rotl',
+                                    'm',
+                                    'l',
                                     'ikatu',
-                                    'ikatm',
-                                    'ikatl'],[
+                                    'm',
+                                    'l'],[
                                     parameters__phase_upper,
                                     parameters__phase_middle,
                                     parameters__phase_lower,
@@ -194,7 +191,6 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
 
                             #run-specific settings
 
-                            
                             LOCUST_run__flags=LOCUST_run__flags_default
                             #XXX CURRENTLY WAITING FOR FIX LOCUST_run__flags['I3DR']=-1 
                             LOCUST_run__settings_prec_mod={}
@@ -221,7 +217,6 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                             MARS_read__settings['dXR']=f'{0.010}_gpu'
                             MARS_read__settings['dXZ']=f'{0.010}_gpu'                            
                             
-
                             NEMO_run__xml_settings={}
                             NEMO_run__xml_settings['nmarker']=LOCUST_run__settings_prec_mod['threadsPerBlock']*LOCUST_run__settings_prec_mod['blocksPerGrid']*8
                             NEMO_run__xml_settings['fokker_flag']=0

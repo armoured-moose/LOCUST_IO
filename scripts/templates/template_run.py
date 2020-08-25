@@ -220,7 +220,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         self.commands_available['B_check_3D']=self.BCHECK_3D
         self.commands_available['calc_divB']=self.calc_divergence
         self.commands_available['plot_inputs']=self.plot_inputs
-        self.commands_available['poincare']=self.create_Poincare
+        self.commands_available['calc_poinc']=self.create_Poincare
         self.commands_available['run_LOCUST']=self.run_LOCUST
         self.commands_available['calc_orb']=self.calculate_orbits
         self.commands_available['clean_input']=self.clean_input
@@ -1327,7 +1327,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         poincare_flags['POINCARE']=3
         poincare_flags['NOPFC']=True #speed up by ignoring large mesh
         if 'SPLIT' in poincare_flags: del(poincare_flags['SPLIT']) #stop junk particle cache from Poincaré mode overwriting result
-        poincare_workflow=run_scripts .LOCUST_run.LOCUST_run(
+        poincare_workflow=run_scripts.LOCUST_run.LOCUST_run(
             environment_name=self.args['LOCUST_run__environment_name'],
             repo_URL=self.args['LOCUST_run__repo_URL'],
             commit_hash=self.args['LOCUST_run__commit_hash'],
