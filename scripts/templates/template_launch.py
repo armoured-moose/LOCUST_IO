@@ -142,7 +142,7 @@ parameters__currents_lower=np.array([90.])*1000.
 ##################################################################
 #define the workflow commands in order we want to execute them
 
-RMP_study__workflow_commands="\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create','kin_extrap','run_BBNBI','depo_get','run_LOCUST','clean_input']\""
+RMP_study__workflow_commands="\"['mkdir','save_args','save_args','kin_get','3D_get','3D_calc','input_get','IDS_create','kin_extrap','run_BBNBI','depo_get','run_LOCUST','clean_input']\""
 
 ##################################################################
 #create every valid combination of parameter, returned in flat lists
@@ -212,8 +212,8 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                             LOCUST_run__settings_prec_mod['Zb']='+1.0_gpu' 
                             LOCUST_run__settings_prec_mod['file_tet']="'locust_wall'" 
                             LOCUST_run__settings_prec_mod['file_eqm']="'locust_eqm'" 
-                            LOCUST_run__settings_prec_mod['threadsPerBlock']=64
-                            LOCUST_run__settings_prec_mod['blocksPerGrid']=512
+                            LOCUST_run__settings_prec_mod['threadsPerBlock']=32
+                            LOCUST_run__settings_prec_mod['blocksPerGrid']=32
                             LOCUST_run__settings_prec_mod['root']="'/tmp/{username}/{study}/{params}'".format(username=settings.username,study=RMP_study__name,params=parameters__parameter_string)
                             LOCUST_run__settings_prec_mod['i3dr']=-1 #XXX WHILST I3DR FLAG IS BROKE
                             LOCUST_run__settings_prec_mod['niter']=1

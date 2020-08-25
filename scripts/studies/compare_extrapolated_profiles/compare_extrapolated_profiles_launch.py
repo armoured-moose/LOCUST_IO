@@ -132,11 +132,11 @@ parameters__currents_lower=np.array([90.])*1000.
 #define the workflow commands in order we want to execute them
 
 extrapolation=['on','off']
-args_batch['RMP_study__workflow_commands']=["\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create','kin_extrap','run_BBNBI','depo_get','run_LOCUST','clean_input']\"",
-                                  "\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create','run_BBNBI','depo_get','run_LOCUST','clean_input']\""]
+args_batch['RMP_study__workflow_commands']=["\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','IDS_create','kin_extrap','run_BBNBI','depo_get','run_LOCUST','clean_input']\"",
+                                  "\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','IDS_create','run_BBNBI','depo_get','run_LOCUST','clean_input']\""]
 
 
-#args_batch['RMP_study__workflow_commands']=["\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create','run_BBNBI','depo_get','depo_plot']\""] #XXX DEBUG
+#args_batch['RMP_study__workflow_commands']=["\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','IDS_create','run_BBNBI','depo_get','depo_plot']\""] #XXX DEBUG
 #args_batch['RMP_study__workflow_commands']=["\"['IDS_create','run_BBNBI','depo_get','depo_plot']\""] #XXX DEBUG
 
 ##################################################################

@@ -131,7 +131,7 @@ parameters__currents_lower=np.array([20.,40.,60.,80.,90.])*1000.
 ##################################################################
 #define the workflow commands in order we want to execute them
 
-RMP_study__workflow_commands="\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create','kin_extrap','run_BBNBI','depo_get','run_LOCUST','clean_input']\""
+RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','IDS_create','kin_extrap','run_BBNBI','depo_get','run_LOCUST','clean_input']\""
 collision_types=[{'icoll':0,'iscat':0,'idiff':0},{'icoll':1,'iscat':1,'idiff':1}]
 
 ##################################################################

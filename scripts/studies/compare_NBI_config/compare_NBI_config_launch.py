@@ -141,15 +141,15 @@ parameters__currents_lower=np.array([90.])*1000.
 ##################################################################
 #define the workflow commands in order we want to execute them
 
-RMP_study__workflow_commands="\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create_DNB','IDS_create','run_BBNBI','depo_get','run_LOCUST','clean_input']\""
+RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','IDS_create_DNB','IDS_create','run_BBNBI','depo_get','run_LOCUST','clean_input']\""
 
-RMP_study__workflow_commands="\"['mkdir','IDS_create_DNB','IDS_create','run_BBNBI','depo_get','depo_plot']\""#XXX
+RMP_study__workflow_commands="\"['mkdir','save_args','IDS_create_DNB','IDS_create','run_BBNBI','depo_get','depo_plot']\""#XXX
 
-RMP_study__workflow_commands=["\"['mkdir','IDS_create_DNB','IDS_create','run_BBNBI','depo_get','depo_plot']\"", #need to make sure to create diagnostic NBI IDS only in diagnostic NBI steps
-                                  "\"['mkdir','IDS_create','run_BBNBI','depo_get','depo_plot']\""]
+RMP_study__workflow_commands=["\"['mkdir','save_args','IDS_create_DNB','IDS_create','run_BBNBI','depo_get','depo_plot']\"", #need to make sure to create diagnostic NBI IDS only in diagnostic NBI steps
+                                  "\"['mkdir','save_args','IDS_create','run_BBNBI','depo_get','depo_plot']\""]
 
-RMP_study__workflow_commands=["\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create_DNB','IDS_create','run_BBNBI','depo_get','run_LOCUST','clean_input']\"", #need to make sure to create diagnostic NBI IDS only in diagnostic NBI steps
-                                  "\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create','run_BBNBI','depo_get','run_LOCUST','clean_input']\""]
+RMP_study__workflow_commands=["\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','IDS_create_DNB','IDS_create','run_BBNBI','depo_get','run_LOCUST','clean_input']\"", #need to make sure to create diagnostic NBI IDS only in diagnostic NBI steps
+                                  "\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','IDS_create','run_BBNBI','depo_get','run_LOCUST','clean_input']\""]
 
 
 ##################################################################

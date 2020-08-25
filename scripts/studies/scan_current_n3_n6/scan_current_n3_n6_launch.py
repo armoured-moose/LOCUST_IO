@@ -126,14 +126,14 @@ parameters__rotations_middle=np.array([0.])
 parameters__rotations_lower=np.array([0.])
 
 
-parameters__currents_upper=np.array([0.,1.,2.,3.,4.,5.,20.,35.,40.,45.,50.,55.,60.,62.,64.,66.,68.,80.,90.])*1000. #first value is for axisymmetric case
-parameters__currents_middle=copy.deepycopy(parameters__currents_upper)#np.array([0.,20.,40.,60.,80.,90.])*1000.
-parameters__currents_lower=copy.deepycopy(parameters__currents_upper)#np.array([0.,20.,40.,60.,80.,90.])*1000.
+parameters__currents_upper=np.array([0.,1.,2.,3.,4.,5.,20.,25.,30.,35.,40.,45.,50.,55.,60.,62.,64.,66.,68.,80.,90.])*1000. #first value is for axisymmetric case
+parameters__currents_middle=copy.deepcopy(parameters__currents_upper)#np.array([0.,20.,40.,60.,80.,90.])*1000.
+parameters__currents_lower=copy.deepcopy(parameters__currents_upper)#np.array([0.,20.,40.,60.,80.,90.])*1000.
 
 ##################################################################
 #define the workflow commands in order we want to execute them
 
-RMP_study__workflow_commands="\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create','kin_extrap','run_BBNBI','depo_get','run_LOCUST','clean_input']\""
+RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','IDS_create','run_BBNBI','depo_get','run_LOCUST','clean_input']\""
 
 ##################################################################
 #create every valid combination of parameter, returned in flat lists

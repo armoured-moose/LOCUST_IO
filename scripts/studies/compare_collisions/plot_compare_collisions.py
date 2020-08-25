@@ -1,10 +1,10 @@
-#plot_resolution_scan.py
+#plot_compare_collisions.py
  
 """
 Samuel Ward
-28/05/20
+24/08/20
 ----
-script resolution scan
+plot collision type comparison
 ---
  
 notes:         
@@ -68,44 +68,30 @@ except:
 ################################################################## 
 #Main 
 
-import scan_resolution_launch as batch_data
+import compare_collisions_launch as batch_data
 
-outputs=templates.plot_mod.get_output_files(batch_data,'rund')
-
-fig,ax=plt.subplots(1)
-for run_number,output in enumerate(outputs):
-    if 'B3D_EX' not in batch_data.args_batch['LOCUST_run__flags'][run_number]: #this is the 2D case
-        ax.axhline(np.log10(output['PFC_power']['total']),color='red',label='2D case')
-    elif output is not None:
-        ax.scatter(np.log10(batch_data.parameters__perturbation_resolutions_R[run_number]),output['PFC_power']['total'],color='b',marker='x',linestyle='-')
-
-ax.set_xlabel("Perturbation grid spacing (log) [m]")
-ax.set_ylabel("Normalised PFC power flux")
-ax.legend()
-plt.show()
-
-outputs=get_divergence_files(batch_data)
-fig,ax=plt.subplots(1)
-def plot_divergence(output,fig,ax):    
-    field_data_RZ,field_data_XY=output
-    field_data_RZ.plot(key='divB',ax=ax,fig=fig)
-animation=FuncAnimation(fig,plot_divergence,frames=outputs,fargs=[fig,ax],repeat=True,interval=1)
-plt.show()
-#animation.save('divergence_animation.gif',writer='pillow')
-
-
-#cycle through poincare maps
-outputs=templates.plot_mod.get_output_files(batch_data,'poinc')
-axisymm=None
-for run_number,output in enumerate(outputs):
-    equilibrium=Equilibrium(ID='',data_format='GEQDSK',filename=batch_data.args_batch['RMP_study__filepath_equilibrium'][run_number],GEQDSKFIX1=True,GEQDSKFIX2=True)
+orbits2D=templates.plot_mod.get_output_files(batch_data,'orbit2D')
+orbits3D=templates.plot_mod.get_output_files(batch_data,'orbit3D')
+axes=['R','Z']
+#axes=['X','Y','Z']
+if len(axes)==3:
+    fig=plt.figure()
+    from mpl_toolkits import mplot3d #import 3D plotting axes
+    ax=fig.gca(projection='3d')
+else:
     fig,ax=plt.subplots(1)
-    if 'B3D_EX' not in batch_data.args_batch['LOCUST_run__flags'][run_number] and output is not None: #this is the 2D case    
-        axisymm=output
-    elif output is not None:
-        output.plot(ax=ax,fig=fig)
-    if axisymm:
-        axisymm.plot(LCFS=equilibrium,limiters=equilibrium,colmap=settings.cmap_w,ax=ax,fig=fig) #XXX reduce alpha for this in future
+
+particles=[4]
+for run_number,(orbit2D,orbit3D) in enumerate(zip(orbits2D,orbits3D)):
+    equilibrium=Equilibrium(ID='',data_format='GEQDSK',filename=batch_data.args_batch['RMP_study__filepath_equilibrium'][run_number],GEQDSKFIX1=True,GEQDSKFIX2=True)
+    if orbit3D:
+        orbit3D.plot(particles=particles,axes=axes,start_mark=True,colmap=settings.cmap_b,real_scale=True,label='3D',ax=ax,fig=fig)
+    if orbit2D:
+        orbit2D.plot(particles=particles,LCFS=equilibrium,limiters=equilibrium,axes=axes,start_mark=True,colmap=settings.cmap_g,real_scale=True,label='2D',ax=ax,fig=fig)
+    ax.set_xlabel("R [m]")
+    ax.set_ylabel("Z [m]")
+    ax.set_title("")
+    ax.legend()
     plt.show()
 
 #################################

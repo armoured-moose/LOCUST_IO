@@ -123,6 +123,11 @@ try:
 except:
     raise ImportError("ERROR: LOCUST_IO/src/classes/input_classes/wall.py could not be imported!\nreturning\n") 
     sys.exit(1)
+try:
+    from classes.output_classes.particle_list import Final_Particle_List
+except:
+    raise ImportError("ERROR: LOCUST_IO/src/classes/input_classes/particle_list.py could not be imported!\nreturning\n") 
+    sys.exit(1)
 
 try:
     import support
@@ -197,6 +202,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         self.commands_available={}
         self.commands_available['pass']=self.pass_command
         self.commands_available['mkdir']=self.setup_RMP_study_dirs
+        self.commands_available['save_args']=self.write_batch_args
         self.commands_available['kin_get']=self.get_kinetic_profiles_excel
         self.commands_available['3D_get']=self.get_3D_fields
         self.commands_available['3D_calc']=self.calc_3D_fields
@@ -210,34 +216,155 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         self.commands_available['depo_get']=self.get_beam_deposition_IDS
         self.commands_available['depo_get_premade']=self.get_beam_deposition_file
         self.commands_available['depo_plot']=self.plot_beam_deposition
-        self.commands_available['B_check_2D']=self.BCHECK_2D
+        self.commands_available['B_check_2D']=self.plot_equilibrium
         self.commands_available['B_check_3D']=self.BCHECK_3D
+        self.commands_available['calc_divB']=self.calc_divergence
         self.commands_available['plot_inputs']=self.plot_inputs
         self.commands_available['poincare']=self.create_Poincare
         self.commands_available['run_LOCUST']=self.run_LOCUST
+        self.commands_available['calc_orb']=self.calculate_orbits
         self.commands_available['clean_input']=self.clean_input
         self.commands_available['clean_cache']=self.clean_cache
 
-        if not list(self.args['LOCUST_run__dir_output'].glob('*.dfn')) or ('POINCARE' in self.args['LOCUST_run__flags'].keys()): #output directory contains no distribution functions or we are just wanting poincare map
-
+        #check output directory contains no distribution functions already in which case skip (unless just wanting tests e.g. Poincaré map, trajectories or BCHECKing)
+        
+        if all([not list(self.args['LOCUST_run__dir_output'].glob(output_glob)) for output_glob in ['*.dfn','ORBIT*','Poincare_map*.dat']]): 
             if list(self.args['LOCUST_run__dir_output'].glob('*')): #if some outputs at all already then clear before performing run
                 try:
                     subprocess.run(shlex.split('rm -r {dir}'.format(dir=str(self.args['LOCUST_run__dir_output']))),shell=False) 
                 except:
                     print(f"ERROR: {self.workflow_name} could not clear contents of output directory {str(self.args['LOCUST_run__dir_output'])}!\nreturning\n")
                     return
-
-            for command in self.args['RMP_study__workflow_commands']:
-                self.add_command(command_name=command,command_function=self.commands_available[command]) #add all workflow stages
-
+        
+        for command in self.args['RMP_study__workflow_commands']:
+            self.add_command(command_name=command,command_function=self.commands_available[command]) #add all workflow stages
+        
         else: #if distribution functions in output directory then skip this simulation
             self.add_command(command_name='pass',command_function=self.commands_available['pass'])
             print(f"WARNING: {self.workflow_name} found files already in output folder at {self.args['LOCUST_run__dir_output']}!\npassing\n")
-
+        
     ################################################################## helper functions
 
+    def _plot_perturbations(self,*args,**kwargs):
+        """
+        helper to wrap plot_scripts.plot_perturbations
+        """
 
+        import plot_scripts.plot_perturbations
+        perturbations=[]
+        for counter_mode,mode in enumerate(self.args['parameters__toroidal_mode_numbers']):
+            filename=list(self.args['LOCUST_run__dir_input'].glob(f'BPLASMA_n{np.abs(mode)}'))[0].relative_to(support.dir_input_files)
+            perturbations.append(Perturbation(ID='',data_format='LOCUST',filename=filename,mode_number=mode))
+        plot_scripts.plot_perturbations.plot_perturbations(perturbations,*args,**kwargs)
 
+    def _plot_beam_deposition(self,*args,**kwargs):
+        """
+        """
+
+        #get full beam deposition object
+        beam_deposition_full=Beam_Deposition(ID='',data_format='LOCUST_FO_weighted',filename=self.args['LOCUST_run__dir_input'] / 'ptcles.dat') 
+        beam_deposition_full.plot(*args,**kwargs)
+
+        try:
+            import imas 
+        except:
+            raise ImportError("ERROR: read_beam_depo_IDS could not import IMAS module!\nreturning\n")
+            return
+
+        '''
+        beam_deposition_beamlets=[]
+        #read in deposition one beamlet at a time - code taken from Beam_Deposition.read_beam_depo_IDS
+        new_IDS=imas.ids(self.args['IDS__shot'],self.args['IDS__run']) #read from our newly created IDS
+        new_IDS.open_env(self.args['IDS__username'],self.args['IDS__imasdb'],settings.imas_version)
+        new_IDS.distribution_sources.get() #open the file and get all the data from it
+        for source in new_IDS.distribution_sources.source: 
+            deposition = {} #initialise blank dictionary to hold the data
+            deposition['weight']=[]
+            for identifier in new_IDS.distribution_sources.source[0].markers[0].coordinate_identifier: #generate keys for deposition by looking at the coordinates of the particle markers
+                deposition[identifier.name.replace('\x00','').strip()]=[] #need to remove the unicode bits
+            if len(source.markers)>0:
+                if len(source.markers[0].positions)>0:
+                    for coordinate_index in range(len(source.markers[0].positions[0,:])): #loop over the possible coordinate types e.g. r, phi, z
+                        coordinate_name=source.markers[0].coordinate_identifier[coordinate_index].name.replace('\x00','').strip()
+                        for marker in source.markers[0].positions[:,coordinate_index]: #this range should/must be the same for all values of coordinate_index
+                            deposition[coordinate_name].extend([marker])    
+                if len(source.markers[0].weights)>0: #if markers have defined weights
+                    deposition['weight'].extend(source.markers[0].weights)
+            
+            for key in deposition: #convert to numpy arrays
+                deposition[key]=np.asarray(deposition[key])
+
+            #check for common field names to convert to LOCUST_IO variable names
+            locust_io_names=['E','rho','V_phi','V_pitch'] #LOCUST_IO fields that we want to retain
+            nemo_names=['Energy','Rhotor','V_PHI','Pitch angle'] #first check possible matching NEMO field names
+            for nemo_name,locust_io_name in zip(nemo_names,locust_io_names):
+                if nemo_name in deposition.keys():
+                    deposition[locust_io_name]=deposition.pop(nemo_name)
+         
+            beamlet=Beam_Deposition(ID='') #spawn new blank Beam_Deposition and assign data above
+            beamlet.data=copy.deepcopy(deposition)
+            beam_deposition_beamlets.append(beamlet)
+        
+        new_IDS.close()
+
+        '''
+        #plot what we have
+        '''
+        import matplotlib.pyplot as plt
+        fig,(ax1,ax2)=plt.subplots(2,1)
+        for beamlet in beam_deposition_beamlets:
+            beamlet.plot(ax=ax1,fig=fig,axes=axes,style='scatter',real_scale=True,quivers=True)
+        plt.show() 
+        '''
+    def _plot_kinetic_profiles(self,*args,**kwargs):
+
+        import matplotlib.pyplot as plt
+        ax=kwargs.get('ax',None)
+        fig=kwargs.get('fig',None)
+        if fig: 
+            del(kwargs['fig'])
+        else:
+            fig=plt.figure()
+        if ax: 
+            del(kwargs['ax'])
+        else:
+            ax=fig.add_subplot(111)
+
+        densities=[]
+        temperatures=[]
+        rotations=[]
+        for species_name,species_AZ in table_species_AZ.items(): #loop through all non-electronic ion species and grab number density
+            try:
+                for filename in list((support.dir_input_files / self.args['LOCUST_run__dir_input']).glob(f'density_{species_name}*')):
+                    densities.append(Number_Density(ID=filename.parts[-1],data_format='LOCUST',species=species_name,filename=filename.relative_to(support.dir_input_files)))
+            except:
+                print(f'WARNING: template_run.plot_kinetic_profiles() could not find density profile for {species_name}')
+        for filename in list((support.dir_input_files / self.args['LOCUST_run__dir_input']).glob('profile_ne*')):
+            densities.append(Number_Density(ID=filename.parts[-1],data_format='LOCUST',species='electrons',filename=filename.relative_to(support.dir_input_files)))
+        for filename in list((support.dir_input_files / self.args['LOCUST_run__dir_input']).glob('profile_Te*')):
+            temperatures.append(Temperature(ID=filename.parts[-1],data_format='LOCUST',species='electrons',filename=filename.relative_to(support.dir_input_files)))
+        for filename in list((support.dir_input_files / self.args['LOCUST_run__dir_input']).glob('profile_Ti*')):
+            temperatures.append(Temperature(ID=filename.parts[-1],data_format='LOCUST',species='ions',filename=filename.relative_to(support.dir_input_files)))
+        for filename in list((support.dir_input_files / self.args['LOCUST_run__dir_input']).glob('profile_wT*')):
+            rotations.append(Rotation(ID=filename,data_format='LOCUST',species='ions',filename=self.args['LOCUST_run__dir_input'] / filename))
+
+        axes=[ax]
+        position_y_ax=0
+        for colour,kinetic_profile_group,plotting_variable in zip([settings.cmap_g,settings.cmap_r,settings.cmap_b],[densities,temperatures,rotations],['density','temperature','rotation']):
+            axes.append(axes[0].twinx())
+            axes[-1].tick_params(axis='y', labelcolor=colour(0.5))
+            axes[-1].set_ylabel(plotting_variable,color=colour(0.5)) 
+            axes[-1].spines['right'].set_position(('outward', position_y_ax))
+            position_y_ax+=60      
+            for kinetic_profile in kinetic_profile_group: #XXX should vary symbol here
+                kinetic_profile.plot(label=kinetic_profile.ID,colmap=colour,ax=axes[-1],fig=fig,*args,**kwargs)
+            axes[-1].set_title('')
+            axes[-1].legend()
+        del(axes[0])
+
+        #line_label=[ax.get_legend_handles_labels() for ax in axes]
+        #axes[-1].legend([line[0] for line in line_label],[label[1] for label in line_label], loc=0)
+    
     ################################################################## possible commands
 
     def pass_command(self,*args,**kwargs):
@@ -245,6 +372,17 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         notes:
         """
         pass
+
+    def write_batch_args(self,*args,**kwargs):
+        """
+        notes:
+        """
+
+        import time
+
+        arg_string=run_scripts.utils.command_line_arg_parse_generate_string(command_number_=0,**{key:[value] for key,value in self.args.items()})
+        with open(self.args['LOCUST_run__dir_output']/f"run_args.txt{datetime.now.strftime('%Y_%m_%d_%H-%M-%S')}",'w') as file:
+            file.write(arg_string)
 
     def setup_RMP_study_dirs(self,*args,**kwargs):
         """
@@ -442,7 +580,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         #fetch equilibrium
         subprocess.run(shlex.split('cp {file} {dir_input}'.format(file=str(self.args['RMP_study__filepath_equilibrium']),
             dir_input=str(self.args['LOCUST_run__dir_input'] / self.args['LOCUST_run__settings_prec_mod']['file_eqm']))),shell=False)
-        #equilibrium=Equilibrium(ID='',data_format='GEQDSK',filename=self.args['RMP_study__filepath_equilibrium)
+        #equilibrium=Equilibrium(ID='',data_format='GEQDSK',filename=self.args['RMP_study__filepath_equilibrium'],GEQDSKFIX1=True,GEQDSKFIX2=True)
         
         #fetch additional required data
         for file in self.args['RMP_study__filepath_additional_data'].glob('*'):
@@ -469,7 +607,6 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         imas_version='3',
         machine='ITER',
         beam_name='diagnostic',
-        axis='on', #XXX hard-code on-axis DNB for now
         )
 
     def create_IDS(self,*args,**kwargs):
@@ -774,48 +911,10 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         """
         notes:
         """
-
-        densities=[]
-        temperatures=[]
-        rotations=[]
-
-        for species_name,species_AZ in table_species_AZ.items(): #loop through all non-electronic ion species and grab number density
-            try:
-                for filename in list((support.dir_input_files / self.args['LOCUST_run__dir_input']).glob(f'density_{species_name}*')):
-                    densities.append(Number_Density(ID=filename.parts[-1],data_format='LOCUST',species=species_name,filename=filename.relative_to(support.dir_input_files)))
-            except:
-                print(f'WARNING: template_run.plot_kinetic_profiles() could not find density profile for {species_name}')
-        for filename in list((support.dir_input_files / self.args['LOCUST_run__dir_input']).glob('profile_ne*')):
-            densities.append(Number_Density(ID=filename.parts[-1],data_format='LOCUST',species='electrons',filename=filename.relative_to(support.dir_input_files)))
-        for filename in list((support.dir_input_files / self.args['LOCUST_run__dir_input']).glob('profile_Te*')):
-            temperatures.append(Temperature(ID=filename.parts[-1],data_format='LOCUST',species='electrons',filename=filename.relative_to(support.dir_input_files)))
-        for filename in list((support.dir_input_files / self.args['LOCUST_run__dir_input']).glob('profile_Ti*')):
-            temperatures.append(Temperature(ID=filename.parts[-1],data_format='LOCUST',species='ions',filename=filename.relative_to(support.dir_input_files)))
-        for filename in list((support.dir_input_files / self.args['LOCUST_run__dir_input']).glob('profile_wT*')):
-            rotations.append(Rotation(ID=filename,data_format='LOCUST',species='ions',filename=self.args['LOCUST_run__dir_input'] / filename))
-
+        
         import matplotlib.pyplot as plt
-        fig,ax1=plt.subplots(1)
-
-        axes=[ax1]
-        position_y_ax=0
-        for colour,kinetic_profile_group,plotting_variable in zip([settings.cmap_g,settings.cmap_r,settings.cmap_b],[densities,temperatures,rotations],['density','temperature','rotation']):
-            axes.append(axes[0].twinx())
-            axes[-1].tick_params(axis='y', labelcolor=colour(0.5))
-            axes[-1].set_ylabel(plotting_variable,color=colour(0.5)) 
-            axes[-1].spines['right'].set_position(('outward', position_y_ax))
-            position_y_ax+=60      
-            for kinetic_profile in kinetic_profile_group: #XXX should vary symbol here
-                kinetic_profile.plot(label=kinetic_profile.ID,colmap=colour,ax=axes[-1],fig=fig)
-            axes[-1].set_title('')
-            axes[-1].legend()
-        del(axes[0])
-
-        #line_label=[ax.get_legend_handles_labels() for ax in axes]
-        #axes[-1].legend([line[0] for line in line_label],[label[1] for label in line_label], loc=0)
-    
-        fig.tight_layout()
-        plt.show()
+        fig,ax=plt.subplots(1)
+        self._plot_kinetic_profiles(ax=ax,fig=fig)
 
     def run_NEMO(self,*args,**kwargs):
         """
@@ -887,65 +986,10 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         notes:
         """
 
-        #get full beam deposition object
-        beam_deposition_full=Beam_Deposition(ID='',data_format='LOCUST_FO_weighted',filename=self.args['LOCUST_run__dir_input'] / 'ptcles.dat') 
-        beam_deposition_beamlets=[]
-
-        try:
-            import imas 
-        except:
-            raise ImportError("ERROR: read_beam_depo_IDS could not import IMAS module!\nreturning\n")
-            return
-
-        '''
-        #read in deposition one beamlet at a time - code taken from Beam_Deposition.read_beam_depo_IDS
-        new_IDS=imas.ids(self.args['IDS__shot'],self.args['IDS__run']) #read from our newly created IDS
-        new_IDS.open_env(self.args['IDS__username'],self.args['IDS__imasdb'],settings.imas_version)
-        new_IDS.distribution_sources.get() #open the file and get all the data from it
-        for source in new_IDS.distribution_sources.source: 
-            deposition = {} #initialise blank dictionary to hold the data
-            deposition['weight']=[]
-            for identifier in new_IDS.distribution_sources.source[0].markers[0].coordinate_identifier: #generate keys for deposition by looking at the coordinates of the particle markers
-                deposition[identifier.name.replace('\x00','').strip()]=[] #need to remove the unicode bits
-            if len(source.markers)>0:
-                if len(source.markers[0].positions)>0:
-                    for coordinate_index in range(len(source.markers[0].positions[0,:])): #loop over the possible coordinate types e.g. r, phi, z
-                        coordinate_name=source.markers[0].coordinate_identifier[coordinate_index].name.replace('\x00','').strip()
-                        for marker in source.markers[0].positions[:,coordinate_index]: #this range should/must be the same for all values of coordinate_index
-                            deposition[coordinate_name].extend([marker])    
-                if len(source.markers[0].weights)>0: #if markers have defined weights
-                    deposition['weight'].extend(source.markers[0].weights)
-            
-            for key in deposition: #convert to numpy arrays
-                deposition[key]=np.asarray(deposition[key])
-
-            #check for common field names to convert to LOCUST_IO variable names
-            locust_io_names=['E','rho','V_phi','V_pitch'] #LOCUST_IO fields that we want to retain
-            nemo_names=['Energy','Rhotor','V_PHI','Pitch angle'] #first check possible matching NEMO field names
-            for nemo_name,locust_io_name in zip(nemo_names,locust_io_names):
-                if nemo_name in deposition.keys():
-                    deposition[locust_io_name]=deposition.pop(nemo_name)
-         
-            beamlet=Beam_Deposition(ID='') #spawn new blank Beam_Deposition and assign data above
-            beamlet.data=copy.deepcopy(deposition)
-            beam_deposition_beamlets.append(beamlet)
-        
-        new_IDS.close()
-
-        '''
-        #plot what we have
-        axes=['R','Z']
         equilibrium=Equilibrium(ID='',data_format='GEQDSK',filename=self.args['RMP_study__filepath_equilibrium'],GEQDSKFIX1=True,GEQDSKFIX2=True)
-        '''
-        import matplotlib.pyplot as plt
-        fig,(ax1,ax2)=plt.subplots(2,1)
-        for beamlet in beam_deposition_beamlets:
-            beamlet.plot(ax=ax1,fig=fig,axes=axes,style='scatter',real_scale=True,quivers=True)
-        plt.show() 
-        '''
-        beam_deposition_full.plot(axes=axes,number_bins=500,real_scale=True,LCFS=equilibrium,limiters=equilibrium,style='scatter')
+        self._plot_beam_deposition(axes=['R','Z'],number_bins=500,real_scale=True,LCFS=equilibrium,limiters=equilibrium,style='scatter')
 
-    def BCHECK_2D(self,*args,**kwargs):
+    def plot_equilibrium(self,*args,**kwargs):
         """
         notes:
         """
@@ -954,14 +998,14 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         equilibrium.B_calc()
         equilibrium.plot(key='B_field_tor')
 
-
     def BCHECK_3D(self,*args,**kwargs):
         """
-        step for checking 3D field perturbation is correct as separate coils vs combined
+        step for checking 3D field perturbation is correct as separate coils vs combined vs vacuum field supplied
 
         notes:
             if running LOCUST with separate coil_rows then script will include combined field, if running LOCUST with combined field separate field is not generated here
             (although could be in future by just evoking self.calc_3D_fields() and editing prec_mod settings)
+            can only compare with probe_g vacuum data if n=3 or n=3
         """
 
         #define 1D of points to compare at
@@ -1011,6 +1055,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
             #now time to run LOCUST BCHECK on combined field
             combined_field.dump_data(data_format='point_data',filename=self.args['LOCUST_run__dir_input'] / 'point_data.inp')
             LOCUST_run__flags_combined=copy.deepcopy(self.args['LOCUST_run__flags']) #alter LOCUST compile flags to control run mode
+            LOCUST_run__flags_combined['NOPFC']=True #speed up by ignoring large mesh
+            if 'SPLIT' in LOCUST_run__flags_combined: del(LOCUST_run__flags_combined['SPLIT'])
             if 'NCOILS' in LOCUST_run__flags_combined: del(LOCUST_run__flags_combined['NCOILS'])
             LOCUST_run__flags_combined['BCHECK']=1
             LOCUST_run__settings_prec_mod_combined=copy.deepcopy(self.args['LOCUST_run__settings_prec_mod'])
@@ -1031,6 +1077,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                 settings_prec_mod=LOCUST_run__settings_prec_mod_combined,
                 flags=LOCUST_run__flags_combined)
             LOCUST_workflow.run()
+
             (self.args['LOCUST_run__dir_output'] / 'field_data.out').rename(self.args['LOCUST_run__dir_output'] / 'field_data_combined.out')
             combined_field_BCHECK=Perturbation('',data_format='LOCUST_field_data',filename=(self.args['LOCUST_run__dir_output'] / 'field_data_combined.out').relative_to(support.dir_output_files))
             
@@ -1038,6 +1085,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
             if field_type is 'separate':
                 LOCUST_run__flags_separate=copy.deepcopy(self.args['LOCUST_run__flags'])
                 LOCUST_run__flags_separate['BCHECK']=1
+                LOCUST_run__flags_separate['NOPFC']=True #speed up by ignoring large mesh
+                if 'SPLIT' in LOCUST_run__flags_separate: del(LOCUST_run__flags_separate['SPLIT'])
                 LOCUST_run__settings_prec_mod_separate=copy.deepcopy(self.args['LOCUST_run__settings_prec_mod'])
                 LOCUST_run__settings_prec_mod_separate['phase']='[0.0_gpu,0.0_gpu,0.0_gpu]'
                 LOCUST_run__settings_prec_mod_separate['omega']='[0.0_gpu,0.0_gpu,0.0_gpu]'
@@ -1056,15 +1105,16 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                     settings_prec_mod=LOCUST_run__settings_prec_mod_separate,
                     flags=LOCUST_run__flags_separate)
                 LOCUST_workflow.run()
+        
                 (self.args['LOCUST_run__dir_output'] / 'field_data.out').rename(self.args['LOCUST_run__dir_output'] / 'field_data_separate.out')
-                field_separate_eval=Perturbation('',data_format='LOCUST_field_data',filename=(self.args['LOCUST_run__dir_output'] / 'field_data_separate.out').relative_to(support.dir_output_files))
+                field_separate_BCHECK=Perturbation('',data_format='LOCUST_field_data',filename=(self.args['LOCUST_run__dir_output'] / 'field_data_separate.out').relative_to(support.dir_output_files))
 
             combined_field.look()
             combined_field_BCHECK.look()
 
-            #if separate field is present then create new field to store absolute difference
+            #now plot combined field evaluated by me and locust, separate field evaluated by LOCUST and fractional difference between combined and separate field
             if field_type is 'separate':
-                field_difference=copy.deepcopy(field_separate_eval)
+                field_difference=copy.deepcopy(field_separate_BCHECK)
             import matplotlib.pyplot as plt
             fig,(ax1,ax2)=plt.subplots(2,1)
             for quantity_MARSF in ['dB_field_R','dB_field_tor','dB_field_Z']:
@@ -1072,7 +1122,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                     field_difference[quantity_MARSF]-=combined_field_BCHECK[quantity_MARSF]
                     field_difference[quantity_MARSF]/=combined_field_BCHECK[quantity_MARSF] #get fractional difference between the two fields
                     ax1.plot(field_difference[quantity_MARSF],'m-')
-                    ax2.plot(field_separate_eval[quantity_MARSF],'g-')
+                    ax2.plot(field_separate_BCHECK[quantity_MARSF],'g-')
                 ax2.plot(phi_points*rad_2_deg,combined_field[quantity_MARSF],'b',linestyle='--')
                 ax2.plot(phi_points*rad_2_deg,combined_field_BCHECK[quantity_MARSF],'b',linestyle='-')
             #plt.savefig('BCHECK_{}.png'.format(mode),bbox_inches='tight')
@@ -1143,6 +1193,82 @@ class RMP_study_run(run_scripts.workflow.Workflow):
 
             plt.show()
 
+    def calc_divergence(self,*args,**kwargs):
+        """
+        step for calculating B field divergence - in R,Z plane and X,Y planes
+
+        notes:
+        """
+        
+        import matplotlib.pyplot as plt
+
+        #modify current LOCUST run flags
+        LOCUST_run__flags_div_check=copy.deepcopy(self.args['LOCUST_run__flags'])
+        LOCUST_run__flags_div_check['BCHECK']=1
+        LOCUST_run__flags_div_check['NOPFC']=True #speed up by ignoring large mesh
+        if 'SPLIT' in LOCUST_run__flags_div_check: del(LOCUST_run__flags_div_check['SPLIT'])
+
+        #check the equilibrium to get an idea of domain to check over
+        equilibrium=Equilibrium(ID='',data_format='GEQDSK',filename=self.args['RMP_study__filepath_equilibrium'],GEQDSKFIX1=True,GEQDSKFIX2=True)
+        
+        #check divergence in poloidal plane
+        field_data=Perturbation('') 
+        Z_points,R_points=np.meshgrid(equilibrium['Z_1D'],equilibrium['R_1D'])
+        Z_points_flat,R_points_flat=Z_points.flatten(),R_points.flatten()
+        time_points_flat=np.zeros(len(R_points_flat))
+        phi_slice=0.
+        phi_points_flat=np.full(len(R_points_flat),phi_slice)
+        
+        field_data.set(
+            time_point_data=time_points_flat,
+            phi_point_data=phi_points_flat,
+            R_point_data=R_points_flat,
+            Z_point_data=Z_points_flat)
+        field_data.dump_data(data_format='point_data',filename=self.args['LOCUST_run__dir_input'] / 'point_data.inp')
+        LOCUST_workflow=run_scripts.LOCUST_run.LOCUST_run(
+            environment_name=self.args['LOCUST_run__environment_name'],
+            repo_URL=self.args['LOCUST_run__repo_URL'],
+            commit_hash=self.args['LOCUST_run__commit_hash'],
+            dir_LOCUST=self.args['LOCUST_run__dir_LOCUST'],
+            dir_LOCUST_source=self.args['LOCUST_run__dir_LOCUST_source'],
+            dir_input=self.args['LOCUST_run__dir_input'],
+            dir_output=self.args['LOCUST_run__dir_output'],
+            dir_cache=self.args['LOCUST_run__dir_cache'],
+            settings_prec_mod=self.args['LOCUST_run__settings_prec_mod'],
+            flags=LOCUST_run__flags_div_check)
+        LOCUST_workflow.run()
+        (self.args['LOCUST_run__dir_output'] / 'field_data.out').rename(self.args['LOCUST_run__dir_output'] / 'field_data_divergence_check_RZ.out')
+        
+        #check divergence in XY plane
+        field_data=Perturbation('')
+        number_phi_points=100
+        phi_points=np.linspace(0.,2.*np.pi,number_phi_points) 
+        R_points,phi_points=np.meshgrid(equilibrium['R_1D'],phi_points)
+        phi_points_flat,R_points_flat=phi_points.flatten(),R_points.flatten()
+        time_points_flat=np.zeros(len(R_points_flat))
+        Z_slice=0.
+        Z_points_flat=np.full(len(R_points_flat),Z_slice)
+        
+        field_data.set(
+            time_point_data=time_points_flat,
+            phi_point_data=phi_points_flat,
+            R_point_data=R_points_flat,
+            Z_point_data=Z_points_flat)
+        field_data.dump_data(data_format='point_data',filename=self.args['LOCUST_run__dir_input'] / 'point_data.inp')
+        LOCUST_workflow=run_scripts.LOCUST_run.LOCUST_run(
+            environment_name=self.args['LOCUST_run__environment_name'],
+            repo_URL=self.args['LOCUST_run__repo_URL'],
+            commit_hash=self.args['LOCUST_run__commit_hash'],
+            dir_LOCUST=self.args['LOCUST_run__dir_LOCUST'],
+            dir_LOCUST_source=self.args['LOCUST_run__dir_LOCUST_source'],
+            dir_input=self.args['LOCUST_run__dir_input'],
+            dir_output=self.args['LOCUST_run__dir_output'],
+            dir_cache=self.args['LOCUST_run__dir_cache'],
+            settings_prec_mod=self.args['LOCUST_run__settings_prec_mod'],
+            flags=LOCUST_run__flags_div_check)
+        LOCUST_workflow.run()
+        (self.args['LOCUST_run__dir_output'] / 'field_data.out').rename(self.args['LOCUST_run__dir_output'] / 'field_data_divergence_check_XY.out')
+        
     def plot_inputs(self,*args,**kwargs):
         """
         notes:
@@ -1153,89 +1279,26 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         axes=['phi','R']
 
         import matplotlib.pyplot as plt
-        fig=plt.figure()
+
+        fig1=plt.figure()
         polar=True if axes==['phi','R'] else False
-        ax=fig.add_subplot(111,polar=polar)
+        ax1=fig1.add_subplot(111,polar=polar)
+        equilibrium=Equilibrium(ID='',data_format='GEQDSK',filename=self.args['RMP_study__filepath_equilibrium'],GEQDSKFIX1=True,GEQDSKFIX2=True)
 
-
-        plot_dispatch={}
-        ''' 
-        ''' 
-        plot_dispatch['perturbation']={}
-        plot_dispatch['perturbation']['toggled_on']=True
-        plot_dispatch['perturbation']['class']=Perturbation
-        plot_dispatch['perturbation']['read_options']={}
-        plot_dispatch['perturbation']['read_options']['filename']=list(self.args['LOCUST_run__dir_input'].glob('BPLASMA_n3'))
-        number_files=len(plot_dispatch['perturbation']['read_options']['filename'])
-        plot_dispatch['perturbation']['read_options']['ID']=['weee']*number_files
-        plot_dispatch['perturbation']['read_options']['data_format']=['LOCUST']*number_files
-        plot_dispatch['perturbation']['read_options']['mode_number']=[int(filename.parts[-1].replace('BPLASMA_n','')) for filename in plot_dispatch['perturbation']['read_options']['filename']]
-        plot_dispatch['perturbation']['plot_options']={}
-        plot_dispatch['perturbation']['plot_options']['i3dr']=[-1]*number_files#[self.args['LOCUST_run__flags']['I3DR']]*number_files
-        plot_dispatch['perturbation']['plot_options']['axes']=[axes]*number_files
-        plot_dispatch['perturbation']['plot_options']['key']=['dB_field_mag']*number_files
-        plot_dispatch['perturbation']['plot_options']['number_bins']=[100]*number_files
-        number_files=1
-        plot_dispatch['beam_deposition']={}
-        plot_dispatch['beam_deposition']['toggled_on']=True
-        plot_dispatch['beam_deposition']['class']=Beam_Deposition
-        plot_dispatch['beam_deposition']['read_options']={}
-        plot_dispatch['beam_deposition']['read_options']['ID']=['input particles']*number_files
-        plot_dispatch['beam_deposition']['read_options']['filename']=[self.args['LOCUST_run__dir_input']/'ptcles.dat']*number_files
-        plot_dispatch['beam_deposition']['read_options']['data_format']=['LOCUST_FO_weighted']*number_files
-        plot_dispatch['beam_deposition']['plot_options']={}
-        plot_dispatch['beam_deposition']['plot_options']['axes']=[axes]*number_files
-        plot_dispatch['beam_deposition']['plot_options']['fill']=[False]*number_files
-        plot_dispatch['beam_deposition']['plot_options']['style']=['scatter']*number_files
-        plot_dispatch['beam_deposition']['plot_options']['colmap']=[settings.cmap_g]*number_files
-        plot_dispatch['beam_deposition']['plot_options']['number_bins']=[5]*number_files
-
-        for input_type in ['perturbation','beam_deposition']: #now for plotting - loop through which inputs we want to plot in order
-            for file_number in range(len(plot_dispatch[input_type]['read_options']['ID'])): #for each input type, loop through all files
-                    
-                plot_dispatch_=copy.deepcopy(plot_dispatch) 
-                for option_type in ['read_options','plot_options']: #for given file, pick out relevant read and plot settings from plot_dispatch 
-                    plot_dispatch_[input_type][option_type]={key:value[file_number] for key,value in plot_dispatch_[input_type][option_type].items()}
-
-                if plot_dispatch_[input_type]['toggled_on']: 
-                        try:
-                            input_data=plot_dispatch_[input_type]['class'](**plot_dispatch_[input_type]['read_options']) #perform reading                                
-                            #if input_data.LOCUST_input_type=='perturbation': input_data.plot_components(R=6.3,Z=0.,phi=0.,i3dr=-1) #perform plotting XXXXXXXXXXx
-                            try:                                    
-                                input_data.plot(**plot_dispatch_[input_type]['plot_options'],ax=ax,fig=fig) #perform plotting
-                            except:
-                                print(f"WARNING: {self.workflow_name}.plot_inputs could not plot {plot_dispatch_[input_type]['read_options']['ID']}!")
-                        except:
-                            print(f"WARNING: {self.workflow_name}.plot_inputs could not read {plot_dispatch_[input_type]['read_options']['ID']}!")
+        self._plot_perturbations(key='dB_field_mag',axes=axes,LCFS=False,limiters=False,number_bins=100,fill=True,vminmax=None,i3dr=self.args['LOCUST_run__settings_prec_mod']['i3dr'],phase=0.,colmap=settings.cmap_default,colmap_val=np.random.uniform(),line_style=settings.plot_line_style,gridlines=False,label='',ax=ax1,fig=fig1)
+        #XXX self._plot_beam_deposition(fill=False,style='scatter',colmap=settings.cmap_g,number_bins=5,axes=axes,ax=ax1,fig=fig1)
 
         #now deal with static add-on features to plot e.g. coils
-
         plot_coils=True
         if plot_coils:
             from plot_scripts.plot_coils_RMP_ITER import plot_coils_RMP_ITER
-            plot_coils_RMP_ITER(axes=axes,shot=1180,run=17,username='public',imasdb='ITER_MD',imas_version='3',imas_entry=0,plot_centres=True,colmap=settings.cmap_k,colmap_val=np.random.uniform(),ax=ax,fig=fig)
-            title_string_phases=f"phase U={self.args['MARS_read__flags']['UPHASE']} M={self.args['MARS_read__flags']['MPHASE']} L={self.args['MARS_read__flags']['LPHASE']}"
+            plot_coils_RMP_ITER(axes=axes,shot=1180,run=17,username='public',imasdb='ITER_MD',imas_version='3',imas_entry=0,plot_centres=True,colmap=settings.cmap_k,colmap_val=np.random.uniform(),ax=ax1,fig=fig1)
+            #title_string_phases=f"phase U={self.args['MARS_read__flags']['UPHASE']} M={self.args['MARS_read__flags']['MPHASE']} L={self.args['MARS_read__flags']['LPHASE']}"
+
+        fig2,ax2=plt.subplots(1)
+        self._plot_kinetic_profiles(ax=ax2,fig=fig2)
+        
         plt.show()
-
-    def create_Poincare(self,*args,**kwargs):
-        """
-        notes:
-        """
-
-        poincare_flags=copy.deepcopy(self.args['LOCUST_run__flags'])
-        poincare_flags['POINCARE']=3
-        poincare_workflow=run_scripts .LOCUST_run.LOCUST_run(
-            environment_name=self.args['LOCUST_run__environment_name'],
-            repo_URL=self.args['LOCUST_run__repo_URL'],
-            commit_hash=self.args['LOCUST_run__commit_hash'],
-            dir_LOCUST=self.args['LOCUST_run__dir_LOCUST'],
-            dir_LOCUST_source=self.args['LOCUST_run__dir_LOCUST_source'],
-            dir_input=self.args['LOCUST_run__dir_input'],
-            dir_output=self.args['LOCUST_run__dir_output'],
-            dir_cache=self.args['LOCUST_run__dir_cache'],
-            settings_prec_mod=self.args['LOCUST_run__settings_prec_mod'],
-            flags=poincare_flags)
-        poincare_workflow.run()
 
     def run_LOCUST(self,*args,**kwargs):
         """
@@ -1255,8 +1318,113 @@ class RMP_study_run(run_scripts.workflow.Workflow):
             flags=self.args['LOCUST_run__flags'])
         LOCUST_workflow.run()
 
-        #remove root IFF empty
-        pathlib.Path(self.args['LOCUST_run__settings_prec_mod']['root'].strip('\'')).rmdir()
+    def create_Poincare(self,*args,**kwargs):
+        """
+        notes:
+        """
+
+        poincare_flags=copy.deepcopy(self.args['LOCUST_run__flags'])
+        poincare_flags['POINCARE']=3
+        poincare_flags['NOPFC']=True #speed up by ignoring large mesh
+        if 'SPLIT' in poincare_flags: del(poincare_flags['SPLIT']) #stop junk particle cache from Poincaré mode overwriting result
+        poincare_workflow=run_scripts .LOCUST_run.LOCUST_run(
+            environment_name=self.args['LOCUST_run__environment_name'],
+            repo_URL=self.args['LOCUST_run__repo_URL'],
+            commit_hash=self.args['LOCUST_run__commit_hash'],
+            dir_LOCUST=self.args['LOCUST_run__dir_LOCUST'],
+            dir_LOCUST_source=self.args['LOCUST_run__dir_LOCUST_source'],
+            dir_input=self.args['LOCUST_run__dir_input'],
+            dir_output=self.args['LOCUST_run__dir_output'],
+            dir_cache=self.args['LOCUST_run__dir_cache'],
+            settings_prec_mod=self.args['LOCUST_run__settings_prec_mod'],
+            flags=poincare_flags)
+        poincare_workflow.run()
+
+    def calculate_orbits(self,*args,**kwargs):
+        """
+        run LOCUST to calculate trajectory of markers with termination flag=status_flags in 2D and 3D field
+
+        args:
+            status_flags - plot trajectories for markers which satisfy these termination flags
+            number_markers - number of trajectories to plot
+        notes:
+            assume beam deposition already generated in the input directory and is in LOCUST_FO_weighted format
+            assume output particle list already generated in the output directory
+            works by exploiting the fact that the marker index does not change from input to output
+        """
+
+        number_markers=10
+        ptcles_input=self.args['LOCUST_run__dir_input'] / 'ptcles.dat'
+        ptcles_orbit=self.args['LOCUST_run__dir_input'] / 'ptcles.dat_orbit'
+
+        input_list=Beam_Deposition(ID='',data_format='LOCUST',filename=ptcles_input)
+        output_list=Final_Particle_List(ID='',data_format='LOCUST',filename=self.args['LOCUST_run__dir_output']/'ptcl_cache.dat')
+        indices=[]
+        status_flags=['PFC_intercept_3D']
+        for status_flag in status_flags:
+            indices.extend(np.where(output_list['status_flag']==status_flag)[0])
+
+        beam_depo=Beam_Deposition(ID='')
+        beam_depo['R']=input_list['R'][indices]
+        beam_depo['phi']=input_list['phi'][indices]
+        beam_depo['Z']=input_list['Z'][indices]
+        beam_depo['V_R']=input_list['V_R'][indices]
+        beam_depo['V_phi']=input_list['V_phi'][indices]
+        beam_depo['V_Z']=input_list['V_Z'][indices]
+        beam_depo['weight']=input_list['weight'][indices]
+        beam_depo.look()
+        beam_depo.dump_data(data_format='LOCUST_FO_weighted',filename=ptcles_orbit,shuffle=False) 
+
+        #rename files for LOCUST and to avoid overwriting
+        ptcles_input.rename(self.args['LOCUST_run__dir_input'] / 'ptcles.dat_locust')
+        ptcles_orbit.rename(self.args['LOCUST_run__dir_input'] / 'ptcles.dat')
+
+        LOCUST_run__flags_orbit=copy.deepcopy(self.args['LOCUST_run__flags'])
+        LOCUST_run__flags_orbit['PLOT']=number_markers
+        LOCUST_run__flags_orbit['NOPFC']=True #speed up by ignoring large mesh
+        if 'SPLIT' in LOCUST_run__flags_orbit: del(LOCUST_run__flags_orbit['SPLIT'])
+
+        if not list(self.args['LOCUST_run__dir_output'].glob('ORBIT_3D')):
+
+            if all([arg in LOCUST_run__flags_orbit for arg in ['B3D','B3D_EX']]):
+
+                LOCUST_workflow=run_scripts.LOCUST_run.LOCUST_run(
+                    environment_name=self.args['LOCUST_run__environment_name'],
+                    repo_URL=self.args['LOCUST_run__repo_URL'],
+                    commit_hash=self.args['LOCUST_run__commit_hash'],
+                    dir_LOCUST=self.args['LOCUST_run__dir_LOCUST'],
+                    dir_LOCUST_source=self.args['LOCUST_run__dir_LOCUST_source'],
+                    dir_input=self.args['LOCUST_run__dir_input'],
+                    dir_output=self.args['LOCUST_run__dir_output'],
+                    dir_cache=self.args['LOCUST_run__dir_cache'],
+                    settings_prec_mod=self.args['LOCUST_run__settings_prec_mod'],
+                    flags=LOCUST_run__flags_orbit)
+                LOCUST_workflow.run()
+                list(self.args['LOCUST_run__dir_output'].glob('ORBIT*.dat'))[0].rename(self.args['LOCUST_run__dir_output'] / 'ORBIT_3D')
+               
+                del(LOCUST_run__flags_orbit['B3D'])
+                del(LOCUST_run__flags_orbit['B3D_EX'])
+
+        if not list(self.args['LOCUST_run__dir_output'].glob('ORBIT_2D')):
+
+            LOCUST_run__flags_orbit['TIMAX']='0.00003D0' #1 bounce ~ 10us
+            LOCUST_workflow=run_scripts.LOCUST_run.LOCUST_run(
+                environment_name=self.args['LOCUST_run__environment_name'],
+                repo_URL=self.args['LOCUST_run__repo_URL'],
+                commit_hash=self.args['LOCUST_run__commit_hash'],
+                dir_LOCUST=self.args['LOCUST_run__dir_LOCUST'],
+                dir_LOCUST_source=self.args['LOCUST_run__dir_LOCUST_source'],
+                dir_input=self.args['LOCUST_run__dir_input'],
+                dir_output=self.args['LOCUST_run__dir_output'],
+                dir_cache=self.args['LOCUST_run__dir_cache'],
+                settings_prec_mod=self.args['LOCUST_run__settings_prec_mod'],
+                flags=LOCUST_run__flags_orbit)
+            LOCUST_workflow.run()
+            list(self.args['LOCUST_run__dir_output'].glob('ORBIT*.dat'))[0].rename(self.args['LOCUST_run__dir_output'] / 'ORBIT_2D')
+
+        #reverse file renaming
+        ptcles_orbit.rename(self.args['LOCUST_run__dir_input'] / 'ptcles.dat_orbit')
+        ptcles_input.rename(self.args['LOCUST_run__dir_input'] / 'ptcles.dat')
 
     def clean_input(self,*args,**kwargs):
         """

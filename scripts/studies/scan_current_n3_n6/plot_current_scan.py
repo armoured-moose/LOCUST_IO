@@ -35,6 +35,12 @@ if __name__=='__main__':
         sys.exit(1)
 
 try:
+    from classes.input_classes.equilibrium import Equilibrium
+except:
+    raise ImportError("ERROR: LOCUST_IO/src/classes/input_classes/equilibrium.py could not be imported!\nreturning\n") 
+    sys.exit(1)
+
+try:
     import support
 except:
     raise ImportError("ERROR: LOCUST_IO/src/support.py could not be imported!\nreturning\n") 
@@ -64,7 +70,6 @@ except:
 import scan_current_n3_n6_launch as batch_data
 
 outputs=templates.plot_mod.get_output_files(batch_data,'fpl')
-
 fig1,ax1=plt.subplots(1)
 fig2,ax2=plt.subplots(1)
 for output,current,col_val in zip(outputs,batch_data.parameters__currents_upper,np.linspace(0,1,len(batch_data.args_batch['LOCUST_run__dir_output']))):
@@ -91,14 +96,14 @@ ax.legend()
 plt.show()
 
 outputs=templates.plot_mod.get_output_files(batch_data,'rund')
-
 fig,ax=plt.subplots(1)
 for run_number,output in enumerate(outputs):
-    if 'B3D_EX' not in batch_data.args_batch['LOCUST_run__flags'][run_number]: #this is the 2D case
-        ax.axhline(np.log10(output['PFC_power']['total']),color='red',label='2D case')
-        print(batch_data.parameters__currents_upper[run_number])
-    elif output is not None:
-        ax.scatter(batch_data.parameters__currents_upper[run_number],output['PFC_power']['total'],color='b',marker='x',linestyle='-',label='3D cases')
+    if output is not None:
+        if 'B3D_EX' not in batch_data.args_batch['LOCUST_run__flags'][run_number]: #this is the 2D case
+            ax.axhline(np.log10(output['PFC_power']['total']),color='red',label='2D case')
+            print(batch_data.parameters__currents_upper[run_number])
+        else:
+            ax.scatter(batch_data.parameters__currents_upper[run_number],output['PFC_power']['total'],color='b',marker='x',linestyle='-',label='3D cases')
 
 ax.set_xlabel("Coil current [kAt]")
 ax.set_ylabel("Normalised PFC power flux")
@@ -106,6 +111,18 @@ ax.set_title('')
 ax.legend()
 plt.show()
 
+
+#cycle through poincare maps
+outputs=templates.plot_mod.get_output_files(batch_data,'poinc')
+axisymm=None
+for run_number,output in enumerate(outputs):
+    equilibrium=Equilibrium(ID='',data_format='GEQDSK',filename=batch_data.args_batch['RMP_study__filepath_equilibrium'][run_number],GEQDSKFIX1=True,GEQDSKFIX2=True)
+    if 'B3D_EX' in batch_data.args_batch['LOCUST_run__flags'][run_number] and output is not None: #this is the 2D case    
+        fig,ax=plt.subplots(1)
+        output.plot(style='scatter',LCFS=equilibrium,limiters=equilibrium,ax=ax,fig=fig)
+        equilibrium.plot(fill=False,ax=ax,fig=fig)
+        plt.show()
+        
 #################################
  
 ##################################################################

@@ -112,8 +112,8 @@ parameters__sheet_names_kinetic_prof=["'Flat n'"]
 #define the parameter space for a given scenario
 
 #kinetic profile parameters which vary independently
-parameters__kinetic_profs_Pr=[0.3]#,1.] #pick highest then lowest rotation
-parameters__kinetic_profs_tF_tE=[2.]#,0.5]
+parameters__kinetic_profs_Pr=[0.3,1.] #pick highest then lowest rotation
+parameters__kinetic_profs_tF_tE=[2.,0.5]
 
 #3D field parameters which vary independently - if you want to vary these together then put them into the same loop nesting below
 #2D arrays, each element has length = number of modes
@@ -131,8 +131,8 @@ parameters__currents_lower=np.array([90])*1000.
 ##################################################################
 #define the workflow commands in order we want to execute them
 
-RMP_study__workflow_commands="\"['mkdir','kin_get','3D_get','3D_calc','input_get','IDS_create','run_BBNBI','depo_get','run_LOCUST','clean_input']\""
-#RMP_study__workflow_commands="\"['mkdir','kin_get','3D_get','3D_calc','input_get','depo_get_premade','run_LOCUST','clean_input']\""
+RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','IDS_create','run_BBNBI','depo_get','run_LOCUST','clean_input']\""
+#RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','depo_get_premade','run_LOCUST','clean_input']\""
 
 ##################################################################
 #create every valid combination of parameter, returned in flat lists
