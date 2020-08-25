@@ -132,6 +132,7 @@ parameters__currents_lower=np.array([90.])*1000.
 #define the workflow commands in order we want to execute them
 
 RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','IDS_create','run_BBNBI','depo_get','run_LOCUST','clean_input']\""
+RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','depo_get_premade','run_LOCUST','clean_input']\""
 
 ##################################################################
 #define marker population size settings
@@ -160,7 +161,7 @@ for UNBOR in UNBORs:
                                 #create a string of variables identifying this run
                                 parameters__kinetic_prof_tF_tE_string=parameters__kinetic_profs_tF_tE__dispatch[parameters__kinetic_prof_tF_tE] #generate some variable string equivalents for later
                                 parameters__kinetic_prof_Pr_string=parameters__kinetic_profs_Pr__dispatch[parameters__kinetic_prof_Pr]
-                                parameters__parameter_string=f'{parameters__number_block*parameters__number_thread*8}'
+                                parameters__parameter_string=f'unbor_{UNBOR}'
                                 parameter_strings.append(parameters__parameter_string)
 
                                 #################################

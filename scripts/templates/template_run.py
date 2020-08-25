@@ -228,17 +228,18 @@ class RMP_study_run(run_scripts.workflow.Workflow):
 
         #check output directory contains no distribution functions already in which case skip (unless just wanting tests e.g. Poincaré map, trajectories or BCHECKing)
         
-        if all([not list(self.args['LOCUST_run__dir_output'].glob(output_glob)) for output_glob in ['*.dfn','ORBIT*','Poincare_map*.dat']]): 
-            if list(self.args['LOCUST_run__dir_output'].glob('*')): #if some outputs at all already then clear before performing run
-                try:
-                    subprocess.run(shlex.split('rm -r {dir}'.format(dir=str(self.args['LOCUST_run__dir_output']))),shell=False) 
-                except:
-                    print(f"ERROR: {self.workflow_name} could not clear contents of output directory {str(self.args['LOCUST_run__dir_output'])}!\nreturning\n")
-                    return
-        
-        for command in self.args['RMP_study__workflow_commands']:
-            self.add_command(command_name=command,command_function=self.commands_available[command]) #add all workflow stages
-        
+        if not all([list(self.args['LOCUST_run__dir_output'].glob(output_glob)) for output_glob in ['*.dfn','ORBIT*','Poincare_map*.dat']]): 
+            if not any([list(self.args['LOCUST_run__dir_output'].glob(output_glob)) for output_glob in ['*.dfn','ORBIT*','Poincare_map*.dat']]):      
+                if list(self.args['LOCUST_run__dir_output'].glob('*')): #if some outputs at all already then clear before performing run
+                    try:
+                        subprocess.run(shlex.split('rm -r {dir}'.format(dir=str(self.args['LOCUST_run__dir_output']))),shell=False) 
+                    except:
+                        print(f"ERROR: {self.workflow_name} could not clear contents of output directory {str(self.args['LOCUST_run__dir_output'])}!\nreturning\n")
+                        return
+                        
+            for command in self.args['RMP_study__workflow_commands']:
+                self.add_command(command_name=command,command_function=self.commands_available[command]) #add all workflow stages
+            
         else: #if distribution functions in output directory then skip this simulation
             self.add_command(command_name='pass',command_function=self.commands_available['pass'])
             print(f"WARNING: {self.workflow_name} found files already in output folder at {self.args['LOCUST_run__dir_output']}!\npassing\n")
@@ -381,7 +382,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         import time
 
         arg_string=run_scripts.utils.command_line_arg_parse_generate_string(command_number_=0,**{key:[value] for key,value in self.args.items()})
-        with open(self.args['LOCUST_run__dir_output']/f"run_args.txt{datetime.now.strftime('%Y_%m_%d_%H-%M-%S')}",'w') as file:
+        with open(self.args['LOCUST_run__dir_output']/f"run_args.txt{time.strftime('%Y_%m_%d_%H-%M-%S')}",'w') as file:
             file.write(arg_string)
 
     def setup_RMP_study_dirs(self,*args,**kwargs):
