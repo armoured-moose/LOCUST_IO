@@ -382,7 +382,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         import time
 
         arg_string=run_scripts.utils.command_line_arg_parse_generate_string(command_number_=0,**{key:[value] for key,value in self.args.items()})
-        with open(self.args['LOCUST_run__dir_output']/f"run_args.txt{time.strftime('%d-%m-%Y_%S-%M-%H')}",'w') as file:
+        with open(self.args['LOCUST_run__dir_output']/f"run_args{time.strftime('%d-%m-%Y_%S-%M-%H')}.txt",'w') as file:
             file.write(arg_string)
 
     def setup_RMP_study_dirs(self,*args,**kwargs):
