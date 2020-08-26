@@ -382,7 +382,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         import time
 
         arg_string=run_scripts.utils.command_line_arg_parse_generate_string(command_number_=0,**{key:[value] for key,value in self.args.items()})
-        with open(self.args['LOCUST_run__dir_output']/f"run_args.txt{time.strftime('%Y_%m_%d_%H-%M-%S')}",'w') as file:
+        with open(self.args['LOCUST_run__dir_output']/f"run_args.txt{time.strftime('%d-%m-%Y_%S-%M-%H')}",'w') as file:
             file.write(arg_string)
 
     def setup_RMP_study_dirs(self,*args,**kwargs):
@@ -1358,7 +1358,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         ptcles_input=self.args['LOCUST_run__dir_input'] / 'ptcles.dat'
         ptcles_orbit=self.args['LOCUST_run__dir_input'] / 'ptcles.dat_orbit'
 
-        input_list=Beam_Deposition(ID='',data_format='LOCUST',filename=ptcles_input)
+        input_list=Beam_Deposition(ID='',data_format='LOCUST_FO_weighted',filename=ptcles_input)
         output_list=Final_Particle_List(ID='',data_format='LOCUST',filename=self.args['LOCUST_run__dir_output']/'ptcl_cache.dat')
         indices=[]
         status_flags=['PFC_intercept_3D']
@@ -1385,9 +1385,9 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         LOCUST_run__flags_orbit['NOPFC']=True #speed up by ignoring large mesh
         if 'SPLIT' in LOCUST_run__flags_orbit: del(LOCUST_run__flags_orbit['SPLIT'])
 
-        if not list(self.args['LOCUST_run__dir_output'].glob('ORBIT_3D')):
+        if all([arg in LOCUST_run__flags_orbit for arg in ['B3D','B3D_EX']]):
 
-            if all([arg in LOCUST_run__flags_orbit for arg in ['B3D','B3D_EX']]):
+            if not list(self.args['LOCUST_run__dir_output'].glob('ORBIT_3D')):
 
                 LOCUST_workflow=run_scripts.LOCUST_run.LOCUST_run(
                     environment_name=self.args['LOCUST_run__environment_name'],
@@ -1403,8 +1403,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                 LOCUST_workflow.run()
                 list(self.args['LOCUST_run__dir_output'].glob('ORBIT*.dat'))[0].rename(self.args['LOCUST_run__dir_output'] / 'ORBIT_3D')
                
-                del(LOCUST_run__flags_orbit['B3D'])
-                del(LOCUST_run__flags_orbit['B3D_EX'])
+            del(LOCUST_run__flags_orbit['B3D'])
+            del(LOCUST_run__flags_orbit['B3D_EX'])
 
         if not list(self.args['LOCUST_run__dir_output'].glob('ORBIT_2D')):
 

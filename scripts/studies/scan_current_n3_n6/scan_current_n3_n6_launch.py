@@ -132,8 +132,8 @@ parameters__currents_lower=copy.deepcopy(parameters__currents_upper)#np.array([0
 ##################################################################
 #define the workflow commands in order we want to execute them
 
-RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','IDS_create','run_BBNBI','depo_get','calc_divB','calc_orb','calc_poinc','run_LOCUST','clean_input']\""
-RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','depo_get_premade','calc_divB','calc_orb','calc_poinc','run_LOCUST','clean_input']\""
+RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','IDS_create','run_BBNBI','depo_get','calc_divB','calc_poinc','run_LOCUST','calc_orb','clean_input']\""
+RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','depo_get_premade','calc_divB','calc_poinc','run_LOCUST','calc_orb','clean_input']\""
 
 ##################################################################
 #create every valid combination of parameter, returned in flat lists
