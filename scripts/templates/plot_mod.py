@@ -24,6 +24,11 @@ except:
     sys.exit(1)
 
 try:
+    from classes.input_classes.equilibrium import Equilibrium
+except:
+    raise ImportError("ERROR: LOCUST_IO/src/classes/input_classes/equilibrium.py could not be imported!\nreturning\n") 
+    sys.exit(1)
+try:
     from classes.input_classes.perturbation import Perturbation
 except:
     raise ImportError("ERROR: LOCUST_IO/src/classes/input_classes/perturbation.py could not be imported!\nreturning\n")
@@ -107,23 +112,40 @@ def get_output_files(batch_data,output_type='dfn'):
             yield None
 
 def get_divergence_files(batch_data):
+    """
+    notes:
+        assume divergence is dumped on a rectangular grid
+        XXX broken
+    """
 
-    #get the equilibrium to get an idea of domain to check over
-    equilibrium=Equilibrium(ID='',data_format='GEQDSK',filename=batch_data.args_batch['RMP_study__filepath_equilibrium'],GEQDSKFIX1=True,GEQDSKFIX2=True)
-
-    for parameter_string,dir_output in zip(batch_data.parameter_strings,batch_data.args_batch['LOCUST_run__dir_output']): #within each GPU folder the path to each output is the same
-        dir_output=pathlib.Path(dir_output.strip("\'"))
+    for run_number,(parameter_string,dir_output) in enumerate(zip(batch_data.parameter_strings,batch_data.args_batch['LOCUST_run__dir_output'])): #within each GPU folder the path to each output is the same
+        #get the equilibrium to get an idea of domain to check over
+        equilibrium=Equilibrium(ID='',data_format='GEQDSK',filename=batch_data.args_batch['RMP_study__filepath_equilibrium'][run_number],GEQDSKFIX1=True,GEQDSKFIX2=True)
+        dir_output=pathlib.Path(str(dir_output).strip("\'"))
         dir_output_filepaths_RZ=list(dir_output.glob('field_data_divergence_check_RZ.out')) #get all filenames for runs corresponding to this choice of parameters    
         dir_output_filepaths_XY=list(dir_output.glob('field_data_divergence_check_XY.out')) #get all filenames for runs corresponding to this choice of parameters    
         if dir_output_filepaths_RZ and dir_output_filepaths_XY:
             try:
-                field_data_RZ=Perturbation(ID=parameter_string,data_format='LOCUST_field_data',filename=dir_output_filepaths_RZ)
-                field_data_XY=Perturbation(ID=parameter_string,data_format='LOCUST_field_data',filename=dir_output_filepaths_XY)
-                for field_data in [field_data_RZ,field_data_XY]:
-                    for quant in field_data.data:
-                        field_data[quant]=field_data[quant].reshape(len(equilibrium['R_1D']),len(equilibrium['Z_1D']))
+
+                field_data_RZ=Perturbation(ID=parameter_string,data_format='LOCUST_field_data',filename=dir_output_filepaths_RZ[0])
+                field_data_XY=Perturbation(ID=parameter_string,data_format='LOCUST_field_data',filename=dir_output_filepaths_XY[0])
+                
+                field_data_RZ_nZ=np.where(field_data_RZ['R']==field_data_RZ['R'][0])[0][1]
+                field_data_RZ_nR=len(field_data_RZ['R'])/field_data_RZ_nZ
+                for quant in field_data_RZ.data:
+                    field_data_RZ[quant]=field_data_RZ[quant].reshape(int(field_data_RZ_nR),int(field_data_RZ_nZ)).T
+                field_data_RZ['R_1D']=field_data_RZ['R'][:,0]
+                field_data_RZ['Z_1D']=field_data_RZ['Z'][0,:]
+
+                field_data_XY_nR=np.where(field_data_XY['phi']==field_data_XY['phi'][0])[0][1]
+                field_data_XY_nphi=len(field_data_XY['R'])/field_data_XY_nR
+                for quant in field_data_XY.data:
+                    field_data_XY[quant]=field_data_XY[quant].reshape(int(field_data_XY_nR),int(field_data_XY_nphi))
+                field_data_XY['phi']=field_data_XY['phi'][0,:]
+                field_data_XY['R_1D']=field_data_XY['R'][:,0]
 
                 yield field_data_RZ,field_data_XY
+                
             except:
                 yield None
         else:

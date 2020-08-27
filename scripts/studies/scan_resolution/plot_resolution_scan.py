@@ -69,7 +69,7 @@ except:
 #Main 
 
 import scan_resolution_launch as batch_data
-
+'''
 outputs=templates.plot_mod.get_output_files(batch_data,'rund')
 
 fig,ax=plt.subplots(1)
@@ -83,12 +83,17 @@ ax.set_xlabel("Perturbation grid spacing (log) [m]")
 ax.set_ylabel("Normalised PFC power flux")
 ax.legend()
 plt.show()
+'''
 
-outputs=get_divergence_files(batch_data)
+outputs=templates.plot_mod.get_divergence_files(batch_data)
 fig,ax=plt.subplots(1)
-def plot_divergence(output,fig,ax):    
-    field_data_RZ,field_data_XY=output
-    field_data_RZ.plot(key='divB',ax=ax,fig=fig)
+def plot_divergence(output,fig,ax): 
+    if output:   
+        ax.cla()
+        field_data_RZ,field_data_XY=output
+        field_data_RZ.plot(key='divB',fill=False,ax=ax,fig=fig)
+    else:
+        ax.cla()
 animation=FuncAnimation(fig,plot_divergence,frames=outputs,fargs=[fig,ax],repeat=True,interval=1)
 plt.show()
 #animation.save('divergence_animation.gif',writer='pillow')

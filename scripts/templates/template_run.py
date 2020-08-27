@@ -1212,63 +1212,65 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         #check the equilibrium to get an idea of domain to check over
         equilibrium=Equilibrium(ID='',data_format='GEQDSK',filename=self.args['RMP_study__filepath_equilibrium'],GEQDSKFIX1=True,GEQDSKFIX2=True)
         
-        #check divergence in poloidal plane
-        field_data=Perturbation('') 
-        Z_points,R_points=np.meshgrid(equilibrium['Z_1D'],equilibrium['R_1D'])
-        Z_points_flat,R_points_flat=Z_points.flatten(),R_points.flatten()
-        time_points_flat=np.zeros(len(R_points_flat))
-        phi_slice=0.
-        phi_points_flat=np.full(len(R_points_flat),phi_slice)
-        
-        field_data.set(
-            time_point_data=time_points_flat,
-            phi_point_data=phi_points_flat,
-            R_point_data=R_points_flat,
-            Z_point_data=Z_points_flat)
-        field_data.dump_data(data_format='point_data',filename=self.args['LOCUST_run__dir_input'] / 'point_data.inp')
-        LOCUST_workflow=run_scripts.LOCUST_run.LOCUST_run(
-            environment_name=self.args['LOCUST_run__environment_name'],
-            repo_URL=self.args['LOCUST_run__repo_URL'],
-            commit_hash=self.args['LOCUST_run__commit_hash'],
-            dir_LOCUST=self.args['LOCUST_run__dir_LOCUST'],
-            dir_LOCUST_source=self.args['LOCUST_run__dir_LOCUST_source'],
-            dir_input=self.args['LOCUST_run__dir_input'],
-            dir_output=self.args['LOCUST_run__dir_output'],
-            dir_cache=self.args['LOCUST_run__dir_cache'],
-            settings_prec_mod=self.args['LOCUST_run__settings_prec_mod'],
-            flags=LOCUST_run__flags_div_check)
-        LOCUST_workflow.run()
-        (self.args['LOCUST_run__dir_output'] / 'field_data.out').rename(self.args['LOCUST_run__dir_output'] / 'field_data_divergence_check_RZ.out')
-        
-        #check divergence in XY plane
-        field_data=Perturbation('')
-        number_phi_points=100
-        phi_points=np.linspace(0.,2.*np.pi,number_phi_points) 
-        R_points,phi_points=np.meshgrid(equilibrium['R_1D'],phi_points)
-        phi_points_flat,R_points_flat=phi_points.flatten(),R_points.flatten()
-        time_points_flat=np.zeros(len(R_points_flat))
-        Z_slice=0.
-        Z_points_flat=np.full(len(R_points_flat),Z_slice)
-        
-        field_data.set(
-            time_point_data=time_points_flat,
-            phi_point_data=phi_points_flat,
-            R_point_data=R_points_flat,
-            Z_point_data=Z_points_flat)
-        field_data.dump_data(data_format='point_data',filename=self.args['LOCUST_run__dir_input'] / 'point_data.inp')
-        LOCUST_workflow=run_scripts.LOCUST_run.LOCUST_run(
-            environment_name=self.args['LOCUST_run__environment_name'],
-            repo_URL=self.args['LOCUST_run__repo_URL'],
-            commit_hash=self.args['LOCUST_run__commit_hash'],
-            dir_LOCUST=self.args['LOCUST_run__dir_LOCUST'],
-            dir_LOCUST_source=self.args['LOCUST_run__dir_LOCUST_source'],
-            dir_input=self.args['LOCUST_run__dir_input'],
-            dir_output=self.args['LOCUST_run__dir_output'],
-            dir_cache=self.args['LOCUST_run__dir_cache'],
-            settings_prec_mod=self.args['LOCUST_run__settings_prec_mod'],
-            flags=LOCUST_run__flags_div_check)
-        LOCUST_workflow.run()
-        (self.args['LOCUST_run__dir_output'] / 'field_data.out').rename(self.args['LOCUST_run__dir_output'] / 'field_data_divergence_check_XY.out')
+        if not list(self.args['LOCUST_run__dir_output'].glob('field_data_divergence_check_RZ.out')):
+            #check divergence in poloidal plane
+            field_data=Perturbation('') 
+            Z_points,R_points=np.meshgrid(equilibrium['Z_1D'],equilibrium['R_1D'])
+            Z_points_flat,R_points_flat=Z_points.flatten(),R_points.flatten()
+            time_points_flat=np.zeros(len(R_points_flat))
+            phi_slice=0.
+            phi_points_flat=np.full(len(R_points_flat),phi_slice)
+            
+            field_data.set(
+                time_point_data=time_points_flat,
+                phi_point_data=phi_points_flat,
+                R_point_data=R_points_flat,
+                Z_point_data=Z_points_flat)
+            field_data.dump_data(data_format='point_data',filename=self.args['LOCUST_run__dir_input'] / 'point_data.inp')
+            LOCUST_workflow=run_scripts.LOCUST_run.LOCUST_run(
+                environment_name=self.args['LOCUST_run__environment_name'],
+                repo_URL=self.args['LOCUST_run__repo_URL'],
+                commit_hash=self.args['LOCUST_run__commit_hash'],
+                dir_LOCUST=self.args['LOCUST_run__dir_LOCUST'],
+                dir_LOCUST_source=self.args['LOCUST_run__dir_LOCUST_source'],
+                dir_input=self.args['LOCUST_run__dir_input'],
+                dir_output=self.args['LOCUST_run__dir_output'],
+                dir_cache=self.args['LOCUST_run__dir_cache'],
+                settings_prec_mod=self.args['LOCUST_run__settings_prec_mod'],
+                flags=LOCUST_run__flags_div_check)
+            LOCUST_workflow.run()
+            (self.args['LOCUST_run__dir_output'] / 'field_data.out').rename(self.args['LOCUST_run__dir_output'] / 'field_data_divergence_check_RZ.out')
+
+        if not list(self.args['LOCUST_run__dir_output'].glob('field_data_divergence_check_XY.out')):
+            #check divergence in XY plane
+            field_data=Perturbation('')
+            number_phi_points=100
+            phi_points=np.linspace(0.,2.*np.pi,number_phi_points) 
+            R_points,phi_points=np.meshgrid(equilibrium['R_1D'],phi_points)
+            phi_points_flat,R_points_flat=phi_points.flatten(),R_points.flatten()
+            time_points_flat=np.zeros(len(R_points_flat))
+            Z_slice=0.
+            Z_points_flat=np.full(len(R_points_flat),Z_slice)
+            
+            field_data.set(
+                time_point_data=time_points_flat,
+                phi_point_data=phi_points_flat,
+                R_point_data=R_points_flat,
+                Z_point_data=Z_points_flat)
+            field_data.dump_data(data_format='point_data',filename=self.args['LOCUST_run__dir_input'] / 'point_data.inp')
+            LOCUST_workflow=run_scripts.LOCUST_run.LOCUST_run(
+                environment_name=self.args['LOCUST_run__environment_name'],
+                repo_URL=self.args['LOCUST_run__repo_URL'],
+                commit_hash=self.args['LOCUST_run__commit_hash'],
+                dir_LOCUST=self.args['LOCUST_run__dir_LOCUST'],
+                dir_LOCUST_source=self.args['LOCUST_run__dir_LOCUST_source'],
+                dir_input=self.args['LOCUST_run__dir_input'],
+                dir_output=self.args['LOCUST_run__dir_output'],
+                dir_cache=self.args['LOCUST_run__dir_cache'],
+                settings_prec_mod=self.args['LOCUST_run__settings_prec_mod'],
+                flags=LOCUST_run__flags_div_check)
+            LOCUST_workflow.run()
+            (self.args['LOCUST_run__dir_output'] / 'field_data.out').rename(self.args['LOCUST_run__dir_output'] / 'field_data_divergence_check_XY.out')
         
     def plot_inputs(self,*args,**kwargs):
         """
@@ -1306,40 +1308,43 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         notes:
         """
 
-        LOCUST_workflow=run_scripts.LOCUST_run.LOCUST_run(
-            environment_name=self.args['LOCUST_run__environment_name'],
-            repo_URL=self.args['LOCUST_run__repo_URL'],
-            commit_hash=self.args['LOCUST_run__commit_hash'],
-            dir_LOCUST=self.args['LOCUST_run__dir_LOCUST'],
-            dir_LOCUST_source=self.args['LOCUST_run__dir_LOCUST_source'],
-            dir_input=self.args['LOCUST_run__dir_input'],
-            dir_output=self.args['LOCUST_run__dir_output'],
-            dir_cache=self.args['LOCUST_run__dir_cache'],
-            settings_prec_mod=self.args['LOCUST_run__settings_prec_mod'],
-            flags=self.args['LOCUST_run__flags'])
-        LOCUST_workflow.run()
+        if not list(self.args['LOCUST_run__dir_output'].glob('*.dfn')):
+            LOCUST_workflow=run_scripts.LOCUST_run.LOCUST_run(
+                environment_name=self.args['LOCUST_run__environment_name'],
+                repo_URL=self.args['LOCUST_run__repo_URL'],
+                commit_hash=self.args['LOCUST_run__commit_hash'],
+                dir_LOCUST=self.args['LOCUST_run__dir_LOCUST'],
+                dir_LOCUST_source=self.args['LOCUST_run__dir_LOCUST_source'],
+                dir_input=self.args['LOCUST_run__dir_input'],
+                dir_output=self.args['LOCUST_run__dir_output'],
+                dir_cache=self.args['LOCUST_run__dir_cache'],
+                settings_prec_mod=self.args['LOCUST_run__settings_prec_mod'],
+                flags=self.args['LOCUST_run__flags'])
+            LOCUST_workflow.run()
 
     def create_Poincare(self,*args,**kwargs):
         """
         notes:
         """
 
-        poincare_flags=copy.deepcopy(self.args['LOCUST_run__flags'])
-        poincare_flags['POINCARE']=3
-        poincare_flags['NOPFC']=True #speed up by ignoring large mesh
-        if 'SPLIT' in poincare_flags: del(poincare_flags['SPLIT']) #stop junk particle cache from Poincaré mode overwriting result
-        poincare_workflow=run_scripts.LOCUST_run.LOCUST_run(
-            environment_name=self.args['LOCUST_run__environment_name'],
-            repo_URL=self.args['LOCUST_run__repo_URL'],
-            commit_hash=self.args['LOCUST_run__commit_hash'],
-            dir_LOCUST=self.args['LOCUST_run__dir_LOCUST'],
-            dir_LOCUST_source=self.args['LOCUST_run__dir_LOCUST_source'],
-            dir_input=self.args['LOCUST_run__dir_input'],
-            dir_output=self.args['LOCUST_run__dir_output'],
-            dir_cache=self.args['LOCUST_run__dir_cache'],
-            settings_prec_mod=self.args['LOCUST_run__settings_prec_mod'],
-            flags=poincare_flags)
-        poincare_workflow.run()
+
+        if not list(self.args['LOCUST_run__dir_output'].glob('Poincare_map*.dat')):
+            poincare_flags=copy.deepcopy(self.args['LOCUST_run__flags'])
+            poincare_flags['POINCARE']=3
+            poincare_flags['NOPFC']=True #speed up by ignoring large mesh
+            if 'SPLIT' in poincare_flags: del(poincare_flags['SPLIT']) #stop junk particle cache from Poincaré mode overwriting result
+            poincare_workflow=run_scripts.LOCUST_run.LOCUST_run(
+                environment_name=self.args['LOCUST_run__environment_name'],
+                repo_URL=self.args['LOCUST_run__repo_URL'],
+                commit_hash=self.args['LOCUST_run__commit_hash'],
+                dir_LOCUST=self.args['LOCUST_run__dir_LOCUST'],
+                dir_LOCUST_source=self.args['LOCUST_run__dir_LOCUST_source'],
+                dir_input=self.args['LOCUST_run__dir_input'],
+                dir_output=self.args['LOCUST_run__dir_output'],
+                dir_cache=self.args['LOCUST_run__dir_cache'],
+                settings_prec_mod=self.args['LOCUST_run__settings_prec_mod'],
+                flags=poincare_flags)
+            poincare_workflow.run()
 
     def calculate_orbits(self,*args,**kwargs):
         """
@@ -1388,6 +1393,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         if all([arg in LOCUST_run__flags_orbit for arg in ['B3D','B3D_EX']]):
 
             if not list(self.args['LOCUST_run__dir_output'].glob('ORBIT_3D')):
+
+                LOCUST_run__flags_orbit['TIMAX']='0.05D0' #0.01s~5GB for 10 markers, 1 bounce ~ 10us
 
                 LOCUST_workflow=run_scripts.LOCUST_run.LOCUST_run(
                     environment_name=self.args['LOCUST_run__environment_name'],

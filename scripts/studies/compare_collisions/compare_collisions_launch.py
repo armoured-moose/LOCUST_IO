@@ -112,8 +112,8 @@ parameters__sheet_names_kinetic_prof=["'Flat n'"]
 #define the parameter space for a given scenario
 
 #kinetic profile parameters which vary independently
-parameters__kinetic_profs_Pr=[0.3]
-parameters__kinetic_profs_tF_tE=[2.]
+parameters__kinetic_profs_Pr=[1.] #lowest rotation
+parameters__kinetic_profs_tF_tE=[0.5]
 
 #3D field parameters which vary independently - if you want to vary these together then put them into the same loop nesting below
 #2D arrays, each element has length = number of modes
@@ -131,8 +131,8 @@ parameters__currents_lower=np.array([20.,40.,60.,80.,90.])*1000.
 ##################################################################
 #define the workflow commands in order we want to execute them
 
-RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','IDS_create','kin_extrap','run_BBNBI','depo_get','run_LOCUST','clean_input']\""
-collision_types=[{'icoll':0,'iscat':0,'idiff':0},{'icoll':1,'iscat':1,'idiff':1}]
+RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','IDS_create','run_BBNBI','depo_get','calc_divB','calc_poinc','run_LOCUST','calc_orb','clean_input']\""
+collision_types=[{'icoll':0,'iscat':0,'idiff':0}]#,{'icoll':1,'iscat':1,'idiff':1}]
 
 ##################################################################
 #create every valid combination of parameter, returned in flat lists
@@ -172,9 +172,6 @@ for collision_type in collision_types:
                                         'phaseu',
                                         'phasem',
                                         'phasel',
-                                        'rotu',
-                                        'rotm',
-                                        'rotl',
                                         'ikatu',
                                         'ikatm',
                                         'ikatl'],[
@@ -208,7 +205,7 @@ for collision_type in collision_types:
                                 LOCUST_run__settings_prec_mod['file_tet']="'locust_wall'" 
                                 LOCUST_run__settings_prec_mod['file_eqm']="'locust_eqm'" 
                                 LOCUST_run__settings_prec_mod['threadsPerBlock']=64
-                                LOCUST_run__settings_prec_mod['blocksPerGrid']=512
+                                LOCUST_run__settings_prec_mod['blocksPerGrid']=128
                                 LOCUST_run__settings_prec_mod['root']="'/tmp/{username}/{study}/{params}'".format(username=settings.username,study=RMP_study__name,params=parameters__parameter_string)
                                 LOCUST_run__settings_prec_mod['i3dr']=-1 #XXX WHILST I3DR FLAG IS BROKE
                                 LOCUST_run__settings_prec_mod['niter']=1
@@ -229,8 +226,6 @@ for collision_type in collision_types:
                                 MARS_read__settings['dXR']=f'{0.010}_gpu'
                                 MARS_read__settings['dXZ']=f'{0.010}_gpu'
                                 
-                                
-
                                 NEMO_run__xml_settings={}
                                 NEMO_run__xml_settings['nmarker']=LOCUST_run__settings_prec_mod['threadsPerBlock']*LOCUST_run__settings_prec_mod['blocksPerGrid']*8
                                 NEMO_run__xml_settings['fokker_flag']=0
