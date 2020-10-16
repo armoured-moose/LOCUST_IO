@@ -118,9 +118,9 @@ parameters__kinetic_profs_tF_tE=[0.5]
 #3D field parameters which vary independently - if you want to vary these together then put them into the same loop nesting below
 #2D arrays, each element has length = number of modes
 parameters__toroidal_mode_numbers=[[-3,-6]]
-parameters__phases_upper=np.array([0.])+30.#86,0,34 = default for maximmum stochasticity in coil coordinate system
+parameters__phases_upper=np.array([86.])+30.#86,0,34 = default for maximmum stochasticity in coil coordinate system
 parameters__phases_middle=np.array([0.])+26.7
-parameters__phases_lower=np.array([0.])+30.
+parameters__phases_lower=np.array([34.])+30.
 parameters__rotations_upper=np.array([0.])
 parameters__rotations_middle=np.array([0.])
 parameters__rotations_lower=np.array([0.])
@@ -178,15 +178,12 @@ for collision_type in collision_types:
                                         parameters__phase_upper,
                                         parameters__phase_middle,
                                         parameters__phase_lower,
-                                        parameters__rotation_upper,
-                                        parameters__rotation_middle,
-                                        parameters__rotation_lower,
                                         parameters__current_upper,
                                         parameters__current_middle,
                                         parameters__current_lower])])
 
                                 for collision in ['icoll','iscat','idiff']: #add collision types to parameter string
-                                    parameters__parameter_string+=''.join('{}_{}_'.format(collision,collision_type[collision]))
+                                    parameters__parameter_string+=''.join('_{}_{}'.format(collision,collision_type[collision]))
 
                                 parameter_strings.append(parameters__parameter_string)
 

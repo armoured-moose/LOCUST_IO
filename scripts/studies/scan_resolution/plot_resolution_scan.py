@@ -69,48 +69,70 @@ except:
 #Main 
 
 import scan_resolution_launch as batch_data
-'''
-outputs=templates.plot_mod.get_output_files(batch_data,'rund')
 
+outputs=templates.plot_mod.get_output_files(batch_data,'fpl')
 fig,ax=plt.subplots(1)
+Pinj=33.e6
+Einj=1.e6
 for run_number,output in enumerate(outputs):
-    if 'B3D_EX' not in batch_data.args_batch['LOCUST_run__flags'][run_number]: #this is the 2D case
-        ax.axhline(np.log10(output['PFC_power']['total']),color='red',label='2D case')
-    elif output is not None:
-        ax.scatter(np.log10(batch_data.parameters__perturbation_resolutions_R[run_number]),output['PFC_power']['total'],color='b',marker='x',linestyle='-')
-
+    if output is not None:
+        i=np.where(output['status_flag']=='PFC_intercept_3D')[0]
+        PFC_power=100.*1.e6*output['f']*np.sum((output['V_R'][i]**2+output['V_phi'][i]**2+output['V_Z'][i]**2)*output['FG'][i])*0.5*constants.mass_deuteron/Pinj
+        #weight_factor=Pinj/np.sum(output['weight']*Einj*constants.charge_e)
+        #print(1.e6*output['f']*np.sum((output['V_R'][i]**2+output['V_phi'][i]**2+output['V_Z'][i]**2)*output['FG'][i])*0.5*constants.mass_deuteron)
+        #print(np.sum((output['V_R'][i]**2+output['V_phi'][i]**2+output['V_Z'][i]**2)*output['FG'][i])*0.5*constants.mass_deuteron)
+        #print(batch_data.parameters__perturbation_resolutions_R[run_number])
+        if 'B3D_EX' not in batch_data.args_batch['LOCUST_run__flags'][run_number]: #this is the 2D case
+            ax.axhline(PFC_power,color='red',label='2D case',linewidth=2)
+        else:
+            ax.scatter(np.log10(batch_data.parameters__perturbation_resolutions_R[run_number]),PFC_power,color='black',marker='x',linestyle='solid',alpha=1,linewidth=2,label='2D equilibrium')
 ax.set_xlabel("Perturbation grid spacing (log) [m]")
-ax.set_ylabel("Normalised PFC power flux")
-ax.legend()
+ax.set_ylabel("PFC power flux [%/Pinj]")
 plt.show()
-'''
 
 outputs=templates.plot_mod.get_divergence_files(batch_data)
 fig,ax=plt.subplots(1)
-def plot_divergence(output,fig,ax): 
-    if output:   
-        ax.cla()
+for run_number,output in enumerate(outputs):
+    if output is not None:
         field_data_RZ,field_data_XY=output
-        field_data_RZ.plot(key='divB',fill=False,ax=ax,fig=fig)
-    else:
-        ax.cla()
+        divB=np.log10(np.sum(np.abs(field_data_RZ['divB']))/len(field_data_RZ['divB'].flatten()))
+        if 'B3D_EX' not in batch_data.args_batch['LOCUST_run__flags'][run_number]: #this is the 2D case
+            ax.axhline(divB,color='red',label='2D case')
+        else:
+            ax.scatter(np.log10(batch_data.parameters__perturbation_resolutions_R[run_number]),divB,color='black',marker='x',linestyle='solid',alpha=1,linewidth=2)
+            #ax.scatter(np.log10(batch_data.parameters__perturbation_resolutions_R[run_number]),divB,color='black',marker='x',linestyle='-',alpha=1,linewidth=2)
+
+ax.set_xlabel("Perturbation grid spacing (log) [m]")
+ax.set_ylabel(r"average $\nabla B/B$ (log)")
+plt.show()
+
+'''
+outputs=templates.plot_mod.get_divergence_files(batch_data)
+fig,ax=plt.subplots(1)
+def plot_divergence(output,fig,ax): 
+    try:
+        if output:   
+            ax.cla()
+            field_data_RZ,field_data_XY=output
+            field_data_RZ.plot(key='divB',fill=False,ax=ax,fig=fig)
+        else:
+            ax.cla()
+    except:
+        pass
 animation=FuncAnimation(fig,plot_divergence,frames=outputs,fargs=[fig,ax],repeat=True,interval=1)
 plt.show()
-#animation.save('divergence_animation.gif',writer='pillow')
-
+animation.save('divergence_animation.gif',writer='pillow')
+'''
 
 #cycle through poincare maps
 outputs=templates.plot_mod.get_output_files(batch_data,'poinc')
-axisymm=None
 for run_number,output in enumerate(outputs):
     equilibrium=Equilibrium(ID='',data_format='GEQDSK',filename=batch_data.args_batch['RMP_study__filepath_equilibrium'][run_number],GEQDSKFIX1=True,GEQDSKFIX2=True)
     fig,ax=plt.subplots(1)
     if 'B3D_EX' not in batch_data.args_batch['LOCUST_run__flags'][run_number] and output is not None: #this is the 2D case    
-        axisymm=output
+        equilibrium.plot()
     elif output is not None:
-        output.plot(ax=ax,fig=fig)
-    if axisymm:
-        axisymm.plot(LCFS=equilibrium,limiters=equilibrium,colmap=settings.cmap_w,ax=ax,fig=fig) #XXX reduce alpha for this in future
+        output.plot(ax=ax,fig=fig,LCFS=equilibrium,limiters=equilibrium,real_scale=True)
     plt.show()
 
 #################################

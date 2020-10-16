@@ -382,7 +382,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         import time
 
         arg_string=run_scripts.utils.command_line_arg_parse_generate_string(command_number_=0,**{key:[value] for key,value in self.args.items()})
-        with open(self.args['LOCUST_run__dir_output']/f"run_args{time.strftime('%d-%m-%Y_%S-%M-%H')}.txt",'w') as file:
+        with open(self.args['LOCUST_run__dir_output']/f"run_args_{time.strftime('%d-%m-%Y_%S-%M-%H')}.txt",'w') as file:
             file.write(arg_string)
 
     def setup_RMP_study_dirs(self,*args,**kwargs):
@@ -1415,7 +1415,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
 
         if not list(self.args['LOCUST_run__dir_output'].glob('ORBIT_2D')):
 
-            LOCUST_run__flags_orbit['TIMAX']='0.00003D0' #1 bounce ~ 10us
+            LOCUST_run__flags_orbit['TIMAX']='0.0001D0' #1 bounce ~ 10us
             LOCUST_workflow=run_scripts.LOCUST_run.LOCUST_run(
                 environment_name=self.args['LOCUST_run__environment_name'],
                 repo_URL=self.args['LOCUST_run__repo_URL'],

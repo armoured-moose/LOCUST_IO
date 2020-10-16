@@ -64,9 +64,18 @@ except:
 
 import scan_upper_lower_launch as batch_data
 
-outputs=templates.plot_mod.get_output_files(batch_data,'rund')
+outputs=templates.plot_mod.get_output_files(batch_data,'fpl')
 
-PFC_power=np.array([output['PFC_power']['total'] if (output is not None and output['run_status']=='completed') else -10. for output in outputs]).reshape(len(batch_data.parameters__kinetic_profs_Pr),len(batch_data.parameters__phases_upper),len(batch_data.parameters__phases_lower))
+Pinj=33.e6
+PFC_power=[]
+for output in outputs:
+    if output:
+        i=np.where(output['status_flag']=='PFC_intercept_3D')[0]
+        PFC_power.append([100.*1.e6*output['f']*np.sum((output['V_R'][i]**2+output['V_phi'][i]**2+output['V_Z'][i]**2)*output['FG'][i])*0.5*constants.mass_deuteron/Pinj])
+    else:
+        PFC_power.append([-10.])
+
+PFC_power=np.array(PFC_power).reshape(len(batch_data.parameters__kinetic_profs_Pr),len(batch_data.parameters__phases_upper),len(batch_data.parameters__phases_lower))
 
 for plasma_state_counter,(Pr,tftE) in enumerate(zip(batch_data.parameters__kinetic_profs_Pr,batch_data.parameters__kinetic_profs_tF_tE)):
 
@@ -85,8 +94,10 @@ for plasma_state_counter,(Pr,tftE) in enumerate(zip(batch_data.parameters__kinet
     ax.set_ylim([np.max(batch_data.parameters__phases_upper)-30.,np.min(batch_data.parameters__phases_upper)-30.])
     ax.set_xlabel('Lower $\mathrm{d}\Phi$')
     ax.set_ylabel('Upper $\mathrm{d}\Phi$')
+    ax.set_title('$\mathrm{(log}_{10}\mathrm{(log}$')
     fig.colorbar(mesh,ax=ax,orientation='horizontal')
     plt.show()
+
 
 #################################
  

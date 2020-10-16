@@ -78,7 +78,7 @@ except:
 ################################################################## 
 #Main 
 
-def get_output_files(batch_data,output_type='dfn'):
+def get_output_files(batch_data,output_type='dfn',**kwargs):
 
     outputs=[]
     output_file_dispatch={}
@@ -105,7 +105,7 @@ def get_output_files(batch_data,output_type='dfn'):
         if dir_output_filepaths:
             for dir_output_filepath in dir_output_filepaths:
                 try:
-                    yield output_classes_dispatch[output_type](ID=parameter_string,data_format='LOCUST',filename=dir_output_filepath)
+                    yield output_classes_dispatch[output_type](ID=parameter_string,data_format='LOCUST',filename=dir_output_filepath,**kwargs)
                 except:
                     yield None
         else:
@@ -115,7 +115,6 @@ def get_divergence_files(batch_data):
     """
     notes:
         assume divergence is dumped on a rectangular grid
-        XXX broken
     """
 
     for run_number,(parameter_string,dir_output) in enumerate(zip(batch_data.parameter_strings,batch_data.args_batch['LOCUST_run__dir_output'])): #within each GPU folder the path to each output is the same
@@ -129,23 +128,25 @@ def get_divergence_files(batch_data):
 
                 field_data_RZ=Perturbation(ID=parameter_string,data_format='LOCUST_field_data',filename=dir_output_filepaths_RZ[0])
                 field_data_XY=Perturbation(ID=parameter_string,data_format='LOCUST_field_data',filename=dir_output_filepaths_XY[0])
-                
-                field_data_RZ_nZ=np.where(field_data_RZ['R']==field_data_RZ['R'][0])[0][1]
-                field_data_RZ_nR=len(field_data_RZ['R'])/field_data_RZ_nZ
+
+                field_data_RZ_nR=len(np.where(field_data_RZ['Z']==field_data_RZ['Z'][0])[0])
+                field_data_RZ_nZ=np.where(field_data_RZ['Z']==field_data_RZ['Z'][0])[0][1]
+
                 for quant in field_data_RZ.data:
-                    field_data_RZ[quant]=field_data_RZ[quant].reshape(int(field_data_RZ_nR),int(field_data_RZ_nZ)).T
+                    field_data_RZ[quant]=field_data_RZ[quant].reshape(int(field_data_RZ_nR),int(field_data_RZ_nZ))
                 field_data_RZ['R_1D']=field_data_RZ['R'][:,0]
                 field_data_RZ['Z_1D']=field_data_RZ['Z'][0,:]
 
-                field_data_XY_nR=np.where(field_data_XY['phi']==field_data_XY['phi'][0])[0][1]
-                field_data_XY_nphi=len(field_data_XY['R'])/field_data_XY_nR
+                field_data_XY_nphi=len(np.where(field_data_XY['R']==field_data_XY['R'][0])[0])
+                field_data_XY_nR=np.where(field_data_XY['R']==field_data_XY['R'][0])[0][1]
+                
                 for quant in field_data_XY.data:
-                    field_data_XY[quant]=field_data_XY[quant].reshape(int(field_data_XY_nR),int(field_data_XY_nphi))
+                    field_data_XY[quant]=field_data_XY[quant].reshape(int(field_data_XY_nR),int(field_data_XY_nphi)).T
                 field_data_XY['phi']=field_data_XY['phi'][0,:]
                 field_data_XY['R_1D']=field_data_XY['R'][:,0]
 
                 yield field_data_RZ,field_data_XY
-                
+
             except:
                 yield None
         else:

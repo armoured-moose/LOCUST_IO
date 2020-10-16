@@ -136,9 +136,8 @@ RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc
 ##################################################################
 #define resolution settings
 
-parameters__perturbation_resolutions_R=np.array([1.2345,2.,1.,0.1,0.01,0.005]) #first value is axisymmetric case - so supply any value
+parameters__perturbation_resolutions_R=np.array([1.2345,0.0001,0.002,0.003,0.004,0.005,0.01,0.1,1.0,2.0,0.02,0.04,0.08,0.2,0.4,0.8,0.3,0.5,0.6]) #first value is axisymmetric case - so supply any value
 parameters__perturbation_resolutions_Z=copy.deepcopy(parameters__perturbation_resolutions_R)
-
 ##################################################################
 #create every valid combination of parameter, returned in flat lists
 #use zip and nest levels to define specific combinations which cannot be varied
@@ -171,6 +170,7 @@ for parameters__perturbation_resolution_R,parameters__perturbation_resolution_Z 
 
                                 
                                 LOCUST_run__flags=LOCUST_run__flags_default
+                                LOCUST_run__flags['TIMAX']='2.0D0' #increase max tracking time
                                 #3D field settings
                                 if run_number==1: #make first run axisymmetric as control run
                                     del(LOCUST_run__flags['B3D'])

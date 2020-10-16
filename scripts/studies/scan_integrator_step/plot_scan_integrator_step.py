@@ -1,10 +1,10 @@
-#plot_marker_number_scan.py
+#plot_integrator_step_scan.py
  
 """
 Samuel Ward
 17/08/20
 ----
-look at effects of changing number of markers
+check convergence of integrator step size
 ---
  
 notes:         
@@ -61,7 +61,7 @@ except:
 ################################################################## 
 #Main 
 
-import scan_marker_number_launch as batch_data
+import scan_integrator_step_launch as batch_data
 
 outputs=templates.plot_mod.get_output_files(batch_data,'fpl')
 fig1,ax1=plt.subplots(1)
@@ -69,10 +69,10 @@ fig2,ax2=plt.subplots(1)
 for counter,(output,col_val) in enumerate(zip(outputs,np.linspace(0,1,len(batch_data.args_batch['LOCUST_run__dir_output'])))):
     if output: 
         number_markers=len(output['weight'])
-        output['weight']/=number_markers #normalise weights according to number markers
-        output.plot(fig=fig1,ax=ax1,axes=['time'],fill=False,label=number_markers,colmap=settings.cmap_default,colmap_val=col_val,number_bins=200,weight=True)
+        output['weight']/=number_markers #plot loss fraction of total markers
+        output.plot(fig=fig1,ax=ax1,axes=['time'],fill=False,label=batch_data.UNBORs[counter],colmap=settings.cmap_default,colmap_val=col_val,number_bins=200,weight=True)
         output['E']/=1000. #convert to keV
-        output.plot(fig=fig2,ax=ax2,axes=['E'],fill=False,label=output.ID,colmap=settings.cmap_default,colmap_val=col_val,number_bins=200,weight=True)
+        output.plot(fig=fig2,ax=ax2,axes=['E'],fill=False,label=batch_data.UNBORs[counter],colmap=settings.cmap_default,colmap_val=col_val,number_bins=200,weight=True)
 ax1.legend()
 ax2.legend()
 ax1.set_xlabel('time [s]')
