@@ -62,7 +62,7 @@ except:
 ################################################################## 
 #Main 
 
-import scan_upper_lower_launch as batch_data
+import scan_upper_middle_launch as batch_data
 
 outputs=templates.plot_mod.get_output_files(batch_data,'fpl')
 
@@ -75,24 +75,24 @@ for output in outputs:
     else:
         PFC_power.append([-10.])
 
-PFC_power=np.array(PFC_power).reshape(len(batch_data.parameters__kinetic_profs_Pr),len(batch_data.parameters__phases_upper),len(batch_data.parameters__phases_lower))
+PFC_power=np.array(PFC_power).reshape(len(batch_data.parameters__kinetic_profs_Pr),len(batch_data.parameters__phases_upper),len(batch_data.parameters__phases_middle))
 
 for plasma_state_counter,(Pr,tftE) in enumerate(zip(batch_data.parameters__kinetic_profs_Pr,batch_data.parameters__kinetic_profs_tF_tE)):
 
-    loss_grid_size=len(batch_data.parameters__phases_upper)*len(batch_data.parameters__phases_lower)
+    loss_grid_size=len(batch_data.parameters__phases_upper)*len(batch_data.parameters__phases_middle)
     plasma_state_slice=slice(plasma_state_counter*loss_grid_size,(plasma_state_counter+1)*loss_grid_size)
 
-    dLPHASE,dUPHASE=batch_data.parameters__phases_lower[1]-batch_data.parameters__phases_lower[0],batch_data.parameters__phases_upper[1]-batch_data.parameters__phases_upper[0]
-    LPHASE,UPHASE=np.append(batch_data.parameters__phases_lower,batch_data.parameters__phases_lower[-1]+dLPHASE),np.append(batch_data.parameters__phases_upper,batch_data.parameters__phases_upper[-1]+dUPHASE)
+    dMPHASE,dUPHASE=batch_data.parameters__phases_middle[1]-batch_data.parameters__phases_middle[0],batch_data.parameters__phases_upper[1]-batch_data.parameters__phases_upper[0]
+    MPHASE,UPHASE=np.append(batch_data.parameters__phases_middle,batch_data.parameters__phases_middle[-1]+dMPHASE),np.append(batch_data.parameters__phases_upper,batch_data.parameters__phases_upper[-1]+dUPHASE)
 
     fig,ax=plt.subplots(1)
     ax.set_facecolor(settings.cmap_default(np.min(PFC_power[plasma_state_counter])))
-    mesh=ax.pcolormesh(LPHASE-dLPHASE/2.-30.,UPHASE-dUPHASE/2.-30.,np.log10(PFC_power[plasma_state_counter]),cmap=settings.cmap_default,edgecolor='none',antialiased=True)
-    ax.set_xticks(batch_data.parameters__phases_lower-30.)
+    mesh=ax.pcolormesh(MPHASE-dMPHASE/2.-30.,UPHASE-dUPHASE/2.-30.,np.log10(PFC_power[plasma_state_counter]),cmap=settings.cmap_default,edgecolor='none',antialiased=True)
+    ax.set_xticks(batch_data.parameters__phases_middle-30.)
     ax.set_yticks(batch_data.parameters__phases_upper-30.)
-    ax.set_xlim([np.min(batch_data.parameters__phases_lower)-30.,np.max(batch_data.parameters__phases_lower)-30.])
+    ax.set_xlim([np.min(batch_data.parameters__phases_middle)-30.,np.max(batch_data.parameters__phases_middle)-30.])
     ax.set_ylim([np.max(batch_data.parameters__phases_upper)-30.,np.min(batch_data.parameters__phases_upper)-30.])
-    ax.set_xlabel('Lower $\mathrm{d}\Phi$')
+    ax.set_xlabel('middle $\mathrm{d}\Phi$')
     ax.set_ylabel('Upper $\mathrm{d}\Phi$')
     ax.set_title('loss power (log)')
     fig.colorbar(mesh,ax=ax,orientation='horizontal')

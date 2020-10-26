@@ -228,8 +228,10 @@ class RMP_study_run(run_scripts.workflow.Workflow):
 
         #check output directory contains no distribution functions already in which case skip (unless just wanting tests e.g. Poincaré map, trajectories or BCHECKing)
         
-        if not all([list(self.args['LOCUST_run__dir_output'].glob(output_glob)) for output_glob in ['*.dfn','ORBIT*','Poincare_map*.dat']]): 
-            if not any([list(self.args['LOCUST_run__dir_output'].glob(output_glob)) for output_glob in ['*.dfn','ORBIT*','Poincare_map*.dat']]):      
+        required_file_types=['*.dfn','ORBIT*','Poincare_map*.dat'] #execute if any of these files are missing
+
+        if not all([list(self.args['LOCUST_run__dir_output'].glob(output_glob)) for output_glob in required_file_types]): 
+            if not any([list(self.args['LOCUST_run__dir_output'].glob(output_glob)) for output_glob in required_file_types]):      
                 if list(self.args['LOCUST_run__dir_output'].glob('*')): #if some outputs at all already then clear before performing run
                     try:
                         subprocess.run(shlex.split('rm -r {dir}'.format(dir=str(self.args['LOCUST_run__dir_output']))),shell=False) 

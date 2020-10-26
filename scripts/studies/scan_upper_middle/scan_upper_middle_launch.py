@@ -1,10 +1,10 @@
-#scan_integrator_step_launch.py
+#scan_upper_middle_launch.py
  
 """
 Samuel Ward
-12/08/20
+14/10/19
 ----
-check convergence of integrator step size
+launch script for RMP study parameter scan for upper/middle coil phase
 ---
  
 notes:         
@@ -94,7 +94,7 @@ except:
 #################################
 #define study name 
 
-RMP_study__name='scan_integrator_step'
+RMP_study__name='scan_upper_middle'
 
 #################################
 #define options and dispatch tables for helping choosing settings
@@ -113,37 +113,30 @@ parameters__sheet_names_kinetic_prof=["'Flat n'"]
 #define the parameter space for a given scenario
 
 #kinetic profile parameters which vary independently
-parameters__kinetic_profs_Pr=[1.] #lowest rotation
-parameters__kinetic_profs_tF_tE=[0.5]
+parameters__kinetic_profs_Pr=[0.3,1.] #pick highest then lowest rotation
+parameters__kinetic_profs_tF_tE=[2.,0.5]
 
 #3D field parameters which vary independently - if you want to vary these together then put them into the same loop nesting below
 #2D arrays, each element has length = number of modes
 parameters__toroidal_mode_numbers=[[-3,-6]]
-parameters__phases_upper=np.array([86.])+30. #86,0,34 = default for maximmum stochasticity in coil coordinate system
-parameters__phases_middle=np.array([0.])+26.7
-parameters__phases_lower=np.array([34.])+30.
+parameters__phases_upper=np.linspace(0,120,9)[:-1]+30. #86,0,34 = default for maximmum stochasticity in coil coordinate system
+parameters__phases_middle=np.linspace(0,120,9)[:-1]+26.7
+parameters__phases_lower=np.array([0.])+30.
 parameters__rotations_upper=np.array([0.])
 parameters__rotations_middle=np.array([0.])
 parameters__rotations_lower=np.array([0.])
 parameters__currents_upper=np.array([90.])*1000.
 parameters__currents_middle=np.array([90.])*1000.
-parameters__currents_lower=np.array([90.])*1000.
+parameters__currents_lower=np.array([90])*1000.
 
-config_beam_1='off' #get a varied sample
+config_beam_1='on'
 config_beam_2='on'
 
 ##################################################################
 #define the workflow commands in order we want to execute them
 
 RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','IDS_create','run_BBNBI','depo_get','run_LOCUST','clean_input']\""
-RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','depo_get_premade','run_LOCUST','clean_input']\""
-
-##################################################################
-#define marker population size settings
-
-UNBORs=np.array([10,20,50,100,200]) #UNBOR
-
-orbit_settings=['FO','GC']
+#RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','depo_get_premade','run_LOCUST','clean_input']\""
 
 ##################################################################
 #create every valid combination of parameter, returned in flat lists
@@ -152,22 +145,54 @@ orbit_settings=['FO','GC']
 run_number=0
 parameter_strings=[]
 #first level are the data which remain constant for a parameter scan
-for orbit_setting in orbit_settings:
-    for UNBOR in UNBORs:
-        for parameters__database,parameters__sheet_name_kinetic_prof in zip(
-                parameters__databases,parameters__sheet_names_kinetic_prof): 
-            for parameters__kinetic_prof_tF_tE,parameters__kinetic_prof_Pr in zip(parameters__kinetic_profs_tF_tE,parameters__kinetic_profs_Pr):
-                for parameters__toroidal_mode_number in parameters__toroidal_mode_numbers:
-                    for parameters__phase_upper,parameters__phase_middle,parameters__phase_lower in zip(parameters__phases_upper,parameters__phases_middle,parameters__phases_lower): #nest at same level == offset them together rigidly 
-                        for parameters__rotation_upper,parameters__rotation_middle,parameters__rotation_lower in zip(parameters__rotations_upper,parameters__rotations_middle,parameters__rotations_lower): #nest at same level == rotating them together rigidly
+for parameters__database,parameters__sheet_name_kinetic_prof in zip(parameters__databases,parameters__sheet_names_kinetic_prof): 
+    for parameters__kinetic_prof_tF_tE,parameters__kinetic_prof_Pr in zip(parameters__kinetic_profs_tF_tE,parameters__kinetic_profs_Pr):
+        for parameters__toroidal_mode_number in parameters__toroidal_mode_numbers:
+            for parameters__phase_upper in parameters__phases_upper:
+                for parameters__phase_middle in parameters__phases_middle:
+                    for parameters__phase_lower in parameters__phases_lower:
+                        for parameters__rotation_upper,parameters__rotation_middle,parameters__rotation_lower in zip(parameters__rotations_upper,parameters__rotations_middle,parameters__rotations_lower): 
                             for parameters__current_upper,parameters__current_middle,parameters__current_lower in zip(parameters__currents_upper,parameters__currents_middle,parameters__currents_lower):
 
-                                run_number+=1 #increment run counter                                         
-
+                                run_number+=1 #increment run counter              
+                                                           
                                 #create a string of variables identifying this run
                                 parameters__kinetic_prof_tF_tE_string=parameters__kinetic_profs_tF_tE__dispatch[parameters__kinetic_prof_tF_tE] #generate some variable string equivalents for later
                                 parameters__kinetic_prof_Pr_string=parameters__kinetic_profs_Pr__dispatch[parameters__kinetic_prof_Pr]
-                                parameters__parameter_string=f'unbor_{UNBOR}_{orbit_setting}'
+
+                                parameters__parameter_string=''
+                                parameters__parameter_string+='_'.join(['{}_{}'.format(parameter,str(value)) for parameter,value in zip([
+                                                'tFtE',
+                                                'Pr'
+                                                ],[
+                                                parameters__kinetic_prof_tF_tE,
+                                                parameters__kinetic_prof_Pr])])
+
+                                parameters__parameter_string+='_ntor_'
+                                for mode in parameters__toroidal_mode_number:
+                                    parameters__parameter_string+='{}_'.format(str(mode)) #add toroidal mode information    
+                                parameters__parameter_string+='_'.join(['{}_{}'.format(parameter,str(value)) for parameter,value in zip([
+                                        'phaseu',
+                                        'phasem',
+                                        'phasel',
+                                        'rotu',
+                                        'rotm',
+                                        'rotl',
+                                        'ikatu',
+                                        'ikatm',
+                                        'ikatl'],[
+                                        parameters__phase_upper,
+                                        parameters__phase_middle,
+                                        parameters__phase_lower,
+                                        parameters__rotation_upper,
+                                        parameters__rotation_middle,
+                                        parameters__rotation_lower,
+                                        parameters__current_upper,
+                                        parameters__current_middle,
+                                        parameters__current_lower])])
+
+                                parameters__parameter_string+=f'_beams_{str(config_beam_1)}_{str(config_beam_2)}'
+
                                 parameter_strings.append(parameters__parameter_string)
 
                                 #################################
@@ -175,20 +200,9 @@ for orbit_setting in orbit_settings:
 
                                 #run-specific settings
 
+                                
                                 LOCUST_run__flags=LOCUST_run__flags_default
-                                LOCUST_run__flags['UNBOR']=UNBOR
-                            
-                                if orbit_setting is 'FO':
-                                    LOCUST_run__flags['LEIID']=6
-                                elif orbit_setting is 'GC':
-                                    LOCUST_run__flags['LEIID']=7
-                                    LOCUST_run__flags['GCCOL']=True
-                                    #LOCUST_run__flags['VPGC']=True
-                                    #LOCUST_run__flags['RZGC']=True
-                                else:
-                                    print(f"ERROR: orbit_setting={orbit_setting} - valid options = 'FO' or 'GC'!\nreturning\n")
-                                    sys.exit(1)
-
+                                LOCUST_run__flags['TIMAX']='0.25D0'
                                 #XXX CURRENTLY WAITING FOR FIX LOCUST_run__flags['I3DR']=-1 
                                 LOCUST_run__settings_prec_mod={}
                                 LOCUST_run__settings_prec_mod['nmde']=len(parameters__toroidal_mode_number) #number of total toroidal harmonics = number of modes
@@ -197,7 +211,7 @@ for orbit_setting in orbit_settings:
                                 LOCUST_run__settings_prec_mod['file_tet']="'locust_wall'" 
                                 LOCUST_run__settings_prec_mod['file_eqm']="'locust_eqm'" 
                                 LOCUST_run__settings_prec_mod['threadsPerBlock']=64
-                                LOCUST_run__settings_prec_mod['blocksPerGrid']=128
+                                LOCUST_run__settings_prec_mod['blocksPerGrid']=64
                                 LOCUST_run__settings_prec_mod['root']="'/tmp/{username}/{study}/{params}'".format(username=settings.username,study=RMP_study__name,params=parameters__parameter_string)
                                 LOCUST_run__settings_prec_mod['i3dr']=-1 #XXX WHILST I3DR FLAG IS BROKE
                                 LOCUST_run__settings_prec_mod['niter']=1
@@ -214,6 +228,8 @@ for orbit_setting in orbit_settings:
                                 MARS_read__settings['dXR']=f'{0.010}_gpu'
                                 MARS_read__settings['dXZ']=f'{0.010}_gpu'
                                 
+                                
+
                                 NEMO_run__xml_settings={}
                                 NEMO_run__xml_settings['nmarker']=LOCUST_run__settings_prec_mod['threadsPerBlock']*LOCUST_run__settings_prec_mod['blocksPerGrid']*16
                                 NEMO_run__xml_settings['fokker_flag']=0
@@ -293,7 +309,7 @@ for orbit_setting in orbit_settings:
 
                                     if RMP_study__field_type is 'vacuum':
                                         RMP_study__filepaths_3D_field_head=RMP_study__dir_input_database / 'ITER_15MAQ10_case5'/ 'DataVac' / 'PureVac'
-                                        field_filepath_string='"{}"'.format([str(RMP_study__filepaths_3D_field_head/f'BPLASMA_MARSF_n{np.abs(mode)}_{coil_row}.IN') for mode in parameters__toroidal_mode_number])
+                                        field_filepath_string='"{}"'.format([str(RMP_study__filepaths_3D_field_head/f'BPLASMA_MARSF_n{np.abs(mode)}_{coil_row}_V') for mode in parameters__toroidal_mode_number])
 
                                     elif RMP_study__field_type is 'vacuum_resistive_wall':
                                         RMP_study__filepaths_3D_field_head=RMP_study__dir_input_database / 'ITER_15MAQ10_case5'/ 'DataVac' / 'WithRW'
@@ -304,7 +320,7 @@ for orbit_setting in orbit_settings:
                                         field_filepath_string='"{}"'.format([str(RMP_study__filepaths_3D_field_head/f'BPLASMA_MARSF_n{np.abs(mode)}_{coil_row}_Pr{parameters__kinetic_prof_Pr_string}_tfte{parameters__kinetic_prof_tF_tE_string}.IN') for mode in parameters__toroidal_mode_number])
 
                                     args_batch[f'RMP_study__filepaths_3D_fields_{coil_row[-1]}'].append(field_filepath_string)
-
+                                
                                 args_batch['IDS__shot'].append(copy.deepcopy(IDS__shot))
                                 args_batch['IDS__run'].append(copy.deepcopy(IDS__run))
                                 args_batch['IDS__username'].append(copy.deepcopy(IDS__username))
@@ -321,7 +337,7 @@ for orbit_setting in orbit_settings:
 #define and launch the batch scripts
 
 if __name__=='__main__':
-    
+
     RMP_batch_run=Batch(**args_batch)
     RMP_batch_run.launch(
         workflow_filepath=path_template_run,

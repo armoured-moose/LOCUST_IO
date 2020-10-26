@@ -1,10 +1,10 @@
-#compare_FO_GC_launch.py
- 
+#scan_middle_lower_launch.py
+
 """
 Samuel Ward
-31/05/20
+14/10/19
 ----
-script for comparing effects of switching from guiding-centre to full-orbit tracking
+launch script for RMP study parameter scan for middle/lower coil phase
 ---
  
 notes:         
@@ -94,13 +94,14 @@ except:
 #################################
 #define study name 
 
-RMP_study__name='compare_FO_GC'
+RMP_study__name='scan_middle_lower'
 
 #################################
 #define options and dispatch tables for helping choosing settings
 
 parameters__toroidal_mode_numbers__options={} #XXX needs studying - toroidal mode number combinations 
 parameters__toroidal_mode_numbers__options['n=3']=[-3,-6]
+parameters__toroidal_mode_numbers__options['n=4']=[-4,-5]
 
 ##################################################################
 #choose the scenarios we will want to examine
@@ -112,52 +113,86 @@ parameters__sheet_names_kinetic_prof=["'Flat n'"]
 #define the parameter space for a given scenario
 
 #kinetic profile parameters which vary independently
-parameters__kinetic_profs_Pr=[0.3] #choose values here to maximise respone (lowest rotation))
-parameters__kinetic_profs_tF_tE=[2.]
+parameters__kinetic_profs_Pr=[0.3,1.] #pick highest then lowest rotation
+parameters__kinetic_profs_tF_tE=[2.,0.5]
 
 #3D field parameters which vary independently - if you want to vary these together then put them into the same loop nesting below
 #2D arrays, each element has length = number of modes
 parameters__toroidal_mode_numbers=[[-3,-6]]
-parameters__phases_upper=np.array([0.]) #86,0,34 = default for maximmum stochasticity in coil coordinate system
-parameters__phases_middle=np.array([0.])
-parameters__phases_lower=np.array([0.])
+parameters__phases_upper=np.array([0.])+30. #86,0,34 = default for maximmum stochasticity in coil coordinate system
+parameters__phases_middle=np.linspace(0,120,9)[:-1]+26.7
+parameters__phases_lower=np.linspace(0,120,9)[:-1]+30.
 parameters__rotations_upper=np.array([0.])
 parameters__rotations_middle=np.array([0.])
 parameters__rotations_lower=np.array([0.])
 parameters__currents_upper=np.array([90.])*1000.
 parameters__currents_middle=np.array([90.])*1000.
-parameters__currents_lower=np.array([90.])*1000.
+parameters__currents_lower=np.array([90])*1000.
+
+config_beam_1='on'
+config_beam_2='on'
 
 ##################################################################
 #define the workflow commands in order we want to execute them
 
-RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','IDS_create','kin_extrap','run_BBNBI','depo_get','run_LOCUST','clean_input']\""
+RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','IDS_create','run_BBNBI','depo_get','run_LOCUST','clean_input']\""
+#RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','depo_get_premade','run_LOCUST','clean_input']\""
 
 ##################################################################
 #create every valid combination of parameter, returned in flat lists
 #use zip and nest levels to define specific combinations which cannot be varied
 
-orbit_settings=['full_orbit','guiding_centre']
-
 run_number=0
 parameter_strings=[]
 #first level are the data which remain constant for a parameter scan
-for orbit_setting in orbit_settings:
-    for parameters__database,parameters__sheet_name_kinetic_prof in zip(
-            parameters__databases,parameters__sheet_names_kinetic_prof): 
-        for parameters__kinetic_prof_tF_tE in parameters__kinetic_profs_tF_tE:
-            for parameters__kinetic_prof_Pr in parameters__kinetic_profs_Pr:
-                for parameters__toroidal_mode_number in parameters__toroidal_mode_numbers:
-                    for parameters__phase_upper,parameters__phase_middle,parameters__phase_lower in zip(parameters__phases_upper,parameters__phases_middle,parameters__phases_lower): #nest at same level == offset them together rigidly 
-                        for parameters__rotation_upper,parameters__rotation_middle,parameters__rotation_lower in zip(parameters__rotations_upper,parameters__rotations_middle,parameters__rotations_lower): #nest at same level == rotating them together rigidly
+for parameters__database,parameters__sheet_name_kinetic_prof in zip(parameters__databases,parameters__sheet_names_kinetic_prof): 
+    for parameters__kinetic_prof_tF_tE,parameters__kinetic_prof_Pr in zip(parameters__kinetic_profs_tF_tE,parameters__kinetic_profs_Pr):
+        for parameters__toroidal_mode_number in parameters__toroidal_mode_numbers:
+            for parameters__phase_upper in parameters__phases_upper:
+                for parameters__phase_middle in parameters__phases_middle:
+                    for parameters__phase_lower in parameters__phases_lower:
+                        for parameters__rotation_upper,parameters__rotation_middle,parameters__rotation_lower in zip(parameters__rotations_upper,parameters__rotations_middle,parameters__rotations_lower): 
                             for parameters__current_upper,parameters__current_middle,parameters__current_lower in zip(parameters__currents_upper,parameters__currents_middle,parameters__currents_lower):
 
-                                run_number+=1 #increment run counter                                         
-
+                                run_number+=1 #increment run counter              
+                                                           
                                 #create a string of variables identifying this run
                                 parameters__kinetic_prof_tF_tE_string=parameters__kinetic_profs_tF_tE__dispatch[parameters__kinetic_prof_tF_tE] #generate some variable string equivalents for later
                                 parameters__kinetic_prof_Pr_string=parameters__kinetic_profs_Pr__dispatch[parameters__kinetic_prof_Pr]
-                                parameters__parameter_string=orbit_setting
+
+                                parameters__parameter_string=''
+                                parameters__parameter_string+='_'.join(['{}_{}'.format(parameter,str(value)) for parameter,value in zip([
+                                                'tFtE',
+                                                'Pr'
+                                                ],[
+                                                parameters__kinetic_prof_tF_tE,
+                                                parameters__kinetic_prof_Pr])])
+
+                                parameters__parameter_string+='_ntor_'
+                                for mode in parameters__toroidal_mode_number:
+                                    parameters__parameter_string+='{}_'.format(str(mode)) #add toroidal mode information    
+                                parameters__parameter_string+='_'.join(['{}_{}'.format(parameter,str(value)) for parameter,value in zip([
+                                        'phaseu',
+                                        'phasem',
+                                        'phasel',
+                                        'rotu',
+                                        'rotm',
+                                        'rotl',
+                                        'ikatu',
+                                        'ikatm',
+                                        'ikatl'],[
+                                        parameters__phase_upper,
+                                        parameters__phase_middle,
+                                        parameters__phase_lower,
+                                        parameters__rotation_upper,
+                                        parameters__rotation_middle,
+                                        parameters__rotation_lower,
+                                        parameters__current_upper,
+                                        parameters__current_middle,
+                                        parameters__current_lower])])
+
+                                parameters__parameter_string+=f'_beams_{str(config_beam_1)}_{str(config_beam_2)}'
+
                                 parameter_strings.append(parameters__parameter_string)
 
                                 #################################
@@ -166,19 +201,8 @@ for orbit_setting in orbit_settings:
                                 #run-specific settings
 
                                 
-
                                 LOCUST_run__flags=LOCUST_run__flags_default
-                                if orbit_setting is 'full_orbit':
-                                    LOCUST_run__flags['LEIID']=6
-                                    LOCUST_run__flags['UNBOR']=100
-                                elif orbit_setting is 'guiding_centre':
-                                    LOCUST_run__flags['LEIID']=7
-                                    LOCUST_run__flags['UNBOR']=100
-                                    LOCUST_run__flags['GCCOL']=True
-                                else:
-                                    print(f"ERROR: orbit_setting={orbit_setting} - valid options = 'full_orbit' or 'guiding_centre'!\nreturning\n")
-                                    sys.exit(1)
-
+                                LOCUST_run__flags['TIMAX']='0.25D0'
                                 #XXX CURRENTLY WAITING FOR FIX LOCUST_run__flags['I3DR']=-1 
                                 LOCUST_run__settings_prec_mod={}
                                 LOCUST_run__settings_prec_mod['nmde']=len(parameters__toroidal_mode_number) #number of total toroidal harmonics = number of modes
@@ -202,15 +226,16 @@ for orbit_setting in orbit_settings:
                                 MARS_read__settings['TAIL']="{}".format(MARS_read__tails)
                                 MARS_read__settings['IKATN']=f'[{parameters__current_upper/1000.}_gpu,{parameters__current_middle/1000.}_gpu,{parameters__current_lower/1000.}_gpu]'
                                 MARS_read__settings['dXR']=f'{0.010}_gpu'
-                                MARS_read__settings['dXZ']=f'{0.010}_gpu'                                
+                                MARS_read__settings['dXZ']=f'{0.010}_gpu'
+                                
                                 
 
                                 NEMO_run__xml_settings={}
-                                NEMO_run__xml_settings['nmarker']=LOCUST_run__settings_prec_mod['threadsPerBlock']*LOCUST_run__settings_prec_mod['blocksPerGrid']*8
+                                NEMO_run__xml_settings['nmarker']=LOCUST_run__settings_prec_mod['threadsPerBlock']*LOCUST_run__settings_prec_mod['blocksPerGrid']*16
                                 NEMO_run__xml_settings['fokker_flag']=0
 
                                 BBNBI_run__xml_settings={}
-                                BBNBI_run__number_particles=LOCUST_run__settings_prec_mod['threadsPerBlock']*LOCUST_run__settings_prec_mod['blocksPerGrid']*8
+                                BBNBI_run__number_particles=LOCUST_run__settings_prec_mod['threadsPerBlock']*LOCUST_run__settings_prec_mod['blocksPerGrid']*16
                                 BBNBI_run__dir_BBNBI=support.dir_bbnbi
 
                                 #if all coilsets do not rotate together we must split them up individually!
@@ -295,19 +320,24 @@ for orbit_setting in orbit_settings:
                                         field_filepath_string='"{}"'.format([str(RMP_study__filepaths_3D_field_head/f'BPLASMA_MARSF_n{np.abs(mode)}_{coil_row}_Pr{parameters__kinetic_prof_Pr_string}_tfte{parameters__kinetic_prof_tF_tE_string}.IN') for mode in parameters__toroidal_mode_number])
 
                                     args_batch[f'RMP_study__filepaths_3D_fields_{coil_row[-1]}'].append(field_filepath_string)
-
+                                
                                 args_batch['IDS__shot'].append(copy.deepcopy(IDS__shot))
                                 args_batch['IDS__run'].append(copy.deepcopy(IDS__run))
                                 args_batch['IDS__username'].append(copy.deepcopy(IDS__username))
                                 args_batch['IDS__imasdb'].append(copy.deepcopy(IDS__imasdb))
                                 args_batch['IDS__target_IDS_shot'].append(copy.deepcopy(target_IDS_dispatch[parameters__database][parameters__kinetic_prof_Pr_string][parameters__kinetic_prof_tF_tE_string]['shot']))
                                 args_batch['IDS__target_IDS_run'].append(copy.deepcopy(target_IDS_dispatch[parameters__database][parameters__kinetic_prof_Pr_string][parameters__kinetic_prof_tF_tE_string]['run']))
-                                
+
+                                args_batch['IDS__NBI_shot'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['shot']))
+                                args_batch['IDS__NBI_run'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['run']))
+                                args_batch['IDS__NBI_imasdb'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['imasdb']))
+                                args_batch['IDS__NBI_username'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['user']))
+
 ##################################################################
 #define and launch the batch scripts
 
 if __name__=='__main__':
-    
+
     RMP_batch_run=Batch(**args_batch)
     RMP_batch_run.launch(
         workflow_filepath=path_template_run,

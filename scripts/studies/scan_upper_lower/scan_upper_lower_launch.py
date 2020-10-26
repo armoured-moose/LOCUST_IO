@@ -101,6 +101,7 @@ RMP_study__name='scan_upper_lower'
 
 parameters__toroidal_mode_numbers__options={} #XXX needs studying - toroidal mode number combinations 
 parameters__toroidal_mode_numbers__options['n=3']=[-3,-6]
+parameters__toroidal_mode_numbers__options['n=4']=[-4,-5]
 
 ##################################################################
 #choose the scenarios we will want to examine
@@ -118,15 +119,18 @@ parameters__kinetic_profs_tF_tE=[2.,0.5]
 #3D field parameters which vary independently - if you want to vary these together then put them into the same loop nesting below
 #2D arrays, each element has length = number of modes
 parameters__toroidal_mode_numbers=[[-3,-6]]
-parameters__phases_upper=np.linspace(0,110,8)+30. #86,0,34 = default for maximmum stochasticity in coil coordinate system
+parameters__phases_upper=np.linspace(0,120,9)[:-1]+30. #86,0,34 = default for maximmum stochasticity in coil coordinate system
 parameters__phases_middle=np.array([0.])+26.7
-parameters__phases_lower=np.linspace(0,110,8)+30.
+parameters__phases_lower=np.linspace(0,120,9)[:-1]+30.
 parameters__rotations_upper=np.array([0.])
 parameters__rotations_middle=np.array([0.])
 parameters__rotations_lower=np.array([0.])
 parameters__currents_upper=np.array([90.])*1000.
 parameters__currents_middle=np.array([90.])*1000.
 parameters__currents_lower=np.array([90])*1000.
+
+config_beam_1='on'
+config_beam_2='on'
 
 ##################################################################
 #define the workflow commands in order we want to execute them
@@ -186,6 +190,9 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(parameters__
                                         parameters__current_upper,
                                         parameters__current_middle,
                                         parameters__current_lower])])
+
+                                parameters__parameter_string+=f'_beams_{str(config_beam_1)}_{str(config_beam_2)}'
+
                                 parameter_strings.append(parameters__parameter_string)
 
                                 #################################
@@ -221,14 +228,12 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(parameters__
                                 MARS_read__settings['dXR']=f'{0.010}_gpu'
                                 MARS_read__settings['dXZ']=f'{0.010}_gpu'
                                 
-                                
-
                                 NEMO_run__xml_settings={}
-                                NEMO_run__xml_settings['nmarker']=LOCUST_run__settings_prec_mod['threadsPerBlock']*LOCUST_run__settings_prec_mod['blocksPerGrid']*8
+                                NEMO_run__xml_settings['nmarker']=LOCUST_run__settings_prec_mod['threadsPerBlock']*LOCUST_run__settings_prec_mod['blocksPerGrid']*16
                                 NEMO_run__xml_settings['fokker_flag']=0
 
                                 BBNBI_run__xml_settings={}
-                                BBNBI_run__number_particles=LOCUST_run__settings_prec_mod['threadsPerBlock']*LOCUST_run__settings_prec_mod['blocksPerGrid']*8
+                                BBNBI_run__number_particles=LOCUST_run__settings_prec_mod['threadsPerBlock']*LOCUST_run__settings_prec_mod['blocksPerGrid']*16
                                 BBNBI_run__dir_BBNBI=support.dir_bbnbi
 
                                 #if all coilsets do not rotate together we must split them up individually!
@@ -321,8 +326,6 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(parameters__
                                 args_batch['IDS__target_IDS_shot'].append(copy.deepcopy(target_IDS_dispatch[parameters__database][parameters__kinetic_prof_Pr_string][parameters__kinetic_prof_tF_tE_string]['shot']))
                                 args_batch['IDS__target_IDS_run'].append(copy.deepcopy(target_IDS_dispatch[parameters__database][parameters__kinetic_prof_Pr_string][parameters__kinetic_prof_tF_tE_string]['run']))
 
-                                config_beam_1='on'
-                                config_beam_2='on'
                                 args_batch['IDS__NBI_shot'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['shot']))
                                 args_batch['IDS__NBI_run'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['run']))
                                 args_batch['IDS__NBI_imasdb'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['imasdb']))

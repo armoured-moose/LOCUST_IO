@@ -70,9 +70,9 @@ for counter,(output,col_val) in enumerate(zip(outputs,np.linspace(0,1,len(batch_
     if output: 
         number_markers=len(output['weight'])
         output['weight']/=number_markers #plot loss fraction of total markers
-        output.plot(fig=fig1,ax=ax1,axes=['time'],fill=False,label=batch_data.UNBORs[counter],colmap=settings.cmap_default,colmap_val=col_val,number_bins=200,weight=True)
+        output.plot(fig=fig1,ax=ax1,axes=['time'],fill=False,label=batch_data.UNBORs[counter],colmap=settings.cmap_default,colmap_val=col_val,number_bins=200,weight=True,label=batch_data.parameter_strings[counter])
         output['E']/=1000. #convert to keV
-        output.plot(fig=fig2,ax=ax2,axes=['E'],fill=False,label=batch_data.UNBORs[counter],colmap=settings.cmap_default,colmap_val=col_val,number_bins=200,weight=True)
+        output.plot(fig=fig2,ax=ax2,axes=['E'],fill=False,label=batch_data.UNBORs[counter],colmap=settings.cmap_default,colmap_val=col_val,number_bins=200,weight=True,label=batch_data.parameter_strings[counter])
 ax1.legend()
 ax2.legend()
 ax1.set_xlabel('time [s]')
