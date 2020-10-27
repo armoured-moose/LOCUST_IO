@@ -63,20 +63,39 @@ except:
 
 import scan_rigid_launch as batch_data
 
+outputs=templates.plot_mod.get_output_files(batch_data,'fpl')
+
+Pinj=33.e6
+PFC_power=[]
+for output in outputs:
+    if output:
+        i=np.where(output['status_flag']=='PFC_intercept_3D')[0]
+        PFC_power.append([1.e6*output['f']*np.sum((output['V_R'][i]**2+output['V_phi'][i]**2+output['V_Z'][i]**2)*output['FG'][i])*0.5*constants.mass_deuteron])
+    else:
+        PFC_power.append([-10.])
+
+'''
 outputs=templates.plot_mod.get_output_files(batch_data,'rund')
 
-for plasma_state_counter,(Pr,tftE) in enumerate(zip(batch_data.parameters__kinetic_profs_Pr,batch_data.parameters__kinetic_profs_tF_tE)):
+Pinj=33.e6
+PFC_power=[]
+for output in outputs:
+    if output is not None and output['run_status']=='completed':
+        PFC_power.append([output['PFC_power']['total']])
+    else:
+        PFC_power.append([-10.])
 
-    scan_range=len(batch_data.parameters__phases_upper)
-    plasma_state_slice=slice(plasma_state_counter*scan_range,(plasma_state_counter+1)*scan_range)
-    global_phase_shift=batch_data.parameters__phases_upper
-    PFC_power=np.array([output['PFC_power']['total'] if (output is not None and output['run_status']=='completed') else -10. for output in outputs[plasma_state_slice]])
+'''
 
-    relative_phases_upper_middle=batch_data.parameters__phases_upper-batch_data.parameters__phases_middle
-    relative_phases_upper_lower=batch_data.parameters__phases_upper-batch_data.parameters__phases_lower
+PFC_power=np.array(PFC_power).reshape(len(batch_data.parameters__kinetic_profs_Pr),len(batch_data.parameters__phases_upper))
+
+relative_phases_upper_middle=batch_data.parameters__phases_upper-batch_data.parameters__phases_middle
+relative_phases_upper_lower=batch_data.parameters__phases_upper-batch_data.parameters__phases_lower
+
+for plasma_state_counter,(power,Pr,tftE) in enumerate(zip(PFC_power,batch_data.parameters__kinetic_profs_Pr,batch_data.parameters__kinetic_profs_tF_tE)):
 
     fig,ax=plt.subplots(1)
-    ax.scatter(batch_data.parameters__phases_upper,PFC_power/1.e6)
+    ax.scatter(batch_data.parameters__phases_upper,power/1.e6)
     ax.set_xlabel('Absolute rigid phase $\mathrm{d}\Phi$')
     ax.set_ylabel('PFC power flux [MW]$')
     ax.set_title(f'relative phase U:M={relative_phases_upper_middle[0]}, U:L={relative_phases_upper_lower[0]}')
