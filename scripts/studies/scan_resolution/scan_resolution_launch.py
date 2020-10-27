@@ -335,7 +335,7 @@ if __name__=='__main__':
 
         for igpu in range(ngpus):
             for sim in np.arange(n_sims_per_gpu*igpu,n_sims_per_gpu*(igpu+1)):
-                args_batch['LOCUST_run__settings_prec_mod'][sim]['incl']=np.zeros(32) #opt to run more markers on fewer GPUs in parallel
+                args_batch['LOCUST_run__settings_prec_mod'][sim]['incl']=np.zeros(32,dtype=int) #opt to run more markers on fewer GPUs in parallel
                 args_batch['LOCUST_run__settings_prec_mod'][sim]['incl'][igpu]=1 
                 args_batch['LOCUST_run__settings_prec_mod'][sim]['incl']=f"{args_batch['LOCUST_run__settings_prec_mod'][sim]['incl']}"
 
