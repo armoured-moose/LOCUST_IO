@@ -325,13 +325,38 @@ for collision_type in collision_types:
 #define and launch the batch scripts
 
 if __name__=='__main__':
-    
-    RMP_batch_run=Batch(**args_batch)
-    RMP_batch_run.launch(
-        workflow_filepath=path_template_run,
-        environment_name_batch=LOCUST_run__environment_name,
-        environment_name_workflow=LOCUST_run__environment_name,   
-        interactive=False)   
+
+    def Batch_wrapper(args_batch,interactive):
+        batch_inst=Batch(**args_batch)
+        batch_inst.launch(
+            workflow_filepath=path_template_run,
+            environment_name_batch=LOCUST_run__environment_name,
+            environment_name_workflow=LOCUST_run__environment_name,   
+            interactive=interactive
+            ) 
+
+    split_node=False
+    if split_node:
+
+        import multiprocessing
+        ngpus=16
+        n_sims_per_gpu=int(len(list(args_batch.values())[0])/ngpus)
+
+        for igpu in range(ngpus):
+            for sim in np.arange(n_sims_per_gpu*igpu,n_sims_per_gpu*(igpu+1)):
+                args_batch['LOCUST_run__settings_prec_mod'][sim]['incl']=np.zeros(32) #opt to run more markers on fewer GPUs in parallel
+                args_batch['LOCUST_run__settings_prec_mod'][sim]['incl'][igpu]=1 
+                args_batch['LOCUST_run__settings_prec_mod'][sim]['incl']=f"{args_batch['LOCUST_run__settings_prec_mod'][sim]['incl']}"
+
+        processes = [multiprocessing.Process(target=Batch_wrapper, args=({key:value[slice(gpu*n_sims_per_gpu,(gpu+1)*n_sims_per_gpu)] for key,value in args_batch.items()},True)) for gpu in range(ngpus)]
+        for p in processes:
+            p.start()
+        for p in processes:
+            p.join()
+
+    else:
+
+        Batch_wrapper(args_batch,interactive=False)   
 
 #################################
  

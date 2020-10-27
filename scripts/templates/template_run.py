@@ -1445,6 +1445,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         #remove generated input files
         for file in self.args['LOCUST_run__dir_input'].glob('*'): 
             subprocess.run(shlex.split('rm {file}'.format(file=str(file))),shell=False)
+        self.args['LOCUST_run__dir_input'].rmdir()
 
     def clean_cache(self,*args,**kwargs):
         """
@@ -1455,6 +1456,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         #remove generated cache files
         for file in self.args['LOCUST_run__dir_cache'].glob('*'): 
             subprocess.run(shlex.split('rm {file}'.format(file=str(file))),shell=False)
+        self.args['LOCUST_run__dir_cache'].rmdir()
 
 if __name__=='__main__':
 
