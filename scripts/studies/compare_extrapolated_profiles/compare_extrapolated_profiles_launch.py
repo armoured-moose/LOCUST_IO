@@ -320,7 +320,7 @@ if __name__=='__main__':
             for sim in np.arange(n_sims_per_gpu*igpu,n_sims_per_gpu*(igpu+1)):
                 args_batch['LOCUST_run__settings_prec_mod'][sim]['incl']=np.zeros(32,dtype=int) #opt to run more markers on fewer GPUs in parallel
                 args_batch['LOCUST_run__settings_prec_mod'][sim]['incl'][igpu]=1 
-                args_batch['LOCUST_run__settings_prec_mod'][sim]['incl']=f"{args_batch['LOCUST_run__settings_prec_mod'][sim]['incl']}"
+                args_batch['LOCUST_run__settings_prec_mod'][sim]['incl']=np.array2string(args_batch['LOCUST_run__settings_prec_mod'][sim]['incl'],separator=',')
 
         processes = [multiprocessing.Process(target=Batch_wrapper, args=({key:value[slice(gpu*n_sims_per_gpu,(gpu+1)*n_sims_per_gpu)] for key,value in args_batch.items()},True)) for gpu in range(ngpus)]
         for p in processes:
