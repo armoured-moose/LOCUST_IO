@@ -362,7 +362,7 @@ if __name__=='__main__':
 
         import multiprocessing
         ngpus=8
-        ngpus_active=8
+        ngpus_active=1
         ngpu_groups=int(ngpus/ngpus_active)
         n_sims_per_gpu_group=int(len(list(args_batch.values())[0])/ngpu_groups)
 
