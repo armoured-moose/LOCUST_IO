@@ -1078,7 +1078,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                 dir_output=self.args['LOCUST_run__dir_output'],
                 dir_cache=self.args['LOCUST_run__dir_cache'],
                 settings_prec_mod=LOCUST_run__settings_prec_mod_combined,
-                flags=LOCUST_run__flags_combined)
+                flags=LOCUST_run__flags_combined,
+                commands=LOCUST_run__default_commands)
             LOCUST_workflow.run()
 
             (self.args['LOCUST_run__dir_output'] / 'field_data.out').rename(self.args['LOCUST_run__dir_output'] / 'field_data_combined.out')
@@ -1106,7 +1107,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                     dir_output=self.args['LOCUST_run__dir_output'],
                     dir_cache=self.args['LOCUST_run__dir_cache'],
                     settings_prec_mod=LOCUST_run__settings_prec_mod_separate,
-                    flags=LOCUST_run__flags_separate)
+                    flags=LOCUST_run__flags_separate,
+                    commands=LOCUST_run__default_commands)
                 LOCUST_workflow.run()
         
                 (self.args['LOCUST_run__dir_output'] / 'field_data.out').rename(self.args['LOCUST_run__dir_output'] / 'field_data_separate.out')
@@ -1239,7 +1241,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                 dir_output=self.args['LOCUST_run__dir_output'],
                 dir_cache=self.args['LOCUST_run__dir_cache'],
                 settings_prec_mod=self.args['LOCUST_run__settings_prec_mod'],
-                flags=LOCUST_run__flags_div_check)
+                flags=LOCUST_run__flags_div_check,
+                commands=LOCUST_run__default_commands)
             LOCUST_workflow.run()
             (self.args['LOCUST_run__dir_output'] / 'field_data.out').rename(self.args['LOCUST_run__dir_output'] / 'field_data_divergence_check_RZ.out')
 
@@ -1270,7 +1273,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                 dir_output=self.args['LOCUST_run__dir_output'],
                 dir_cache=self.args['LOCUST_run__dir_cache'],
                 settings_prec_mod=self.args['LOCUST_run__settings_prec_mod'],
-                flags=LOCUST_run__flags_div_check)
+                flags=LOCUST_run__flags_div_check,
+                commands=LOCUST_run__default_commands)
             LOCUST_workflow.run()
             (self.args['LOCUST_run__dir_output'] / 'field_data.out').rename(self.args['LOCUST_run__dir_output'] / 'field_data_divergence_check_XY.out')
         
@@ -1321,7 +1325,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                 dir_output=self.args['LOCUST_run__dir_output'],
                 dir_cache=self.args['LOCUST_run__dir_cache'],
                 settings_prec_mod=self.args['LOCUST_run__settings_prec_mod'],
-                flags=self.args['LOCUST_run__flags'])
+                flags=self.args['LOCUST_run__flags'],
+                commands=LOCUST_run__default_commands)
             LOCUST_workflow.run()
 
     def create_Poincare(self,*args,**kwargs):
@@ -1345,7 +1350,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                 dir_output=self.args['LOCUST_run__dir_output'],
                 dir_cache=self.args['LOCUST_run__dir_cache'],
                 settings_prec_mod=self.args['LOCUST_run__settings_prec_mod'],
-                flags=poincare_flags)
+                flags=poincare_flags,
+                commands=LOCUST_run__default_commands)
             poincare_workflow.run()
 
     def calculate_orbits(self,*args,**kwargs):
@@ -1408,7 +1414,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                     dir_output=self.args['LOCUST_run__dir_output'],
                     dir_cache=self.args['LOCUST_run__dir_cache'],
                     settings_prec_mod=self.args['LOCUST_run__settings_prec_mod'],
-                    flags=LOCUST_run__flags_orbit)
+                    flags=LOCUST_run__flags_orbit,
+                    commands=LOCUST_run__default_commands)
                 LOCUST_workflow.run()
                 list(self.args['LOCUST_run__dir_output'].glob('ORBIT*.dat'))[0].rename(self.args['LOCUST_run__dir_output'] / 'ORBIT_3D')
                
@@ -1428,7 +1435,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                 dir_output=self.args['LOCUST_run__dir_output'],
                 dir_cache=self.args['LOCUST_run__dir_cache'],
                 settings_prec_mod=self.args['LOCUST_run__settings_prec_mod'],
-                flags=LOCUST_run__flags_orbit)
+                flags=LOCUST_run__flags_orbit,
+                commands=LOCUST_run__default_commands)
             LOCUST_workflow.run()
             list(self.args['LOCUST_run__dir_output'].glob('ORBIT*.dat'))[0].rename(self.args['LOCUST_run__dir_output'] / 'ORBIT_2D')
 
@@ -1482,9 +1490,9 @@ if __name__=='__main__':
     parser.add_argument('--BBNBI_run__dir_BBNBI',type=str,action='store',dest='BBNBI_run__dir_BBNBI',help="",default=support.dir_bbnbi)
     parser.add_argument('--BBNBI_run__xml_settings',nargs='+',type=str,action='store',dest='BBNBI_run__xml_settings',help="",default={})
     parser.add_argument('--BBNBI_run__number_particles',type=int,action='store',dest='BBNBI_run__number_particles',help="",default=10000)
-    parser.add_argument('--MARS_read__tail_U',type=str,action='store',dest='MARS_read__tail_U',help="",default=None)
-    parser.add_argument('--MARS_read__tail_M',type=str,action='store',dest='MARS_read__tail_M',help="",default=None)
-    parser.add_argument('--MARS_read__tail_L',type=str,action='store',dest='MARS_read__tail_L',help="",default=None)
+    parser.add_argument('--MARS_read__tail_U',type=str,action='store',dest='MARS_read__tail_U',help="",required=True)
+    parser.add_argument('--MARS_read__tail_M',type=str,action='store',dest='MARS_read__tail_M',help="",required=True)
+    parser.add_argument('--MARS_read__tail_L',type=str,action='store',dest='MARS_read__tail_L',help="",required=True)
     parser.add_argument('--MARS_read__settings',nargs='+',type=str,action='store',dest='MARS_read__settings',help="",default={})
     parser.add_argument('--MARS_read__flags',nargs='+',type=str,action='store',dest='MARS_read__flags',help="",default={})
     parser.add_argument('--MARS_read__dir_MARS_builder',type=str,action='store',dest='MARS_read__dir_MARS_builder',help="",default=support.dir_cache_files / 'MARS_builder')
@@ -1492,9 +1500,9 @@ if __name__=='__main__':
     parser.add_argument('--RMP_study__filepath_kinetic_profiles',type=str,action='store',dest='RMP_study__filepath_kinetic_profiles',help="",default=None)
     parser.add_argument('--RMP_study__filepath_equilibrium',type=str,action='store',dest='RMP_study__filepath_equilibrium',help="",default=None)
     parser.add_argument('--RMP_study__filepath_additional_data',type=str,action='store',dest='RMP_study__filepath_additional_data',help="",default=None)
-    parser.add_argument('--RMP_study__filepaths_3D_fields_U',type=str,action='store',dest='RMP_study__filepaths_3D_fields_U',help="",default=None)
-    parser.add_argument('--RMP_study__filepaths_3D_fields_M',type=str,action='store',dest='RMP_study__filepaths_3D_fields_M',help="",default=None)
-    parser.add_argument('--RMP_study__filepaths_3D_fields_L',type=str,action='store',dest='RMP_study__filepaths_3D_fields_L',help="",default=None)
+    parser.add_argument('--RMP_study__filepaths_3D_fields_U',type=str,action='store',dest='RMP_study__filepaths_3D_fields_U',help="",required=True)
+    parser.add_argument('--RMP_study__filepaths_3D_fields_M',type=str,action='store',dest='RMP_study__filepaths_3D_fields_M',help="",required=True)
+    parser.add_argument('--RMP_study__filepaths_3D_fields_L',type=str,action='store',dest='RMP_study__filepaths_3D_fields_L',help="",required=True)
     parser.add_argument('--RMP_study__workflow_commands',type=str,action='store',dest='RMP_study__workflow_commands',help="",default="")
     parser.add_argument('--IDS__shot',type=int,action='store',dest='IDS__shot',help="",default=1)
     parser.add_argument('--IDS__run',type=int,action='store',dest='IDS__run',help="",default=1)
@@ -1522,7 +1530,7 @@ if __name__=='__main__':
     args.RMP_study__workflow_commands=run_scripts.utils.literal_eval(args.RMP_study__workflow_commands)
     args.parameters__toroidal_mode_numbers=run_scripts.utils.literal_eval(args.parameters__toroidal_mode_numbers)
 
-    RMP_workflow=RMP_study_run(**{key:arg for key,arg in args._get_kwargs()})
+    RMP_workflow=RMP_study_run(**{key:arg for key,arg in args._get_kwargs() if arg is not None})
     RMP_workflow.run()
 
 #################################

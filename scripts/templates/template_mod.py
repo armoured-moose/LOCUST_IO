@@ -56,6 +56,9 @@ LOCUST_run__environment_name='TITAN'
 LOCUST_run__repo_URL=f"'{settings.repo_URL_LOCUST}'"
 LOCUST_run__commit_hash="'{}'".format(commit_hash_dispatch[LOCUST_run__environment_name])
 
+LOCUST_run__default_commands=['mkdir','get_code','make','get_input','run_code','get_output','get_cache','cleanup']
+LOCUST_run__default_commands=['mkdir','get_code','make','get_input','run_code','get_output','cleanup'] #remove get_cache stage if running parallel simulations to avoid parallel writes
+
 #IMAS parameters to specify location of locally made input IDS
 IDS__shot=1
 IDS__run=1
