@@ -1,4 +1,4 @@
-#3D_2D_compare.py
+#3D_2D_compare_individual.py
  
 """
 Samuel Ward
@@ -30,6 +30,7 @@ import constants
 
 cmap_reds=matplotlib.cm.get_cmap('Reds_r')
 cmap_blues=matplotlib.cm.get_cmap('Blues_r')
+cmap_IDL=matplotlib.cm.get_cmap('CMRmap')
 
 from classes.output_classes.distribution_function import Distribution_Function as DFN
 from classes.output_classes.particle_list import Final_Particle_List as FPL
@@ -45,22 +46,22 @@ shot_number='157418'
 response_type='response'    
 response_type='vacuum'
 response_type='response_hi_res'
-response_type='response_hi_res_-90_i3dr1'
-
+response_type='response_hi_res_90_i3dr-1'
+#response_type='response_hi_res_-90_i3dr1'
 
 folder_2D='2D_23ms'  
 folder_3D='3D_23ms'
 folder_2D='2D_full_slow'  
 folder_3D='3D_full_slow'
 
-DFN_2D_filename=list(pathlib.Path(support.dir_output_files / shot_number / response_type / folder_2D).glob('*.dfn'))[0]
-DFN_3D_filename=list(pathlib.Path(support.dir_output_files / shot_number / response_type / folder_3D).glob('*.dfn'))[0]
-DFN_2D_split_filename=list(pathlib.Path(support.dir_output_files / shot_number / response_type / folder_2D).glob('ptcl_cache.dat'))[0]
-DFN_3D_split_filename=list(pathlib.Path(support.dir_output_files / shot_number / response_type / folder_3D).glob('ptcl_cache.dat'))[0]
-MOM_2D_filename=list(pathlib.Path(support.dir_output_files / shot_number / response_type / folder_2D).glob('*.h5'))[0]
-MOM_3D_filename=list(pathlib.Path(support.dir_output_files / shot_number / response_type / folder_3D).glob('*.h5'))[0]
-eq_filename='g157418.03000'
-wall_filename='LOCUST_wall'
+DFN_2D_filename=list(pathlib.Path(support.dir_output_files / shot_number / 'LOCUST'/ response_type / folder_2D).glob('*.dfn'))[0]
+DFN_3D_filename=list(pathlib.Path(support.dir_output_files / shot_number / 'LOCUST'/ response_type / folder_3D).glob('*.dfn'))[0]
+DFN_2D_split_filename=list(pathlib.Path(support.dir_output_files / shot_number / 'LOCUST' / response_type / folder_2D).glob('ptcl_cache.dat'))[0]
+DFN_3D_split_filename=list(pathlib.Path(support.dir_output_files / shot_number / 'LOCUST' / response_type / folder_3D).glob('ptcl_cache.dat'))[0]
+MOM_2D_filename=list(pathlib.Path(support.dir_output_files / shot_number / 'LOCUST' / response_type / folder_2D).glob('*.h5'))[0]
+MOM_3D_filename=list(pathlib.Path(support.dir_output_files / shot_number / 'LOCUST' / response_type / folder_3D).glob('*.h5'))[0]
+eq_filename=support.dir_input_files / shot_number / 'LOCUST' / 'g157418.03000'
+wall_filename=eq_filename
 
 DFN_2D=DFN(ID='2D',data_format='LOCUST',filename=DFN_2D_filename)
 DFN_3D=DFN(ID='3D',data_format='LOCUST',filename=DFN_3D_filename)
@@ -69,7 +70,7 @@ DFN_3D_split=FPL(ID='3D -DSPLIT',data_format='LOCUST',filename=DFN_3D_split_file
 MOM_2D=Mom(ID='2D moments',data_format='LOCUST',filename=MOM_2D_filename)
 MOM_3D=Mom(ID='3D moments',data_format='LOCUST',filename=MOM_3D_filename)
 eq=EQ(ID='157418 300ms equilibrium',data_format='GEQDSK',filename=eq_filename,GEQDSKFIX=1)
-wall=Wall(ID='157418 2D wall',data_format='GEQDSK',filename='g157418.03000')
+wall=Wall(ID='157418 2D wall',data_format='GEQDSK',filename=wall_filename)
 
 #calculate some missing quantities and edit the data
 DFN_2D_split['E']=.5*constants.species_mass*(DFN_2D_split['V_R']**2+DFN_2D_split['V_tor']**2+DFN_2D_split['V_Z']**2)/constants.charge_e
@@ -121,10 +122,15 @@ DFN_3D_split['PFC_power']=np.cumsum(DFN_3D_split['PFC_power'])
 DFN_2D_split['weight']=DFN_2D_split['E']*constants.charge_e*Pdep_scale_factor_2D
 DFN_3D_split['weight']=DFN_3D_split['E']*constants.charge_e*Pdep_scale_factor_3D
 
-DFN_2D=DFN_2D.crop(R=[1.45,1.98],Z=[-0.35,0.35],inside=False)
-DFN_3D=DFN_3D.crop(R=[1.45,1.98],Z=[-0.35,0.35],inside=False)
-
-
+#crop DFN to within rho=sqrt(toroidal_flux)=0.7
+eq.set(flux_tor_norm=(eq['flux_tor']-eq['flux_tor'][0])/(eq['flux_tor'][-1]-eq['flux_tor'][0]))
+eq.set(flux_tor_norm_rz=processing.utils.flux_func_to_RZ(eq['flux_pol'],np.sqrt(np.abs(eq['flux_tor_norm'])),eq)) #calculate rho grid
+eq.plot(key='flux_tor_norm_rz',vminmax=[0.,1.]) #XXX
+flux_tor_norm_rz=processing.utils.value_at_RZ(*[dimension.flatten() for dimension in np.meshgrid(DFN_2D['R'],DFN_2D['Z'])],eq['flux_tor_norm_rz'],eq).reshape(len(DFN_2D['R']),len(DFN_2D['Z']))
+DFN_2D.set(flux_tor_norm_rz=flux_tor_norm_rz)
+DFN_3D.set(flux_tor_norm_rz=flux_tor_norm_rz)
+DFN_2D['dfn'][...,np.where(flux_tor_norm_rz<0.7)]=0.
+DFN_3D['dfn'][...,np.where(flux_tor_norm_rz<0.7)]=0.
 
 
 
@@ -171,14 +177,21 @@ plt.legend(('2D','3D'))
 plt.show()
 
 fig,((ax1))=plt.subplots(1) #plot the difference
-DFN_2D=DFN_2D.transform(axes=['E','V_pitch']) 
-DFN_3D=DFN_3D.transform(axes=['E','V_pitch'])
+axes=['R','Z']
+axes=['E','V_pitch']
+DFN_2D=DFN_2D.transform(axes=axes)
+DFN_3D=DFN_3D.transform(axes=axes)
 DFN_diff=copy.deepcopy(DFN_3D)
 DFN_diff['dfn']=DFN_3D['dfn']-DFN_2D['dfn']
-DFN_diff_mesh=DFN_diff.plot(ax=ax1,fig=fig,axes=['E','V_pitch'],transform=False)
+#vminmax=[-5500,0]
+DFN_diff['E']/=1000 #convert to keV for plotting
+DFN_diff_mesh=DFN_diff.plot(ax=ax1,fig=fig,axes=axes,transform=False,colmap=cmap_IDL)#,vminmax=vminmax)
 cbar=fig.colorbar(DFN_diff_mesh,ax=ax1,orientation='vertical')
-ax1.set_xlim(10000,85000)
-ax1.set_ylim(-1,1)
+#ax1.set_xlim(10,85)
+#ax1.set_ylim(-1,1)
+#ax1.set_xlabel('energy [keV]')
+#ax1.set_ylabel('pitch')
+plt.title('')
 plt.show()
 #################################
  

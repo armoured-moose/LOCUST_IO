@@ -51,7 +51,7 @@ fig,((ax1,ax2),(ax3,ax4))=plt.subplots(2,2)
 number_bins=50
 
 switch='i3dr' #XXX instead of commenting etc. could add command line argparse 
-switch='i3dr-1'
+#switch='i3dr-1'
 
 harmonic='n3'
 harmonic='n-3'
