@@ -71,7 +71,7 @@ PFC_power=[]
 for output in outputs:
     if output:
         i=np.where(output['status_flag']=='PFC_intercept_3D')[0]
-        PFC_power.append([100.*1.e6*output['f']*np.sum((output['V_R'][i]**2+output['V_phi'][i]**2+output['V_Z'][i]**2)*output['FG'][i])*0.5*constants.mass_deuteron/Pinj])
+        PFC_power.append([1.e6*output['f']*np.sum((output['V_R'][i]**2+output['V_phi'][i]**2+output['V_Z'][i]**2)*output['FG'][i])*0.5*constants.mass_deuteron])
     else:
         PFC_power.append([-10.])
 
@@ -87,14 +87,14 @@ for plasma_state_counter,(Pr,tftE) in enumerate(zip(batch_data.parameters__kinet
 
     fig,ax=plt.subplots(1)
     ax.set_facecolor(settings.cmap_default(np.min(PFC_power[plasma_state_counter])))
-    mesh=ax.pcolormesh(LPHASE-dLPHASE/2.-30.,MPHASE-dMPHASE/2.-26.7,np.log10(PFC_power[plasma_state_counter]),cmap=settings.cmap_default,edgecolor='none',antialiased=True)
+    mesh=ax.pcolormesh(LPHASE-dLPHASE/2.-30.,MPHASE-dMPHASE/2.-26.7,100*PFC_power[plasma_state_counter]/Pinj,cmap=settings.cmap_default,edgecolor='none',antialiased=True,vmin=0,vmax=10)
     ax.set_xticks(batch_data.parameters__phases_lower-30.)
     ax.set_yticks(batch_data.parameters__phases_middle-26.7)
     ax.set_xlim([np.min(batch_data.parameters__phases_lower)-30.,np.max(batch_data.parameters__phases_lower)-30.])
-    ax.set_ylim([np.max(batch_data.parameters__phases_middle)-26.7,np.min(batch_data.parameters__phases_middle)-26.7])
+    ax.set_ylim([np.min(batch_data.parameters__phases_middle)-26.7,np.max(batch_data.parameters__phases_middle)-26.7])
     ax.set_xlabel('Lower $\mathrm{d}\Phi$')
-    ax.set_ylabel('middle $\mathrm{d}\Phi$')
-    ax.set_title('loss power (log)')
+    ax.set_ylabel('Middle $\mathrm{d}\Phi$')
+    ax.set_title('Loss power %$')
     fig.colorbar(mesh,ax=ax,orientation='horizontal')
     plt.show()
 

@@ -126,9 +126,12 @@ parameters__rotations_upper=np.array([0.])
 parameters__rotations_middle=np.array([0.])
 parameters__rotations_lower=np.array([0.])
 
-parameters__currents_upper=np.array([0.,20.,25.,30.,35.,40.,45.,50.,55.,60.,80.,90.])*1000. #first value is for axisymmetric case
+parameters__currents_upper=np.array([0.,20.,25.,30.,35.,40.,45.,50.,55.,60.,65.,70.,75.,80.,85.,90.])*1000. #first value is for axisymmetric case
 parameters__currents_middle=copy.deepcopy(parameters__currents_upper)#np.array([0.,20.,40.,60.,80.,90.])*1000.
 parameters__currents_lower=copy.deepcopy(parameters__currents_upper)#np.array([0.,20.,40.,60.,80.,90.])*1000.
+
+config_beam_1='on'
+config_beam_2='on'
 
 ##################################################################
 #define the workflow commands in order we want to execute them
@@ -169,21 +172,26 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                         for mode in parameters__toroidal_mode_number:
                             parameters__parameter_string+='{}_'.format(str(mode)) #add toroidal mode information    
                         parameters__parameter_string+='_'.join(['{}_{}'.format(parameter,str(value)) for parameter,value in zip([
-                                'phaseu',
-                                'm',
-                                'l',
-                                'ikatu',
-                                'm',
-                                'l'],[
-                                parameters__phase_upper,
-                                parameters__phase_middle,
-                                parameters__phase_lower,
-                                parameters__rotation_upper,
-                                parameters__rotation_middle,
-                                parameters__rotation_lower,
-                                parameters__current_upper,
-                                parameters__current_middle,
-                                parameters__current_lower])])
+                                    'phaseu',
+                                    'phasem',
+                                    'phasel',
+                                    'rotu',
+                                    'rotm',
+                                    'rotl',
+                                    'ikatu',
+                                    'ikatm',
+                                    'ikatl'],[
+                                    parameters__phase_upper,
+                                    parameters__phase_middle,
+                                    parameters__phase_lower,
+                                    parameters__rotation_upper,
+                                    parameters__rotation_middle,
+                                    parameters__rotation_lower,
+                                    parameters__current_upper,
+                                    parameters__current_middle,
+                                    parameters__current_lower])])
+
+                        parameters__parameter_string+=f'_beams_{str(config_beam_1)}_{str(config_beam_2)}'
                         parameter_strings.append(parameters__parameter_string)
 
                         #################################
@@ -322,6 +330,11 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                         args_batch['IDS__target_IDS_shot'].append(copy.deepcopy(target_IDS_dispatch[parameters__database][parameters__kinetic_prof_Pr_string][parameters__kinetic_prof_tF_tE_string]['shot']))
                         args_batch['IDS__target_IDS_run'].append(copy.deepcopy(target_IDS_dispatch[parameters__database][parameters__kinetic_prof_Pr_string][parameters__kinetic_prof_tF_tE_string]['run']))
 
+                        args_batch['IDS__NBI_shot'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['shot']))
+                        args_batch['IDS__NBI_run'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['run']))
+                        args_batch['IDS__NBI_imasdb'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['imasdb']))
+                        args_batch['IDS__NBI_username'].append(copy.deepcopy(config_beam_dispatch[config_beam_1][config_beam_2]['user']))
+
 ##################################################################
 #define and launch the batch scripts
 
@@ -334,22 +347,23 @@ if __name__=='__main__':
     split_node=False
     if split_node:
 
-        import multiprocessing
+        import multiprocessing,time
         ngpus=8
-        ngpus_active=1
-        ngpu_groups=int(ngpus/ngpus_active)
+        ngpus_per_group=1
+        ngpu_groups=int(ngpus/ngpus_per_group)
         n_sims_per_gpu_group=int(len(list(args_batch.values())[0])/ngpu_groups)
 
         for gpu_group in range(ngpu_groups):
             for sim in np.arange(n_sims_per_gpu_group*gpu_group,n_sims_per_gpu_group*(gpu_group+1)):
                 args_batch['LOCUST_run__settings_prec_mod'][sim]['incl']=np.zeros(32,dtype=int) #opt to run more markers on fewer GPUs in parallel
-                args_batch['LOCUST_run__settings_prec_mod'][sim]['incl'][gpu_group*ngpus_active:(gpu_group+1)*ngpus_active]=1 
+                args_batch['LOCUST_run__settings_prec_mod'][sim]['incl'][gpu_group*ngpus_per_group:(gpu_group+1)*ngpus_per_group]=1 
                 args_batch['LOCUST_run__settings_prec_mod'][sim]['incl']=np.array2string(args_batch['LOCUST_run__settings_prec_mod'][sim]['incl'],separator=',')
 
         processes = [multiprocessing.Process(target=Batch_wrapper, args=({key:value[slice(gpu*n_sims_per_gpu_group,(gpu+1)*n_sims_per_gpu_group)] for key,value in args_batch.items()},), kwargs={'workflow_filepath':path_template_run,'environment_name_batch':LOCUST_run__environment_name,'environment_name_workflow':LOCUST_run__environment_name,'interactive':True}) for gpu in range(ngpus)]
 
         for p in processes:
             p.start()
+            time.sleep(300)
         for p in processes:
             p.join()
 

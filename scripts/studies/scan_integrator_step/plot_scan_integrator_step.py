@@ -68,11 +68,15 @@ fig1,ax1=plt.subplots(1)
 fig2,ax2=plt.subplots(1)
 for counter,(output,col_val) in enumerate(zip(outputs,np.linspace(0,1,len(batch_data.args_batch['LOCUST_run__dir_output'])))):
     if output: 
+        if batch_data.args_batch['LOCUST_run__flags'][counter]['LEIID']==6:
+            colmap=settings.cmap_inferno
+        elif batch_data.args_batch['LOCUST_run__flags'][counter]['LEIID']==7:
+            colmap=settings.cmap_inferno
         number_markers=len(output['weight'])
-        output['weight']/=number_markers #plot loss fraction of total markers
-        output.plot(fig=fig1,ax=ax1,axes=['time'],fill=False,label=batch_data.UNBORs[counter],colmap=settings.cmap_default,colmap_val=col_val,number_bins=200,weight=True,label=batch_data.parameter_strings[counter])
+        output['weight']/=(output['weight']*number_markers) #plot loss fraction of total markers
+        output.plot(fig=fig1,ax=ax1,axes=['time'],fill=False,label=batch_data.args_batch['LOCUST_run__flags'][counter]['UNBOR'],colmap=colmap,colmap_val=col_val,number_bins=200,weight=True)
         output['E']/=1000. #convert to keV
-        output.plot(fig=fig2,ax=ax2,axes=['E'],fill=False,label=batch_data.UNBORs[counter],colmap=settings.cmap_default,colmap_val=col_val,number_bins=200,weight=True,label=batch_data.parameter_strings[counter])
+        output.plot(fig=fig2,ax=ax2,axes=['E'],fill=False,label=batch_data.args_batch['LOCUST_run__flags'][counter]['UNBOR'],colmap=colmap,colmap_val=col_val,number_bins=200,weight=True)
 ax1.legend()
 ax2.legend()
 ax1.set_xlabel('time [s]')

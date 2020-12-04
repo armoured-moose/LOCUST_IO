@@ -64,23 +64,35 @@ except:
 import scan_marker_number_launch as batch_data
 
 outputs=templates.plot_mod.get_output_files(batch_data,'fpl')
-fig1,ax1=plt.subplots(1)
-fig2,ax2=plt.subplots(1)
+
+fig = plt.figure()
+ax1 = fig.add_subplot(222)
+ax2 = fig.add_subplot(221)
+ax3 = fig.add_subplot(212)
+
+Pinj=33.e6
 for counter,(output,col_val) in enumerate(zip(outputs,np.linspace(0,1,len(batch_data.args_batch['LOCUST_run__dir_output'])))):
     if output: 
-        number_markers=len(output['weight'])
-        output['weight']/=number_markers #normalise weights according to number markers
-        output.plot(fig=fig1,ax=ax1,axes=['time'],fill=False,label=number_markers,colmap=settings.cmap_default,colmap_val=col_val,number_bins=200,weight=True)
+
         output['E']/=1000. #convert to keV
-        output.plot(fig=fig2,ax=ax2,axes=['E'],fill=False,label=output.ID,colmap=settings.cmap_default,colmap_val=col_val,number_bins=200,weight=True)
-ax1.legend()
-ax2.legend()
-ax1.set_xlabel('time [s]')
-ax2.set_xlabel('energy [keV]')
-ax1.set_ylabel('loss fraction')
-ax2.set_ylabel('loss fraction')
-ax1.set_title('')
-ax2.set_title('')
+        i=np.where(output['status_flag']=='PFC_intercept_3D')[0]
+        number_markers=len(output['weight'])
+        PFC_power=1.e6*output['f']*np.sum((output['V_R'][i]**2+output['V_phi'][i]**2+output['V_Z'][i]**2)*output['FG'][i])*0.5*constants.mass_deuteron
+        ax3.scatter(np.log2(number_markers),100*PFC_power/Pinj,color=settings.cmap_default(col_val),label=number_markers)
+        print(f'number_markers={number_markers},FG={output["FG"][0]},f={output["f"]}')
+        output['weight']/=output['weight']*number_markers #normalise weights according to number markers
+        output.plot(fig=fig,ax=ax1,axes=['R'],fill=False,label=number_markers,colmap=settings.cmap_default,colmap_val=col_val,number_bins=200,weight=True)
+        output.plot(fig=fig,ax=ax2,axes=['E'],fill=False,label=output.ID,colmap=settings.cmap_default,colmap_val=col_val,number_bins=200,weight=True)
+
+#ax3.legend()
+ax1.set_xlabel('R [m]')
+ax2.set_xlabel('marker energy [keV]')
+ax3.set_xlabel('$\mathrm{log}_{2}(n_{\mathrm{markers}})$ ')
+ax1.set_ylabel('marker loss fraction')
+ax2.set_ylabel('marker loss fraction')
+ax3.set_ylabel('% loss power')
+for ax in [ax1,ax2,ax3]: ax.set_title('')
+
 plt.show()
 
 #################################

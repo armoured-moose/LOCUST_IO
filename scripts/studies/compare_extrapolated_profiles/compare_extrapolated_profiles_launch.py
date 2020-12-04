@@ -307,22 +307,23 @@ if __name__=='__main__':
     split_node=False
     if split_node:
 
-        import multiprocessing
+        import multiprocessing,time
         ngpus=8
-        ngpus_active=1
-        ngpu_groups=int(ngpus/ngpus_active)
+        ngpus_per_group=1
+        ngpu_groups=int(ngpus/ngpus_per_group)
         n_sims_per_gpu_group=int(len(list(args_batch.values())[0])/ngpu_groups)
 
         for gpu_group in range(ngpu_groups):
             for sim in np.arange(n_sims_per_gpu_group*gpu_group,n_sims_per_gpu_group*(gpu_group+1)):
                 args_batch['LOCUST_run__settings_prec_mod'][sim]['incl']=np.zeros(32,dtype=int) #opt to run more markers on fewer GPUs in parallel
-                args_batch['LOCUST_run__settings_prec_mod'][sim]['incl'][gpu_group*ngpus_active:(gpu_group+1)*ngpus_active]=1 
+                args_batch['LOCUST_run__settings_prec_mod'][sim]['incl'][gpu_group*ngpus_per_group:(gpu_group+1)*ngpus_per_group]=1 
                 args_batch['LOCUST_run__settings_prec_mod'][sim]['incl']=np.array2string(args_batch['LOCUST_run__settings_prec_mod'][sim]['incl'],separator=',')
 
         processes = [multiprocessing.Process(target=Batch_wrapper, args=({key:value[slice(gpu*n_sims_per_gpu_group,(gpu+1)*n_sims_per_gpu_group)] for key,value in args_batch.items()},), kwargs={'workflow_filepath':path_template_run,'environment_name_batch':LOCUST_run__environment_name,'environment_name_workflow':LOCUST_run__environment_name,'interactive':True}) for gpu in range(ngpus)]
 
         for p in processes:
             p.start()
+            time.sleep(300)
         for p in processes:
             p.join()
 

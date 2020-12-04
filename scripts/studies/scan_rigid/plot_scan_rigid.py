@@ -97,7 +97,7 @@ for plasma_state_counter,(power,Pr,tftE) in enumerate(zip(PFC_power,batch_data.p
     fig,ax=plt.subplots(1)
     ax.scatter(batch_data.parameters__phases_upper,power/1.e6)
     ax.set_xlabel('Absolute rigid phase $\mathrm{d}\Phi$')
-    ax.set_ylabel('PFC power flux [MW]$')
+    ax.set_ylabel('PFC power flux [MW]')
     ax.set_title(f'relative phase U:M={relative_phases_upper_middle[0]}, U:L={relative_phases_upper_lower[0]}')
     plt.show()
 

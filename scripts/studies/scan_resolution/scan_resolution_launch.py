@@ -125,9 +125,9 @@ parameters__phases_lower=np.array([0.])
 parameters__rotations_upper=np.array([0.])
 parameters__rotations_middle=np.array([0.])
 parameters__rotations_lower=np.array([0.])
-parameters__currents_upper=np.array([30,60,90.])*1000.
-parameters__currents_middle=np.array([30,60,90.])*1000.
-parameters__currents_lower=np.array([30,60,90.])*1000.
+parameters__currents_upper=np.array([90.])*1000. # or 30,60 for 1cm grid
+parameters__currents_middle=np.array([90.])*1000.
+parameters__currents_lower=np.array([90.])*1000.
 
 config_beam_1='off'
 config_beam_2='on'
@@ -140,8 +140,8 @@ RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc
 ##################################################################
 #define resolution settings
 
-parameters__perturbation_resolutions_R=np.array([1.2345,0.0001,0.002,0.003,0.004,0.005,0.01,0.1,1.0,2.0,0.02,0.04,0.08,0.2,0.4,0.8,0.3,0.5,0.6]) #first value is axisymmetric case - so supply any value
 parameters__perturbation_resolutions_R=np.array([0.01])
+parameters__perturbation_resolutions_R=np.array([1.2345,0.0001,0.002,0.003,0.004,0.005,0.01,0.1,1.0,2.0,0.02,0.04,0.08,0.2,0.4,0.8,0.3,0.5,0.6]) #first value is axisymmetric case - so supply any value
 parameters__perturbation_resolutions_Z=copy.deepcopy(parameters__perturbation_resolutions_R)
 ##################################################################
 #create every valid combination of parameter, returned in flat lists
@@ -176,12 +176,12 @@ for parameters__perturbation_resolution_R,parameters__perturbation_resolution_Z 
                             LOCUST_run__flags=LOCUST_run__flags_default
                             LOCUST_run__flags['TIMAX']='2.0D0' #increase max tracking time
                             #3D field settings
-                            #if run_number==1: #make first run axisymmetric as control run
-                            #    del(LOCUST_run__flags['B3D'])
-                            #    del(LOCUST_run__flags['B3D_EX'])
-                            #else:
-                            #    LOCUST_run__flags['B3D']=True
-                            #    LOCUST_run__flags['B3D_EX']=True
+                            if run_number==1: #make first run axisymmetric as control run
+                                del(LOCUST_run__flags['B3D'])
+                                del(LOCUST_run__flags['B3D_EX'])
+                            else:
+                                LOCUST_run__flags['B3D']=True
+                                LOCUST_run__flags['B3D_EX']=True
                             #XXX CURRENTLY WAITING FOR FIX LOCUST_run__flags['I3DR']=-1 
                             LOCUST_run__settings_prec_mod={}
                             LOCUST_run__settings_prec_mod['nmde']=len(parameters__toroidal_mode_number) #number of total toroidal harmonics = number of modes
@@ -324,22 +324,23 @@ if __name__=='__main__':
     split_node=False
     if split_node:
 
-        import multiprocessing
+        import multiprocessing,time
         ngpus=8
-        ngpus_active=1
-        ngpu_groups=int(ngpus/ngpus_active)
+        ngpus_per_group=1
+        ngpu_groups=int(ngpus/ngpus_per_group)
         n_sims_per_gpu_group=int(len(list(args_batch.values())[0])/ngpu_groups)
 
         for gpu_group in range(ngpu_groups):
             for sim in np.arange(n_sims_per_gpu_group*gpu_group,n_sims_per_gpu_group*(gpu_group+1)):
                 args_batch['LOCUST_run__settings_prec_mod'][sim]['incl']=np.zeros(32,dtype=int) #opt to run more markers on fewer GPUs in parallel
-                args_batch['LOCUST_run__settings_prec_mod'][sim]['incl'][gpu_group*ngpus_active:(gpu_group+1)*ngpus_active]=1 
+                args_batch['LOCUST_run__settings_prec_mod'][sim]['incl'][gpu_group*ngpus_per_group:(gpu_group+1)*ngpus_per_group]=1 
                 args_batch['LOCUST_run__settings_prec_mod'][sim]['incl']=np.array2string(args_batch['LOCUST_run__settings_prec_mod'][sim]['incl'],separator=',')
 
         processes = [multiprocessing.Process(target=Batch_wrapper, args=({key:value[slice(gpu*n_sims_per_gpu_group,(gpu+1)*n_sims_per_gpu_group)] for key,value in args_batch.items()},), kwargs={'workflow_filepath':path_template_run,'environment_name_batch':LOCUST_run__environment_name,'environment_name_workflow':LOCUST_run__environment_name,'interactive':True}) for gpu in range(ngpus)]
 
         for p in processes:
             p.start()
+            time.sleep(300)
         for p in processes:
             p.join()
 

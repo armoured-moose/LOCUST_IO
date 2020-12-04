@@ -106,6 +106,9 @@ except:
 import compare_impurities_on_off_launch as batch_data
 
 def get_output_files(batch_data,output_type='dfn',**kwargs): 
+    """
+    modified version for this case, since we only run one simulation at a time when comparing impurities due to manually re-writing template_mod.py
+    """
 
     outputs=[]
     output_file_dispatch={}
@@ -128,16 +131,12 @@ def get_output_files(batch_data,output_type='dfn',**kwargs):
 
     output_dir=pathlib.Path(batch_data.args_batch['LOCUST_run__dir_output'][0].strip("\'")).parents[0]
     output_dirs=list(output_dir.glob('*'))
-    print(output_dir)
-    print(output_dirs)
 
     for dir_output in output_dirs:
 
         parameter_string=dir_output.parts[-1]
-        print(parameter_string)
         dir_output=pathlib.Path(dir_output)
         dir_output_filepaths=list(dir_output.glob(output_file_dispatch[output_type])) #get all filenames for runs corresponding to this choice of parameters    
-        print(dir_output_filepaths)
         if dir_output_filepaths:
             for dir_output_filepath in dir_output_filepaths:
                 try:
@@ -148,27 +147,24 @@ def get_output_files(batch_data,output_type='dfn',**kwargs):
             outputs.append(None)
 
     return outputs
-
-
-axes=['E','V_pitch']
-xmin=0
-xmax=0
-ymin=0
-ymax=0
   
 outputs=get_output_files(batch_data,'fpl')
 fig1,ax1=plt.subplots(1)
 fig2,ax2=plt.subplots(1)
 for output,colour in zip(outputs,[settings.cmap_g,settings.cmap_r]):
     if output:
-        output['weight']/=len(output['weight'])
+        output['weight']/=output['weight']*len(output['weight'])
         output['E']/=1000.
-        output.plot(fig=fig1,ax=ax1,axes=['time'],fill=False,label=output.ID,colmap=colour,number_bins=100,weight=True)
-        output.plot(fig=fig2,ax=ax2,axes=['E'],fill=False,label=output.ID,colmap=colour,number_bins=100,weight=True)
-ax1.set_xlabel('Time [s]',fontsize=25)  
+        output.ID=output.ID.replace('A','')
+        output.ID=output.ID.replace('_',', ')
+        output.plot(fig=fig1,ax=ax1,axes=['R'],fill=False,label=output.ID,colmap=colour,number_bins=50,weight=True)
+        output.plot(fig=fig2,ax=ax2,axes=['E'],fill=False,label=output.ID,colmap=colour,number_bins=50,weight=True)
+ax1.set_xlabel('R [m]',fontsize=25)  
 ax2.set_xlabel('Energy [keV]',fontsize=25)  
-ax1.set_ylabel('loss fraction',fontsize=25)  
-ax2.set_ylabel('loss fraction',fontsize=25)  
+ax1.set_ylabel('marker loss fraction',fontsize=25)  
+ax2.set_ylabel('marker loss fraction',fontsize=25)  
+ax1.set_title('')
+ax2.set_title('')
 ax1.legend()
 ax2.legend()
 plt.show()
@@ -176,32 +172,42 @@ plt.show()
 '''
 
 #plot difference in distribution function
+del(outputs)
 outputs=get_output_files(batch_data,'dfn')
+#PFCs=next(templates.plot_mod.get_output_files(batch_data,'pfc')) #do it lazily here
 
 fig,ax=plt.subplots(1)
 for output,colour in zip(outputs,[settings.cmap_g,settings.cmap_r]):
-    if output: output.plot(fig=fig,ax=ax,axes=['R'],label=output.ID,colmap=colour,number_bins=100)
+    output.ID=output.ID.replace('A','')
+    output.ID=output.ID.replace('_',', ')
+    if output: output.plot(fig=fig,ax=ax,axes=['E'],label=output.ID,colmap=colour,number_bins=100)
 ax.legend()
+ax.set_title('')
 plt.show()
 
 #plot one of the distribution functions
+axes=['R','Z']
 outputs[0].plot(axes=axes)
+equilibrium=Equilibrium(ID='',data_format='GEQDSK',filename=batch_data.args_batch['RMP_study__filepath_equilibrium'][0],GEQDSKFIX1=True,GEQDSKFIX2=True)
 
+outputs=get_output_files(batch_data,'dfn')
 for counter,output in enumerate(outputs):
     outputs[counter]=output.transform(axes=axes)
+
 DFN_diff=copy.deepcopy(outputs[0])
-DFN_diff.ID=f'log_10 {outputs[0]} - {outputs[1]} / {outputs[0]}'
-DFN_diff['dfn']=np.nan_to_num(np.log10(np.abs((outputs[0]['dfn']-outputs[1]['dfn'])/outputs[0]['dfn'])),nan=-5.)
-DFN_diff['dfn'][DFN_diff['dfn']>1.e3]=-5.
+DFN_diff['dfn']=np.log10(np.abs(outputs[0]['dfn']-outputs[1]['dfn'])/np.maximum.reduce([output['dfn'] for output in outputs]))
 fig,ax=plt.subplots(1)
-DFN_diff_mesh=DFN_diff.plot(fig=fig,ax=ax,axes=axes,transform=False,real_scale=False,vminmax=[-5,3],number_bins=9)
+DFN_diff_mesh=DFN_diff.plot(fig=fig,ax=ax,axes=axes,transform=False,real_scale=False,vminmax=[-4,0],number_bins=9,colmap=settings.cmap_inferno_r)
+#PFCs.plot(fig=fig,ax=ax,axes=axes,colmap=settings.cmap_k)
 cbar=fig.colorbar(DFN_diff_mesh,orientation='vertical')
 ax.set_xlabel('R [m]',fontsize=25)  
 ax.set_ylabel('Z [m]',fontsize=25)  
-#ax.set_title(f'$log_{10}(f_{outputs[0].ID}-f_{outputs[1].ID})\slash f_{outputs[0].ID}$',fontsize=25)
-#ax.set_xlim([np.min(equi['R_1D']),np.max(equi['R_1D'])])
-#ax.set_ylim([1.1*np.min(equi['lcfs_z']),1.1*np.max(equi['lcfs_z'])])
-ax.set_facecolor(settings.cmap_default(0.0))
+ax.set_title('log$_{10}([f_{\mathrm{2D}}-f_{\mathrm{3D}}]/\mathrm{max}(f_{\mathrm{2D}},f_{\mathrm{3D}}))$',fontsize=25)
+ax.set_xlim([np.min(equilibrium['R_1D']),np.max(equilibrium['R_1D'])])
+ax.set_ylim([1.1*np.min(equilibrium['lcfs_z']),1.1*np.max(equilibrium['lcfs_z'])])
+ax.set_facecolor(settings.cmap_k(0.0))
+ax.set_xticks(np.linspace(1,2.4,8)[::2])
+ax.set_xticks(np.linspace(1,2.4,8)[::2])
 plt.show()  
 
 #plot the inputs by running just the plot input stages of the batch script 

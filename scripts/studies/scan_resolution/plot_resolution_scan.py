@@ -70,6 +70,19 @@ except:
 
 import scan_resolution_launch as batch_data
 
+#cycle through poincare maps
+outputs=templates.plot_mod.get_output_files(batch_data,'poinc')
+for run_number,output in enumerate(outputs):
+    equilibrium=Equilibrium(ID='',data_format='GEQDSK',filename=batch_data.args_batch['RMP_study__filepath_equilibrium'][run_number],GEQDSKFIX1=True,GEQDSKFIX2=True)
+    fig,ax=plt.subplots(1)
+    if 'B3D_EX' not in batch_data.args_batch['LOCUST_run__flags'][run_number] and output is not None: #this is the 2D case    
+        equilibrium.plot()
+    elif output is not None:
+        output.plot(ax=ax,fig=fig,LCFS=equilibrium,limiters=equilibrium,real_scale=True)
+        ax.set_xlim([4.5,6.0])
+        ax.set_ylim([-4.0,-1.3])
+    plt.show()
+
 outputs=templates.plot_mod.get_output_files(batch_data,'fpl')
 fig,ax=plt.subplots(1)
 Pinj=33.e6
@@ -83,11 +96,12 @@ for run_number,output in enumerate(outputs):
         #print(np.sum((output['V_R'][i]**2+output['V_phi'][i]**2+output['V_Z'][i]**2)*output['FG'][i])*0.5*constants.mass_deuteron)
         #print(batch_data.parameters__perturbation_resolutions_R[run_number])
         if 'B3D_EX' not in batch_data.args_batch['LOCUST_run__flags'][run_number]: #this is the 2D case
-            ax.axhline(PFC_power,color='red',label='2D case',linewidth=2)
+            ax.axhline(PFC_power,color='red',label='axisymmetric field',linewidth=2)
         else:
-            ax.scatter(np.log10(batch_data.parameters__perturbation_resolutions_R[run_number]),PFC_power,color='black',marker='x',linestyle='solid',alpha=1,linewidth=2,label='2D equilibrium')
-ax.set_xlabel("Perturbation grid spacing (log) [m]")
-ax.set_ylabel("PFC power flux [%/Pinj]")
+            ax.scatter(np.log10(batch_data.parameters__perturbation_resolutions_R[run_number]),PFC_power,color='black',marker='x',linestyle='solid',alpha=1,linewidth=2)
+ax.set_xlabel("Log perturbation grid spacing [m]")
+ax.set_ylabel("% loss power")
+ax.legend()
 plt.show()
 
 outputs=templates.plot_mod.get_divergence_files(batch_data)
@@ -102,8 +116,8 @@ for run_number,output in enumerate(outputs):
             ax.scatter(np.log10(batch_data.parameters__perturbation_resolutions_R[run_number]),divB,color='black',marker='x',linestyle='solid',alpha=1,linewidth=2)
             #ax.scatter(np.log10(batch_data.parameters__perturbation_resolutions_R[run_number]),divB,color='black',marker='x',linestyle='-',alpha=1,linewidth=2)
 
-ax.set_xlabel("Perturbation grid spacing (log) [m]")
-ax.set_ylabel(r"average $\nabla B/B$ (log)")
+ax.set_xlabel("Log perturbation grid spacing [m]")
+ax.set_ylabel(r"Log $\nabla B$")
 plt.show()
 
 '''
@@ -123,17 +137,6 @@ animation=FuncAnimation(fig,plot_divergence,frames=outputs,fargs=[fig,ax],repeat
 plt.show()
 animation.save('divergence_animation.gif',writer='pillow')
 '''
-
-#cycle through poincare maps
-outputs=templates.plot_mod.get_output_files(batch_data,'poinc')
-for run_number,output in enumerate(outputs):
-    equilibrium=Equilibrium(ID='',data_format='GEQDSK',filename=batch_data.args_batch['RMP_study__filepath_equilibrium'][run_number],GEQDSKFIX1=True,GEQDSKFIX2=True)
-    fig,ax=plt.subplots(1)
-    if 'B3D_EX' not in batch_data.args_batch['LOCUST_run__flags'][run_number] and output is not None: #this is the 2D case    
-        equilibrium.plot()
-    elif output is not None:
-        output.plot(ax=ax,fig=fig,LCFS=equilibrium,limiters=equilibrium,real_scale=True)
-    plt.show()
 
 #################################
  
