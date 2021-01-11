@@ -1,8 +1,8 @@
-#compare_NBI_config_launch.py
+#scan_DNB_launch.py
  
 """
 Samuel Ward
-14/10/19
+14/12/20
 ----
 script for controlling and launching LOCUST parameter scans for static RMP studies
 ---
@@ -104,7 +104,7 @@ except:
 #################################
 #define study name 
 
-RMP_study__name='compare_NBI_config'
+RMP_study__name='scan_DNB'
 
 #################################
 #define options and dispatch tables for helping choosing settings
@@ -139,22 +139,13 @@ parameters__currents_upper=np.array([90.])*1000.
 parameters__currents_middle=np.array([90.])*1000.
 parameters__currents_lower=np.array([90.])*1000.
 
-configs_beam_1=['diagnostic','on']
-configs_beam_2=[None,'on']
+configs_beam_1=['diagnostic','diagnostic']
+configs_beam_2=[None,None]
 
 ##################################################################
 #define the workflow commands in order we want to execute them
 
-RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','IDS_create_DNB','IDS_create','run_BBNBI','depo_get','run_LOCUST','clean_input']\""
-
-RMP_study__workflow_commands="\"['mkdir','save_args','IDS_create_DNB','IDS_create','run_BBNBI','depo_get','depo_plot']\""#XXX
-
-RMP_study__workflow_commands=["\"['mkdir','save_args','IDS_create_DNB','IDS_create','run_BBNBI','depo_get','depo_plot']\"", #need to make sure to create diagnostic NBI IDS only in diagnostic NBI steps
-                                  "\"['mkdir','save_args','IDS_create','run_BBNBI','depo_get','depo_plot']\""]
-
-RMP_study__workflow_commands=["\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','IDS_create_DNB','IDS_create','run_BBNBI','depo_get','run_LOCUST']\"", #need to make sure to create diagnostic NBI IDS only in diagnostic NBI steps
-                                  "\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','IDS_create','run_BBNBI','depo_get','run_LOCUST','clean_input']\""]
-
+RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','IDS_create_DNB','IDS_create','run_BBNBI','depo_get','run_LOCUST']\""
 
 ##################################################################
 #create every valid combination of parameter, returned in flat lists
@@ -164,7 +155,7 @@ run_number=0
 parameter_strings=[]
 
 #first level are the data which remain constant for a parameter scan
-for config_beam_1,config_beam_2,workflow_commands in zip(configs_beam_1,configs_beam_2,RMP_study__workflow_commands):
+for config_beam_1,config_beam_2 in zip(configs_beam_1,configs_beam_2):
     for parameters__database,parameters__sheet_name_kinetic_prof in zip(
             parameters__databases,parameters__sheet_names_kinetic_prof): 
         for parameters__kinetic_prof_tF_tE,parameters__kinetic_prof_Pr in zip(parameters__kinetic_profs_tF_tE,parameters__kinetic_profs_Pr):
@@ -227,8 +218,8 @@ for config_beam_1,config_beam_2,workflow_commands in zip(configs_beam_1,configs_
                             LOCUST_run__settings_prec_mod['Zb']='+1.0_gpu' 
                             LOCUST_run__settings_prec_mod['file_tet']="'locust_wall'" 
                             LOCUST_run__settings_prec_mod['file_eqm']="'locust_eqm'" 
-                            LOCUST_run__settings_prec_mod['threadsPerBlock']=64
-                            LOCUST_run__settings_prec_mod['blocksPerGrid']=256
+                            LOCUST_run__settings_prec_mod['threadsPerBlock']=128
+                            LOCUST_run__settings_prec_mod['blocksPerGrid']=1024
                             LOCUST_run__settings_prec_mod['root']="'/tmp/{username}/{study}/{params}'".format(username=settings.username,study=RMP_study__name,params=parameters__parameter_string)
                             LOCUST_run__settings_prec_mod['i3dr']=-1 #XXX WHILST I3DR FLAG IS BROKE
                             LOCUST_run__settings_prec_mod['niter']=1
@@ -259,7 +250,15 @@ for config_beam_1,config_beam_2,workflow_commands in zip(configs_beam_1,configs_
                             BBNBI_run__xml_settings={}
                             BBNBI_run__number_particles=LOCUST_run__settings_prec_mod['threadsPerBlock']*LOCUST_run__settings_prec_mod['blocksPerGrid']*16
                             BBNBI_run__dir_BBNBI=support.dir_bbnbi
-                            
+
+                            #3D field settings
+                            if run_number==1: #make first run axisymmetric as control run
+                                del(LOCUST_run__flags['B3D'])
+                                del(LOCUST_run__flags['B3D_EX'])
+                            else:
+                                LOCUST_run__flags['B3D']=True
+                                LOCUST_run__flags['B3D_EX']=True
+
                             #if all coilsets do not rotate together we must split them up individually!
                             if all(rotation==parameters__rotation_upper for rotation in [parameters__rotation_upper,parameters__rotation_middle,parameters__rotation_lower]): 
                                 #if coils rotate together but we still want one row offset with others then define relative phase for mars_read
@@ -321,7 +320,7 @@ for config_beam_1,config_beam_2,workflow_commands in zip(configs_beam_1,configs_
                             args_batch['RMP_study__filepath_kinetic_profiles'].append(copy.deepcopy(list((RMP_study__dir_input_database / parameters__database / folder_name_DataEq).glob('*.xlsx'))[0])) #determine path to current kinetic profiles
                             args_batch['RMP_study__filepath_equilibrium'].append(copy.deepcopy(list((RMP_study__dir_input_database / parameters__database / folder_name_DataEq).glob('*eqdsk*'))[0])) #determine path to current equilibrium
                             args_batch['RMP_study__filepath_additional_data'].append(copy.deepcopy(RMP_study__filepaths_additional_data))
-                            args_batch['RMP_study__workflow_commands'].append(workflow_commands)
+                            args_batch['RMP_study__workflow_commands'].append(RMP_study__workflow_commands)
                             
                             #find paths to 3D fields corresponding to desired parameters depending on requested field type
 

@@ -99,7 +99,7 @@ for run_number,output in enumerate(outputs):
             ax.axhline(PFC_power,color='red',label='axisymmetric field',linewidth=2)
         else:
             ax.scatter(np.log10(batch_data.parameters__perturbation_resolutions_R[run_number]),PFC_power,color='black',marker='x',linestyle='solid',alpha=1,linewidth=2)
-ax.set_xlabel("Log perturbation grid spacing [m]")
+ax.set_xlabel("Perturbation grid spacing [m] [log$_{10}$]")
 ax.set_ylabel("% loss power")
 ax.legend()
 plt.show()
@@ -116,8 +116,8 @@ for run_number,output in enumerate(outputs):
             ax.scatter(np.log10(batch_data.parameters__perturbation_resolutions_R[run_number]),divB,color='black',marker='x',linestyle='solid',alpha=1,linewidth=2)
             #ax.scatter(np.log10(batch_data.parameters__perturbation_resolutions_R[run_number]),divB,color='black',marker='x',linestyle='-',alpha=1,linewidth=2)
 
-ax.set_xlabel("Log perturbation grid spacing [m]")
-ax.set_ylabel(r"Log $\nabla B$")
+ax.set_xlabel(r"Perturbation grid spacing [m] [log$_{10}$]")
+ax.set_ylabel(r"Mean $\nabla B$ [log$_{10}$]")
 plt.show()
 
 '''

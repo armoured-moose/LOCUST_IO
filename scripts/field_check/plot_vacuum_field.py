@@ -1,11 +1,85 @@
 # produce vacuum field data for ITER w/o RW response
-# for benchmarking withprobe_g
+# for benchmarking with probe_g
 # MARS-F vacuum data are stored in: ../Data_VAC
 # note that vacuum data assumes 1 kAt n=3 or n=6 coil current in each row w/o In/Ic factor
 # consider one optimal coil phasing from EvansNF13 paper:
 # DeltaPhiU=86, DeltaPhiM=0, DeltaPhiL=34 using Eq. (1) in the paper
 # compare field along phi-angle at R=6.2273m, Z=0.0571m
 # compare both the n=3 main harmonic and the n=6 sideband field
+
+# XXX note: I think Todd has defined 86,0,34 from the ITER origin when creating this field, and then has supplied us his data according to an origin starting at phi0=30 i.e. the first coil centre
+# XXX because we only match his field when we shift his field into the ITER coordinate system and then we apply a phase=86,0,34 to our current waveform
+# XXX this is backed up by the fact that, if we remove the 30 degrees phase shift and set phic_ASCOT=0,0,0 i.e. we're in the coil coordinate system, then we do NOT match his field when 
+# XXX we shift our current waveform by 86,0,34...hence 86,0,34 must be measured from the origin in his field....which ISN'T the max stochastic field (maybe he made a mistake?)
+# XXX also in his field probe_gb_TMB.out he says " %Using ITER machine parameters."
+
+# XXX also:
+# The probe-g input files are needed in order to compare with the data in the probe-g output files using the coil current in the attached spread sheet. 
+# Since you raised this question, 
+# XXXX I looked at the input files I used for the probe-g output file you sent me and verified that I used phiITER=0 to produce the perturbation field data, as needed to compare with the JOREK-ERGOS and MARS-F perturbation fields. !!!
+
+"""
+The plots in the NF paper use the centers of the coil at 30, 26.7 and 30 as the reference for calculating the current in each coil. I have attached a spreadsheet you can use to check the current distributions using the equation in the NF paper. It is currently showing the coil currents using the coil centered reference angles (30+0,26.7+0,30+0) with phase angles of 86, 0, 34. You can enter -30 in the “Relative Center Angle” row to get the current in each coil relative to phiITER=0. Using this you can see that the notes on the tables at the bottom of slide 1 sent yesterday were reversed (sorry about this confusion) and the comparisons with JOREK-ERGOS and MARS-F used the phiITER=0 by setting the “Relative center angle” in column B to -30.
+"""
+
+"""
+Here is the probe-g input file for the ITER coils that I used to generate the data I sent to Yueqiang Liu:
+
+ &input
+! Input file to specify ITER parameters.                  2011 Mar
+
+
+!========================  MAIN  MODEL SWITCHES  =======================
+! .f or .f. to skip, .t or .t. to use
+
+  useITERPFerr  = .f
+! for ITER Errors from PF + CS coils 1-12 
+  useITERECcoil = .f 
+! for ITER Error Correction (EC) coils
+  useITERIcoil  = .t 
+! for ITER Internal RMP coils
+  useITERPcoil  = .f
+! for ITER Perturbation (P) coils
+  useITERPGcoil = .f
+! for ITER Polygon (PG) coils
+!=======================================================================
+
+!============  Parameters for 27 ITER Internal RMP Coils  ==========
+! 3 rows of 9 coils each
+! Rows L=1 (top), L=2 (mid), L=3 (bottom)
+! Tor Angle 000  040  080  120  160  200  240   280  320 deg (coil centers)
+! Ordered N= 01   02   03   04   05   06   07    08   09   (9 coils)
+! Icur(1:N,L) = currents in L=1,3 I rows to N coils (single turn, Amp)
+! Iadj(1:3,L) = addangle (deg), arcmax (deg), current scale factor (no dim) 
+! Positive coil current makes positive B_normal at tokamak outer boundary.
+
+ Icur(1:,1) = -88.033 +60.222 +27.812 -88.033 +60.222 +27.812 -88.033 +60.222 +27.812
+ Iadj(1:,1) = -0.0, 5.0, +1000.0
+
+ Icur(1:,2) = +15.474 -84.518 +69.045 +15.474 -84.518 +69.045 +15.474 -84.518 +69.045
+ Iadj(1:,2) = -0.0, 5.0, +0.0
+
+ Icur(1:,3) = +88.033 -27.812 -60.222 +88.033 -27.812 -60.222 +88.033 -27.812 -60.222
+ Iadj(1:,3) = -0.0, 5.0, +0.0
+
+!! Icur(:,:) = 27*0.
+! ZERO all 27 coil currents
+!=======================================================================
+ &END
+
+
+XXX I have just played with the excel file Todd supplied and my thoughts are indeed correct:
+
+- settings Absolute center angle = Relative center angle gives the same IU amplitude, IM amplitude, IL amplitude as above
+
+i.e. -88.033    60.222  27.812  -88.033 60.222  27.812  -88.033 60.222  27.812  in the excel file for the upper row.
+
+this means Todd has made the probe_g input file according to 86,0,34 in the ITER system!
+
+and then are expressed in the coil coordinate system:
+
+"Probe_g has the coil model defined with the first coil in each row a 0º toroidally so the results in the output files are referenced to the center angle of the first coil in each row as opposed to the ITER 0º angle"
+"""
 
 import numpy as np 
 import matplotlib.pyplot as plt

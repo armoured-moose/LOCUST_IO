@@ -34,6 +34,21 @@ except:
     raise ImportError("ERROR: LOCUST_IO/src/classes/input_classes/perturbation.py could not be imported!\nreturning\n")
     sys.exit(1)
 try:
+    from classes.input_classes.temperature import Temperature
+except:
+    raise ImportError("ERROR: LOCUST_IO/src/classes/input_classes/temperature.py could not be imported!\nreturning\n") 
+    sys.exit(1)
+try:
+    from classes.input_classes.number_density import Number_Density
+except:
+    raise ImportError("ERROR: LOCUST_IO/src/classes/input_classes/number_density.py could not be imported!\nreturning\n") 
+    sys.exit(1)
+try:
+    from classes.input_classes.rotation import Rotation
+except:
+    raise ImportError("ERROR: LOCUST_IO/src/classes/input_classes/rotation.py could not be imported!\nreturning\n") 
+    sys.exit(1)
+try:
     from classes.output_classes.distribution_function import Distribution_Function
 except:
     raise ImportError("ERROR: LOCUST_IO/src/classes/output_classes/distribution_function.py could not be imported!\nreturning\n")
@@ -73,6 +88,13 @@ try:
     import support
 except:
     raise ImportError("ERROR: LOCUST_IO/src/support.py could not be imported!\nreturning\n") 
+    sys.exit(1)
+try:
+    #cwd=pathlib.Path(os.path.dirname(os.path.realpath(__file__)))
+    #sys.path.append(str(cwd.parents[1]))
+    from .templates.template_mod import *
+except:
+    raise ImportError("ERROR: templates/template_mod.py could not be imported!\nreturning\n") 
     sys.exit(1)
 
 ################################################################## 
@@ -151,6 +173,32 @@ def get_divergence_files(batch_data):
                 yield None
         else:
             yield None
+'''
+def plot_kinetic_profiles(batch_data):
+    """
+    notes:
+    """
+
+    import matplotlib.pyplot as plt 
+
+    for parameters__database,parameters__sheet_name_kinetic_prof in zip(
+            batch_data.parameters__databases,batch_data.parameters__sheet_names_kinetic_prof): 
+        for parameters__kinetic_prof_tF_tE,parameters__kinetic_prof_Pr in zip(batch_data.parameters__kinetic_profs_tF_tE,batch_data.parameters__kinetic_profs_Pr):
+
+            parameters__kinetic_prof_tF_tE_string=parameters__kinetic_profs_tF_tE__dispatch[parameters__kinetic_prof_tF_tE] #generate some variable string equivalents for later
+            parameters__kinetic_prof_Pr_string=parameters__kinetic_profs_Pr__dispatch[parameters__kinetic_prof_Pr]
+
+            parameters__sheet_name_rotation=target_IDS_dispatch[parameters__database][parameters__kinetic_prof_Pr_string][parameters__kinetic_prof_tF_tE_string]['sheet_name_rotation']
+            parameters__var_name_rotation=target_IDS_dispatch[parameters__database][parameters__kinetic_prof_Pr_string][parameters__kinetic_prof_tF_tE_string]['var_name_rotation']
+            RMP_study__filepath_kinetic_profiles = list((RMP_study__dir_input_database / parameters__database / folder_name_DataEq).glob('*.xlsx'))[0]
+
+            #temperature=Temperature(ID='',data_format='EXCEL1',species='ions',filename=RMP_study__filepath_kinetic_profiles.relative_to(support.dir_input_files),sheet_name=parameters__sheet_name_kinetic_prof)
+            #rotation=Rotation(ID='',data_format='EXCEL1',filename=RMP_study__filepath_kinetic_profiles.relative_to(support.dir_input_files),sheet_name=parameters__sheet_name_kinetic_prof,rotation_name=parameters__var_name_rotation,sheet_name_rotation=parameters__sheet_name_rotation)
+            density=Number_Density(ID='',data_format='EXCEL1',species='deuterium',filename=RMP_study__filepath_kinetic_profiles.relative_to(support.dir_input_files),sheet_name=parameters__sheet_name_kinetic_prof)
+'''
+
+
+
 
 #################################
  

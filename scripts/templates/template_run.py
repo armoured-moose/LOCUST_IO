@@ -298,11 +298,22 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                 deposition[key]=np.asarray(deposition[key])
 
             #check for common field names to convert to LOCUST_IO variable names
-            locust_io_names=['E','rho','V_phi','V_pitch'] #LOCUST_IO fields that we want to retain
-            nemo_names=['Energy','Rhotor','V_PHI','Pitch angle'] #first check possible matching NEMO field names
-            for nemo_name,locust_io_name in zip(nemo_names,locust_io_names):
-                if nemo_name in deposition.keys():
-                    deposition[locust_io_name]=deposition.pop(nemo_name)
+
+            #possible field names for different codes
+            nemo_names=['Energy','Rhotor','V_PHI','Pitch angle'] 
+            bbnbi_names=['z','vx','vy','vz','energy','pitch']
+
+            #matching LOCUST_IO fields that we want to have instead
+            locust_io_names=[
+            ['E','rho_tor','V_phi','V_pitch'],
+            ['Z','V_X','V_Y','V_Z','E','V_pitch']
+            ]
+
+            for code_counter,code_names in enumerate([nemo_names,bbnbi_names]):
+                for code_name,locust_io_name in zip(code_names,locust_io_names[code_counter]):
+                    if code_name in deposition.keys():
+                        deposition[locust_io_name]=deposition.pop(code_name)
+           
          
             beamlet=Beam_Deposition(ID='') #spawn new blank Beam_Deposition and assign data above
             beamlet.data=copy.deepcopy(deposition)
@@ -353,7 +364,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
 
         axes=[ax]
         position_y_ax=0
-        for colour,kinetic_profile_group,plotting_variable in zip([settings.cmap_g,settings.cmap_r,settings.cmap_b],[densities,temperatures,rotations],['density','temperature','rotation']):
+        for colour,kinetic_profile_group,plotting_variable in zip([settings.cmap_green_nice,settings.cmap_red_nice,settings.cmap_blue_nice],[densities,temperatures,rotations],['density','temperature','rotation']):
             axes.append(axes[0].twinx())
             axes[-1].tick_params(axis='y', labelcolor=colour(0.5))
             axes[-1].set_ylabel(plotting_variable,color=colour(0.5)) 
@@ -1008,7 +1019,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         notes:
             if running LOCUST with separate coil_rows then script will include combined field, if running LOCUST with combined field separate field is not generated here
             (although could be in future by just evoking self.calc_3D_fields() and editing prec_mod settings)
-            can only compare with probe_g vacuum data if n=3 or n=3
+            can only compare with probe_g vacuum data if n=3 and n=6
         """
 
         #define 1D of points to compare at
@@ -1114,9 +1125,6 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                 (self.args['LOCUST_run__dir_output'] / 'field_data.out').rename(self.args['LOCUST_run__dir_output'] / 'field_data_separate.out')
                 field_separate_BCHECK=Perturbation('',data_format='LOCUST_field_data',filename=(self.args['LOCUST_run__dir_output'] / 'field_data_separate.out').relative_to(support.dir_output_files))
 
-            combined_field.look()
-            combined_field_BCHECK.look()
-
             #now plot combined field evaluated by me and locust, separate field evaluated by LOCUST and fractional difference between combined and separate field
             if field_type is 'separate':
                 field_difference=copy.deepcopy(field_separate_BCHECK)
@@ -1128,8 +1136,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
                     field_difference[quantity_MARSF]/=combined_field_BCHECK[quantity_MARSF] #get fractional difference between the two fields
                     ax1.plot(field_difference[quantity_MARSF],'m-')
                     ax2.plot(field_separate_BCHECK[quantity_MARSF],'g-')
-                ax2.plot(phi_points*rad_2_deg,combined_field[quantity_MARSF],'b',linestyle='--')
-                ax2.plot(phi_points*rad_2_deg,combined_field_BCHECK[quantity_MARSF],'b',linestyle='-')
+                ax2.plot(phi_points*rad_2_deg,combined_field[quantity_MARSF],'b',linestyle='--',label='LOCUST_IO result')
+                ax2.plot(phi_points*rad_2_deg,combined_field_BCHECK[quantity_MARSF],'b',linestyle='-',label='BCHECK result')
             #plt.savefig('BCHECK_{}.png'.format(mode),bbox_inches='tight')
             plt.show()
 
@@ -1137,7 +1145,8 @@ class RMP_study_run(run_scripts.workflow.Workflow):
 
             #read probe_g biot-savart code vacuum data
             d={}
-            filename=pathlib.Path('..') / 'field_check' / 'probe_gb_TMB.out'
+            filename=pathlib.Path(pathlib.Path(os.path.dirname(os.path.realpath(__file__))))
+            filename=filename.parents[0] / 'field_check' / 'probe_gb_TMB.out'
             with open(filename) as file:
                 lines=file.readlines()
                 while 'phi_tor(deg)' not in lines[0]:
@@ -1188,13 +1197,15 @@ class RMP_study_run(run_scripts.workflow.Workflow):
             else:
                 dBR,dBphi,dBZ=[np.full(num_points,0.)]*3
 
-            for ax,quantity_MARSF,quantity_probeG in zip(axes,['dB_field_R','dB_field_tor','dB_field_Z'],[dBR,dBphi,dBZ]):
-                ax.plot(d['phi_tor']+phi0,quantity_probeG,'g-',label=f'{quantity_MARSF} probe_g')
-                ax.plot(phi_points*rad_2_deg,combined_field[quantity_MARSF],'b',linestyle='--',label=f'{quantity_MARSF} eval') #overplot these as they SHOULD be the same
-                ax.plot(phi_points*rad_2_deg,combined_field_BCHECK[quantity_MARSF],'b',linestyle='-',label=f'{quantity_MARSF} bchck')
-                ax.legend() #XXX added
-                ax.set_ylabel('mag [T]') #XXX added
-            axes[-1].set_xlabel('$\phi$ [degrees]') #XXX added
+            plt.rc('text', usetex=True)
+
+            for ax,quantity_MARSF,quantity_probeG,component in zip(axes,['dB_field_R','dB_field_tor','dB_field_Z'],[dBR,dBphi,dBZ],['R','\phi','Z']):
+                ax.plot(d['phi_tor']+phi0,quantity_probeG,'g-',label=f'probe_g')
+                ax.plot(phi_points*rad_2_deg,combined_field[quantity_MARSF],'b',linestyle='--',label=f'Python check') #overplot these as they SHOULD be the same
+                ax.plot(phi_points*rad_2_deg,combined_field_BCHECK[quantity_MARSF],'b',linestyle='-',label=f'LOCUST')
+                ax.set_ylabel(r'$\widetilde{{ \underline{{B}}}}_{{{}}}$ [T]'.format(component))
+            axes[0].legend()
+            axes[-1].set_xlabel('$\phi$ [degrees]')
 
             plt.show()
 
@@ -1386,7 +1397,6 @@ class RMP_study_run(run_scripts.workflow.Workflow):
         beam_depo['V_phi']=input_list['V_phi'][indices]
         beam_depo['V_Z']=input_list['V_Z'][indices]
         beam_depo['weight']=input_list['weight'][indices]
-        beam_depo.look()
         beam_depo.dump_data(data_format='LOCUST_FO_weighted',filename=ptcles_orbit,shuffle=False) 
 
         #rename files for LOCUST and to avoid overwriting
@@ -1403,6 +1413,7 @@ class RMP_study_run(run_scripts.workflow.Workflow):
             if not list(self.args['LOCUST_run__dir_output'].glob('ORBIT_3D')):
 
                 LOCUST_run__flags_orbit['TIMAX']='0.05D0' #0.01s~5GB for 10 markers, 1 bounce ~ 10us
+                LOCUST_run__flags_orbit['TIMAX']='0.01D0' #0.01s~5GB for 10 markers, 1 bounce ~ 10us
 
                 LOCUST_workflow=run_scripts.LOCUST_run.LOCUST_run(
                     environment_name=self.args['LOCUST_run__environment_name'],

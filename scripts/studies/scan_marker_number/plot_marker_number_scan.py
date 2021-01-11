@@ -78,11 +78,11 @@ for counter,(output,col_val) in enumerate(zip(outputs,np.linspace(0,1,len(batch_
         i=np.where(output['status_flag']=='PFC_intercept_3D')[0]
         number_markers=len(output['weight'])
         PFC_power=1.e6*output['f']*np.sum((output['V_R'][i]**2+output['V_phi'][i]**2+output['V_Z'][i]**2)*output['FG'][i])*0.5*constants.mass_deuteron
-        ax3.scatter(np.log2(number_markers),100*PFC_power/Pinj,color=settings.cmap_default(col_val),label=number_markers)
         print(f'number_markers={number_markers},FG={output["FG"][0]},f={output["f"]}')
         output['weight']/=output['weight']*number_markers #normalise weights according to number markers
         output.plot(fig=fig,ax=ax1,axes=['R'],fill=False,label=number_markers,colmap=settings.cmap_default,colmap_val=col_val,number_bins=200,weight=True)
         output.plot(fig=fig,ax=ax2,axes=['E'],fill=False,label=output.ID,colmap=settings.cmap_default,colmap_val=col_val,number_bins=200,weight=True)
+        ax3.scatter(np.log2(number_markers),100*PFC_power/Pinj,color=settings.cmap_default(col_val),label=number_markers,s=20)
 
 #ax3.legend()
 ax1.set_xlabel('R [m]')

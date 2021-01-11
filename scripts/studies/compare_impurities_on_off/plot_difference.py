@@ -176,6 +176,9 @@ del(outputs)
 outputs=get_output_files(batch_data,'dfn')
 #PFCs=next(templates.plot_mod.get_output_files(batch_data,'pfc')) #do it lazily here
 
+print(f"total fast ion difference = {100*(outputs[1].transform(axes=['N'])['dfn']-outputs[0].transform(axes=['N'])['dfn'])/outputs[0].transform(axes=['N'])['dfn']}%")
+print(f"total fast ion difference = {100*(outputs[1].transform(axes=['N'])['dfn']-outputs[0].transform(axes=['N'])['dfn'])/outputs[1].transform(axes=['N'])['dfn']}%")
+
 fig,ax=plt.subplots(1)
 for output,colour in zip(outputs,[settings.cmap_g,settings.cmap_r]):
     output.ID=output.ID.replace('A','')
@@ -206,8 +209,6 @@ ax.set_title('log$_{10}([f_{\mathrm{2D}}-f_{\mathrm{3D}}]/\mathrm{max}(f_{\mathr
 ax.set_xlim([np.min(equilibrium['R_1D']),np.max(equilibrium['R_1D'])])
 ax.set_ylim([1.1*np.min(equilibrium['lcfs_z']),1.1*np.max(equilibrium['lcfs_z'])])
 ax.set_facecolor(settings.cmap_k(0.0))
-ax.set_xticks(np.linspace(1,2.4,8)[::2])
-ax.set_xticks(np.linspace(1,2.4,8)[::2])
 plt.show()  
 
 #plot the inputs by running just the plot input stages of the batch script 

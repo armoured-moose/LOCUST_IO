@@ -75,29 +75,28 @@ for output in outputs:
     else:
         PFC_power.append([-10.])
 
-PFC_power=np.array(PFC_power).reshape(len(batch_data.parameters__kinetic_profs_Pr),len(batch_data.parameters__phases_upper),len(batch_data.parameters__phases_middle))
+PFC_power=np.array(PFC_power).reshape(len(batch_data.configs_beam_1),len(batch_data.parameters__kinetic_profs_Pr),len(batch_data.parameters__phases_upper),len(batch_data.parameters__phases_middle))
 
-for plasma_state_counter,(Pr,tftE) in enumerate(zip(batch_data.parameters__kinetic_profs_Pr,batch_data.parameters__kinetic_profs_tF_tE)):
+fig,ax=plt.subplots(len(batch_data.parameters__kinetic_profs_Pr),len(batch_data.configs_beam_1))
+counter=0 #counter over different scenarios
+for beam_config_counter,(config_beam_1,config_beam_2) in enumerate(zip(batch_data.configs_beam_1,batch_data.configs_beam_2)):
+    for plasma_state_counter,(Pr,tftE) in enumerate(zip(batch_data.parameters__kinetic_profs_Pr,batch_data.parameters__kinetic_profs_tF_tE)):
+        dMPHASE,dUPHASE=batch_data.parameters__phases_middle[1]-batch_data.parameters__phases_middle[0],batch_data.parameters__phases_upper[1]-batch_data.parameters__phases_upper[0]
+        MPHASE,UPHASE=np.append(batch_data.parameters__phases_middle,batch_data.parameters__phases_middle[-1]+dMPHASE),np.append(batch_data.parameters__phases_upper,batch_data.parameters__phases_upper[-1]+dUPHASE)
+        mesh=ax.pcolormesh(MPHASE-dMPHASE/2.-26.7,UPHASE-dUPHASE/2.-30.,100*PFC_power[beam_config_counter,plasma_state_counter]/Pinj,cmap=settings.discrete_colmap(colmap_name='inferno',face_colour='black',number_bins=11),edgecolor='none',antialiased=True,vmin=0,vmax=10)
+        ax.set_xticks(batch_data.parameters__phases_middle-26.7)
+        ax.set_yticks(batch_data.parameters__phases_upper-30.)
+        ax.set_xlim([np.min(batch_data.parameters__phases_middle)-26.7,np.max(batch_data.parameters__phases_middle)-26.7])
+        ax.set_ylim([np.min(batch_data.parameters__phases_upper)-30.,np.max(batch_data.parameters__phases_upper)-30.])
+        ax.set_xlabel('$\Delta\Phi_{\mathrm{M}}$')
+        ax.set_ylabel('$\Delta\Phi_{\mathrm{U}}$')
+        ax.text(x=0.05,y=0.1,s=r'Pr={}, $\tau_{{\Phi}}/\tau_{{\mathrm{{E}}}}={}, \mathrm{{NBI}}_{{1}},\mathrm{{NBI}}_{{2}}$=[{},{}]'.format(Pr,tftE,config_beam_1,config_beam_2),fontsize=15,horizontalalignment='left',transform=ax.transAxes,color=settings.cmap_w(0.))
+        counter+=1  
 
-    loss_grid_size=len(batch_data.parameters__phases_upper)*len(batch_data.parameters__phases_middle)
-    plasma_state_slice=slice(plasma_state_counter*loss_grid_size,(plasma_state_counter+1)*loss_grid_size)
-
-    dMPHASE,dUPHASE=batch_data.parameters__phases_middle[1]-batch_data.parameters__phases_middle[0],batch_data.parameters__phases_upper[1]-batch_data.parameters__phases_upper[0]
-    MPHASE,UPHASE=np.append(batch_data.parameters__phases_middle,batch_data.parameters__phases_middle[-1]+dMPHASE),np.append(batch_data.parameters__phases_upper,batch_data.parameters__phases_upper[-1]+dUPHASE)
-
-    fig,ax=plt.subplots(1)
-    ax.set_facecolor(settings.cmap_default(np.min(PFC_power[plasma_state_counter])))
-    mesh=ax.pcolormesh(MPHASE-dMPHASE/2.-26.7,UPHASE-dUPHASE/2.-30.,100*PFC_power[plasma_state_counter]/Pinj,cmap=settings.cmap_default,edgecolor='none',antialiased=True,vmin=0,vmax=10)
-    ax.set_xticks(batch_data.parameters__phases_middle-26.7)
-    ax.set_yticks(batch_data.parameters__phases_upper-30.)
-    ax.set_xlim([np.min(batch_data.parameters__phases_middle)-26.7,np.max(batch_data.parameters__phases_middle)-26.7])
-    ax.set_ylim([np.max(batch_data.parameters__phases_upper)-30.,np.min(batch_data.parameters__phases_upper)-30.])
-    ax.set_xlabel('Middle $\mathrm{d}\Phi$')
-    ax.set_ylabel('Upper $\mathrm{d}\Phi$')
-    ax.set_title('Loss power as % of $P_{injected}=33\mathrm{MW}$')
-    fig.colorbar(mesh,ax=ax,orientation='horizontal')
-    plt.show()
-
+fig.suptitle('Total NBI power loss (%)',fontsize=35)
+fig.colorbar(mesh,ax=ax)
+#fig.set_tight_layout(True)  
+plt.show()
 
 #################################
  

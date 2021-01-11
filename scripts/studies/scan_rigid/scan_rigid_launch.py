@@ -122,15 +122,15 @@ parameters__sheet_names_kinetic_prof=["'Flat n'"]
 #define the parameter space for a given scenario
 
 #kinetic profile parameters which vary independently
-parameters__kinetic_profs_Pr=[0.3,1.] #pick highest then lowest rotation
-parameters__kinetic_profs_tF_tE=[2.,0.5]
+parameters__kinetic_profs_Pr=[1.] #pick highest then lowest rotation
+parameters__kinetic_profs_tF_tE=[0.5]
 
 #3D field parameters which vary independently - if you want to vary these together then put them into the same loop nesting below
 #2D arrays, each element has length = number of modes
 parameters__toroidal_mode_numbers=[[-3,-6]]
-parameters__phases_upper=np.linspace(0,120,9)[:-1]+30. #86,0,34 = default for maximmum stochasticity in coil coordinate system
-parameters__phases_middle=np.linspace(0,120,9)[:-1]+26.7
-parameters__phases_lower=np.linspace(0,120,9)[:-1]+30.
+parameters__phases_upper=np.linspace(0,120,9)[:-1]+30.+86. #86,0,34 = default for maximmum stochasticity in coil coordinate system
+parameters__phases_middle=np.linspace(0,120,9)[:-1]+26.7+0.
+parameters__phases_lower=np.linspace(0,120,9)[:-1]+30.+34.
 parameters__rotations_upper=np.array([0.])
 parameters__rotations_middle=np.array([0.])
 parameters__rotations_lower=np.array([0.])
