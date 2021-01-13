@@ -239,7 +239,7 @@ for config_beam_1,config_beam_2,workflow_commands in zip(configs_beam_1,configs_
 
                             MARS_read__flags={}
                             MARS_read__flags['TOKAMAK']=1
-                            MARS_read__flags['N0']=parameters__toroidal_mode_number[0]
+                            MARS_read__flags['N0']=np.abs(parameters__toroidal_mode_number[0])
                             MARS_read__flags['PLS']=True
                             MARS_read__flags['UPHASE']=f'{parameters__phase_upper}D0' #XXX does this account for counter-rotating harmonics?
                             MARS_read__flags['MPHASE']=f'{parameters__phase_middle}D0'

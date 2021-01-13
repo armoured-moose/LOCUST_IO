@@ -88,8 +88,8 @@ for beam_config_counter,(config_beam_1,config_beam_2) in enumerate(zip(batch_dat
         ax.set_yticks(batch_data.parameters__phases_upper-30.)
         ax.set_xlim([np.min(batch_data.parameters__phases_middle)-26.7,np.max(batch_data.parameters__phases_middle)-26.7])
         ax.set_ylim([np.min(batch_data.parameters__phases_upper)-30.,np.max(batch_data.parameters__phases_upper)-30.])
-        ax.set_xlabel('$\Delta\Phi_{\mathrm{M}}$')
-        ax.set_ylabel('$\Delta\Phi_{\mathrm{U}}$')
+        ax.set_xlabel('$\Delta\Phi_{\mathrm{M}}$ [deg]')
+        ax.set_ylabel('$\Delta\Phi_{\mathrm{U}}$ [deg]')
         ax.text(x=0.05,y=0.1,s=r'Pr={}, $\tau_{{\Phi}}/\tau_{{\mathrm{{E}}}}={}, \mathrm{{NBI}}_{{1}},\mathrm{{NBI}}_{{2}}$=[{},{}]'.format(Pr,tftE,config_beam_1,config_beam_2),fontsize=15,horizontalalignment='left',transform=ax.transAxes,color=settings.cmap_w(0.))
         counter+=1  
 

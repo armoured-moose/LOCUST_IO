@@ -120,7 +120,7 @@ parameters__kinetic_profs_tF_tE=[2.,0.5]
 #2D arrays, each element has length = number of modes
 parameters__toroidal_mode_numbers=[[-3,-6]]
 parameters__phases_upper=np.linspace(0,120,9)[:-1]+30. #86,0,34 = default for maximmum stochasticity in coil coordinate system
-parameters__phases_middle=np.array([0.])+26.7
+parameters__phases_middle=np.array([0.])+26.7 #93.3 #corresponds to reversing phi (old simulations)
 parameters__phases_lower=np.linspace(0,120,9)[:-1]+30.
 parameters__rotations_upper=np.array([0.])
 parameters__rotations_middle=np.array([0.])
@@ -222,7 +222,7 @@ for config_beam_1,config_beam_2 in zip(configs_beam_1,configs_beam_2):
                                     MARS_read__flags['UPHASE']=f'{parameters__phase_upper}D0' #XXX does this account for counter-rotating harmonics?
                                     MARS_read__flags['MPHASE']=f'{parameters__phase_middle}D0'
                                     MARS_read__flags['LPHASE']=f'{parameters__phase_lower}D0'
-                                    MARS_read__flags['N0']=parameters__toroidal_mode_number[0]
+                                    MARS_read__flags['N0']=np.abs(parameters__toroidal_mode_number[0])
                                     MARS_read__settings={}
                                     MARS_read__settings['TAIL']="{}".format(MARS_read__tails)
                                     MARS_read__settings['IKATN']=f'[{parameters__current_upper/1000.}_gpu,{parameters__current_middle/1000.}_gpu,{parameters__current_lower/1000.}_gpu]'

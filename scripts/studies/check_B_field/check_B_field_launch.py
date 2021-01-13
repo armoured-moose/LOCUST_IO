@@ -1,10 +1,10 @@
-#scan_rigid_loss_mechanism_launch.py
+#check_B_field_launch.py
  
 """
 Samuel Ward
-09/12/20
+12/01/21
 ----
-perform rigid rotation of RMP coils
+test project
 ---
  
 notes:         
@@ -103,7 +103,7 @@ except:
 #################################
 #define study name 
 
-RMP_study__name='scan_rigid_loss_mechanism'
+RMP_study__name='check_B_field'
 
 #################################
 #define options and dispatch tables for helping choosing settings
@@ -122,15 +122,15 @@ parameters__sheet_names_kinetic_prof=["'Flat n'"]
 #define the parameter space for a given scenario
 
 #kinetic profile parameters which vary independently
-parameters__kinetic_profs_Pr=[1.] #pick highest then lowest rotation
+parameters__kinetic_profs_Pr=[1.] #highest rotation
 parameters__kinetic_profs_tF_tE=[0.5]
 
 #3D field parameters which vary independently - if you want to vary these together then put them into the same loop nesting below
 #2D arrays, each element has length = number of modes
 parameters__toroidal_mode_numbers=[[-3,-6]]
-parameters__phases_upper=np.linspace(0,120,5)[:-1]+30. #86,0,34 = default for maximmum stochasticity in coil coordinate system
-parameters__phases_middle=np.linspace(0,120,5)[:-1]+26.7
-parameters__phases_lower=np.linspace(0,120,5)[:-1]+30.
+parameters__phases_upper=np.array([86.]) #86,0,34 = default for maximmum stochasticity in coil coordinate system
+parameters__phases_middle=np.array([0.])
+parameters__phases_lower=np.array([34.])
 parameters__rotations_upper=np.array([0.])
 parameters__rotations_middle=np.array([0.])
 parameters__rotations_lower=np.array([0.])
@@ -144,9 +144,7 @@ config_beam_2='on'
 ##################################################################
 #define the workflow commands in order we want to execute them
 
-RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','IDS_create','kin_extrap','run_BBNBI','depo_get','run_LOCUST','clean_input']\""
-RMP_study__workflow_commands="\"['mkdir','IDS_create','run_BBNBI','depo_get']\""
-RMP_study__workflow_commands="\"['mkdir','save_args','kin_get','3D_get','3D_calc','input_get','depo_get_premade','run_LOCUST']\""
+RMP_study__workflow_commands="\"['mkdir','3D_get','3D_calc','B_check_3D']\""
 
 ##################################################################
 #create every valid combination of parameter, returned in flat lists
@@ -156,7 +154,7 @@ run_number=0
 parameter_strings=[]
 #first level are the data which remain constant for a parameter scan
 for parameters__database,parameters__sheet_name_kinetic_prof in zip(
-        parameters__databases,parameters__sheet_names_kinetic_prof): 
+        parameters__databases,parameters__sheet_names_kinetic_prof):
     for parameters__kinetic_prof_tF_tE,parameters__kinetic_prof_Pr in zip(parameters__kinetic_profs_tF_tE,parameters__kinetic_profs_Pr):
         for parameters__toroidal_mode_number in parameters__toroidal_mode_numbers:
             for parameters__phase_upper,parameters__phase_middle,parameters__phase_lower in zip(parameters__phases_upper,parameters__phases_middle,parameters__phases_lower): #nest at same level == offset them together rigidly 
@@ -201,7 +199,7 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                                 parameters__current_lower])])
 
                         parameters__parameter_string+=f'_beams_{str(config_beam_1)}_{str(config_beam_2)}'
-
+                        parameters__parameter_string=str(run_number)
                         parameter_strings.append(parameters__parameter_string)
 
                         #################################
@@ -211,6 +209,7 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
 
                         
                         LOCUST_run__flags=LOCUST_run__flags_default
+                        LOCUST_run__flags['TIMAX']='2.0D0' #increase max tracking time
                         #XXX CURRENTLY WAITING FOR FIX LOCUST_run__flags['I3DR']=-1 
                         LOCUST_run__settings_prec_mod={}
                         LOCUST_run__settings_prec_mod['nmde']=len(parameters__toroidal_mode_number) #number of total toroidal harmonics = number of modes
@@ -218,11 +217,12 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                         LOCUST_run__settings_prec_mod['Zb']='+1.0_gpu' 
                         LOCUST_run__settings_prec_mod['file_tet']="'locust_wall'" 
                         LOCUST_run__settings_prec_mod['file_eqm']="'locust_eqm'" 
-                        LOCUST_run__settings_prec_mod['threadsPerBlock']=64
-                        LOCUST_run__settings_prec_mod['blocksPerGrid']=512
+                        LOCUST_run__settings_prec_mod['threadsPerBlock']=32
+                        LOCUST_run__settings_prec_mod['blocksPerGrid']=32
                         LOCUST_run__settings_prec_mod['root']="'/tmp/{username}/{study}/{params}'".format(username=settings.username,study=RMP_study__name,params=parameters__parameter_string)
                         LOCUST_run__settings_prec_mod['i3dr']=-1 #XXX WHILST I3DR FLAG IS BROKE
                         LOCUST_run__settings_prec_mod['niter']=1
+
                         MARS_read__flags={}
                         MARS_read__flags['TOKAMAK']=1
                         MARS_read__flags['N0']=np.abs(parameters__toroidal_mode_number[0])
@@ -233,8 +233,8 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                         MARS_read__settings={}
                         MARS_read__settings['TAIL']="{}".format(MARS_read__tails)
                         MARS_read__settings['IKATN']=f'[{parameters__current_upper/1000.}_gpu,{parameters__current_middle/1000.}_gpu,{parameters__current_lower/1000.}_gpu]'
-                        MARS_read__settings['dXR']=f'{0.010}_gpu'
-                        MARS_read__settings['dXZ']=f'{0.010}_gpu'
+                        MARS_read__settings['dXR']=f'{0.01}_gpu' #must increase precision of perturbation grid
+                        MARS_read__settings['dXZ']=f'{0.01}_gpu'
                         
                         NEMO_run__xml_settings={}
                         NEMO_run__xml_settings['nmarker']=LOCUST_run__settings_prec_mod['threadsPerBlock']*LOCUST_run__settings_prec_mod['blocksPerGrid']*16
@@ -309,7 +309,7 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                         
                         #find paths to 3D fields corresponding to desired parameters depending on requested field type
 
-                        RMP_study__field_type='plasma_response' #response or vacuum
+                        RMP_study__field_type='vacuum' #response or vacuum
 
                         for coil_row in ['cU','cM','cL']:
 
@@ -377,7 +377,7 @@ if __name__=='__main__':
             workflow_filepath=path_template_run,
             environment_name_batch=LOCUST_run__environment_name,
             environment_name_workflow=LOCUST_run__environment_name,
-            interactive=False)  
+            interactive=True) # run in interactive mode
 
 #################################
  

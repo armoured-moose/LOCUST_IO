@@ -223,7 +223,7 @@ for parameters__database,parameters__sheet_name_kinetic_prof in zip(
                         LOCUST_run__settings_prec_mod['niter']=1
                         MARS_read__flags={}
                         MARS_read__flags['TOKAMAK']=1
-                        MARS_read__flags['N0']=parameters__toroidal_mode_number[0]
+                        MARS_read__flags['N0']=np.abs(parameters__toroidal_mode_number[0])
                         MARS_read__flags['PLS']=True
                         MARS_read__flags['UPHASE']=f'{parameters__phase_upper}D0' #XXX does this account for counter-rotating harmonics?
                         MARS_read__flags['MPHASE']=f'{parameters__phase_middle}D0'

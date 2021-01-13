@@ -207,7 +207,7 @@ for orbit_setting in orbit_settings:
                                 MARS_read__flags['UPHASE']=f'{parameters__phase_upper}D0' #XXX does this account for counter-rotating harmonics?
                                 MARS_read__flags['MPHASE']=f'{parameters__phase_middle}D0'
                                 MARS_read__flags['LPHASE']=f'{parameters__phase_lower}D0'
-                                MARS_read__flags['N0']=parameters__toroidal_mode_number[0]
+                                MARS_read__flags['N0']=np.abs(parameters__toroidal_mode_number[0])
                                 MARS_read__settings={}
                                 MARS_read__settings['TAIL']="{}".format(MARS_read__tails)
                                 MARS_read__settings['IKATN']=f'[{parameters__current_upper/1000.}_gpu,{parameters__current_middle/1000.}_gpu,{parameters__current_lower/1000.}_gpu]'
